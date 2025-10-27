@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -14,6 +14,7 @@ export default function Dashboard() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Load chat history on mount
   useEffect(() => {
@@ -29,6 +30,11 @@ export default function Dashboard() {
       saveChatHistory(messages);
     }
   }, [messages]);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isLoading]);
 
   const handleClearHistory = () => {
     setMessages([]);
@@ -233,6 +239,9 @@ export default function Dashboard() {
                     </div>
                   </div>
                 )}
+                
+                {/* Scroll anchor */}
+                <div ref={messagesEndRef} />
               </div>
             )}
           </ScrollArea>

@@ -208,16 +208,46 @@ export function RecipeDetailClient({ recipeId }: RecipeDetailClientProps) {
                 <CardTitle className="text-white">Instructions</CardTitle>
               </CardHeader>
               <CardContent>
-                <ol className="space-y-4">
-                  {recipe.instructions.map((instruction, index) => (
-                    <li key={index} className="flex gap-4">
-                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
-                        {index + 1}
-                      </span>
-                      <p className="text-gray-300 pt-1">{instruction}</p>
-                    </li>
-                  ))}
-                </ol>
+                {recipe.steps && recipe.steps.length > 0 ? (
+                  // Enhanced steps with images
+                  <div className="space-y-6">
+                    {recipe.steps.map((step, index) => (
+                      <div key={index} className="flex flex-col gap-4">
+                        <div className="flex gap-4">
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
+                            {step.stepNumber}
+                          </span>
+                          <p className="text-gray-300 pt-1">{step.text}</p>
+                        </div>
+                        
+                        {step.imageUrl && (
+                          <div className="ml-12">
+                            <img
+                              src={step.imageUrl}
+                              alt={step.caption || `Step ${step.stepNumber}`}
+                              className="rounded-lg border border-white/10 w-full max-w-md object-cover"
+                            />
+                            {step.caption && (
+                              <p className="text-sm text-gray-400 mt-2 italic">{step.caption}</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  // Fallback to plain instructions
+                  <ol className="space-y-4">
+                    {recipe.instructions.map((instruction, index) => (
+                      <li key={index} className="flex gap-4">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
+                          {index + 1}
+                        </span>
+                        <p className="text-gray-300 pt-1">{instruction}</p>
+                      </li>
+                    ))}
+                  </ol>
+                )}
               </CardContent>
             </Card>
 

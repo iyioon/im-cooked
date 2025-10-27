@@ -11,9 +11,17 @@ export interface Recipe {
   sourceName: string;
 }
 
+export interface RecipeStep {
+  stepNumber: number;
+  text: string;
+  imageUrl?: string;
+  caption?: string;
+}
+
 export interface RecipeDetail extends Recipe {
   ingredients: string[];
-  instructions: string[];
+  instructions: string[]; // Keep for backward compatibility
+  steps?: RecipeStep[]; // NEW: enhanced step data with images
   nutrition?: {
     calories?: string;
     protein?: string;

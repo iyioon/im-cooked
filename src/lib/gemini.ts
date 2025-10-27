@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import * as cheerio from "cheerio";
-import { Recipe, RecipeDetail, IntentDetectionResponse } from "@/types/recipe";
+import { Recipe, RecipeDetail, RecipeStep, IntentDetectionResponse } from "@/types/recipe";
 
 // Initialize Gemini AI
 const genAI = new GoogleGenAI({
@@ -20,6 +20,23 @@ const WHITELISTED_SITES = [
   "seriouseats.com",
   "tasteofhome.com",
 ];
+
+/**
+ * Strip HTML tags (escaped or unescaped) from text
+ * This handles cases where <img> or other HTML appears as literal text
+ */
+function stripHtmlTags(text: string): string {
+  if (!text) return '';
+  
+  // Remove escaped HTML tags (e.g., &lt;img ... /&gt;)
+  text = text.replace(/&lt;[^&]*&gt;/g, '');
+  
+  // Remove any remaining raw HTML tags (e.g., <img ... />)
+  text = text.replace(/<[^>]*>/g, '');
+  
+  // Clean up multiple spaces
+  return text.replace(/\s+/g, ' ').trim();
+}
 
 /**
  * Check if URL is a collection/category page (not an individual recipe)
@@ -193,7 +210,7 @@ function extractFromJsonLd($: cheerio.CheerioAPI): {
               inst.itemListElement.forEach((step: any) => {
                 if (step['@type'] === 'HowToStep' && step.text) {
                   const cleaned = step.text.trim().replace(/^Step\s+\d+:\s*/i, '').trim();
-                  if (cleaned) instructions.push(cleaned);
+                  if (cleaned) instructions.push(stripHtmlTags(cleaned));
                 }
               });
             }
@@ -201,35 +218,35 @@ function extractFromJsonLd($: cheerio.CheerioAPI): {
           // Handle plain string
           else if (typeof inst === 'string') {
             const cleaned = inst.trim().replace(/^Step\s+\d+:\s*/i, '').trim();
-            if (cleaned) instructions.push(cleaned);
+            if (cleaned) instructions.push(stripHtmlTags(cleaned));
           }
           // Handle HowToStep object
           else if (inst['@type'] === 'HowToStep' && inst.text) {
             const cleaned = inst.text.trim().replace(/^Step\s+\d+:\s*/i, '').trim();
-            if (cleaned) instructions.push(cleaned);
+            if (cleaned) instructions.push(stripHtmlTags(cleaned));
           }
           // Handle ItemList of HowToStep objects (CRITICAL - Bon Appétit, Epicurious, Serious Eats)
           else if (inst['@type'] === 'ItemList' && Array.isArray(inst.itemListElement)) {
             inst.itemListElement.forEach((step: any) => {
               if (step['@type'] === 'HowToStep' && step.text) {
                 const cleaned = step.text.trim().replace(/^Step\s+\d+:\s*/i, '').trim();
-                if (cleaned) instructions.push(cleaned);
+                if (cleaned) instructions.push(stripHtmlTags(cleaned));
               } else if (typeof step === 'string') {
                 const cleaned = step.trim().replace(/^Step\s+\d+:\s*/i, '').trim();
-                if (cleaned) instructions.push(cleaned);
+                if (cleaned) instructions.push(stripHtmlTags(cleaned));
               }
             });
           }
           // Fallback: any object with .text property
           else if (inst.text) {
             const cleaned = inst.text.trim().replace(/^Step\s+\d+:\s*/i, '').trim();
-            if (cleaned) instructions.push(cleaned);
+            if (cleaned) instructions.push(stripHtmlTags(cleaned));
           }
         });
       } else if (typeof recipeData.recipeInstructions === 'string') {
         // Handle single string instruction (rare but possible)
         const cleaned = recipeData.recipeInstructions.trim().replace(/^Step\s+\d+:\s*/i, '').trim();
-        if (cleaned) instructions.push(cleaned);
+        if (cleaned) instructions.push(stripHtmlTags(cleaned));
       }
       
       // Extract nutrition
@@ -253,6 +270,262 @@ function extractFromJsonLd($: cheerio.CheerioAPI): {
   });
   
   return result;
+}
+
+/**
+ * Extract step-by-step images from DOM (site-specific logic)
+ */
+function extractStepImages($: cheerio.CheerioAPI, url: string, instructions: string[]): RecipeStep[] {
+  const steps: RecipeStep[] = [];
+  const hostname = new URL(url).hostname.toLowerCase();
+  
+  // Site-specific extraction logic
+  if (hostname.includes('allrecipes.com')) {
+    // Allrecipes: Steps in <ol> under "Directions" with inline images
+    // Structure: <h2>Directions</h2> <div> <ol> <li> <p>text</p> <figure><img/></figure> </li> </ol> </div>
+    $('h2, h3, h4').each((_, el) => {
+      const headingText = $(el).text().trim().toLowerCase();
+      if (headingText === 'directions' || headingText.startsWith('directions')) {
+        // Look for <ol> in next siblings (could be direct or nested in div)
+        let nextEl = $(el).next();
+        let attempts = 0;
+        let foundOl = null;
+        
+        while (nextEl.length > 0 && attempts < 5) {
+          const tagName = nextEl.prop('tagName')?.toLowerCase();
+          
+          // Check if it's directly an <ol>
+          if (tagName === 'ol') {
+            foundOl = nextEl;
+            break;
+          }
+          
+          // Check if <ol> is nested inside (common for Allrecipes)
+          if (tagName === 'div') {
+            const nestedOl = nextEl.find('ol').first();
+            if (nestedOl.length > 0) {
+              foundOl = nestedOl;
+              break;
+            }
+          }
+          
+          nextEl = nextEl.next();
+          attempts++;
+        }
+        
+        // Extract steps from found <ol>
+        if (foundOl) {
+          foundOl.find('li').each((idx, li) => {
+            // Extract text from <p> tag (cleaner than cloning)
+            const p = $(li).find('p').first();
+            const text = p.length > 0 ? p.text().trim() : $(li).clone().children('figure, img, div').remove().end().text().trim();
+            
+            // Extract image from <figure> or direct <img>
+            const figure = $(li).find('figure').first();
+            const img = figure.length > 0 ? figure.find('img').first() : $(li).find('img').first();
+            const imgUrl = img.attr('src') || img.attr('data-src') || img.attr('data-lazy-src');
+            
+            if (text) {
+              steps.push({
+                stepNumber: idx + 1,
+                text: stripHtmlTags(text.replace(/^Step\s+\d+:\s*/i, '').trim()),
+                imageUrl: imgUrl && imgUrl.startsWith('http') ? imgUrl : undefined,
+                caption: img.attr('alt') || undefined,
+              });
+            }
+          });
+        }
+        
+        return false; // Break outer loop
+      }
+    });
+  }
+  
+  else if (hostname.includes('foodnetwork.com')) {
+    // Food Network: Look for step headings with nearby images
+    $('h2, h3, h4').each((idx, el) => {
+      const headingText = $(el).text().trim();
+      if (/^Step\s+\d+/i.test(headingText)) {
+        const parent = $(el).parent();
+        const text = parent.find('p').text().trim() || $(el).next('p').text().trim();
+        const img = parent.find('img').first();
+        const imgUrl = img.attr('src') || img.attr('data-src');
+        
+        if (text) {
+          steps.push({
+            stepNumber: idx + 1,
+            text: stripHtmlTags(text),
+            imageUrl: imgUrl && imgUrl.startsWith('http') ? imgUrl : undefined,
+            caption: img.attr('alt') || undefined,
+          });
+        }
+      }
+    });
+  }
+  
+  else if (hostname.includes('simplyrecipes.com')) {
+    // Simply Recipes: Steps under "Method" with figures
+    $('h2, h3, h4').each((_, el) => {
+      const headingText = $(el).text().trim().toLowerCase();
+      if (headingText === 'method' || headingText.startsWith('method') || headingText.includes('how to')) {
+        let nextEl = $(el).next();
+        let attempts = 0;
+        let stepNum = 1;
+        
+        while (nextEl.length > 0 && attempts < 15) {
+          const tagName = nextEl.prop('tagName')?.toLowerCase();
+          
+          // Check if it's a step heading or paragraph
+          if (tagName === 'h3' || tagName === 'h4' || tagName === 'p') {
+            const text = nextEl.text().trim();
+            if (text && text.length > 10) {
+              // Look for nearby image
+              const figure = nextEl.find('figure').first();
+              const img = figure.find('img').first();
+              let imgUrl = img.attr('src') || img.attr('data-src');
+              
+              // Also check next sibling for figure
+              if (!imgUrl) {
+                const nextFigure = nextEl.next('figure');
+                const nextImg = nextFigure.find('img').first();
+                imgUrl = nextImg.attr('src') || nextImg.attr('data-src');
+              }
+              
+              steps.push({
+                stepNumber: stepNum++,
+                text: stripHtmlTags(text.replace(/^Step\s+\d+:\s*/i, '').trim()),
+                imageUrl: imgUrl && imgUrl.startsWith('http') ? imgUrl : undefined,
+                caption: img.attr('alt') || figure.find('figcaption').text().trim() || undefined,
+              });
+            }
+          }
+          
+          if (tagName === 'h2') break; // Hit another major section
+          nextEl = nextEl.next();
+          attempts++;
+        }
+        return false;
+      }
+    });
+  }
+  
+  else if (hostname.includes('delish.com')) {
+    // Delish: "STEP-BY-STEP INSTRUCTIONS" section
+    $('h2, h3, h4').each((_, el) => {
+      const headingText = $(el).text().trim().toLowerCase();
+      if (headingText.includes('step-by-step')) {
+        let nextEl = $(el).next();
+        let attempts = 0;
+        let stepNum = 1;
+        
+        while (nextEl.length > 0 && attempts < 15) {
+          const tagName = nextEl.prop('tagName')?.toLowerCase();
+          const text = nextEl.text().trim();
+          
+          if ((tagName === 'div' || tagName === 'p' || tagName === 'h3') && text && /step\s+\d+/i.test(text)) {
+            const img = nextEl.find('img').first();
+            const imgUrl = img.attr('src') || img.attr('data-src');
+            
+            steps.push({
+              stepNumber: stepNum++,
+              text: stripHtmlTags(text.replace(/^Step\s+\d+:\s*/i, '').trim()),
+              imageUrl: imgUrl && imgUrl.startsWith('http') ? imgUrl : undefined,
+              caption: img.attr('alt') || undefined,
+            });
+          }
+          
+          if (tagName === 'h2') break;
+          nextEl = nextEl.next();
+          attempts++;
+        }
+        return false;
+      }
+    });
+  }
+  
+  else if (hostname.includes('tasteofhome.com')) {
+    // Taste of Home: "Step 1/Step 2" under "Directions"
+    $('h2, h3, h4').each((_, el) => {
+      const headingText = $(el).text().trim().toLowerCase();
+      if (headingText === 'directions' || headingText.startsWith('directions')) {
+        let nextEl = $(el).next();
+        let attempts = 0;
+        let stepNum = 1;
+        
+        while (nextEl.length > 0 && attempts < 15) {
+          const tagName = nextEl.prop('tagName')?.toLowerCase();
+          const text = nextEl.text().trim();
+          
+          if ((tagName === 'h3' || tagName === 'p') && text && /step\s+\d+/i.test(text)) {
+            // Find associated image (usually in next figure or sibling)
+            const figure = nextEl.next('figure');
+            const img = figure.find('img').first();
+            const imgUrl = img.attr('src') || img.attr('data-src');
+            const caption = figure.find('figcaption').text().trim();
+            
+            steps.push({
+              stepNumber: stepNum++,
+              text: stripHtmlTags(text.replace(/^Step\s+\d+:\s*/i, '').trim()),
+              imageUrl: imgUrl && imgUrl.startsWith('http') ? imgUrl : undefined,
+              caption: caption || img.attr('alt') || undefined,
+            });
+          }
+          
+          if (tagName === 'h2') break;
+          nextEl = nextEl.next();
+          attempts++;
+        }
+        return false;
+      }
+    });
+  }
+  
+  else if (hostname.includes('seriouseats.com')) {
+    // Serious Eats: Look for process shots in method
+    $('h2, h3, h4').each((_, el) => {
+      const headingText = $(el).text().trim().toLowerCase();
+      if (headingText === 'directions' || headingText === 'method' || headingText.startsWith('directions')) {
+        let nextEl = $(el).next();
+        let attempts = 0;
+        let stepNum = 1;
+        
+        while (nextEl.length > 0 && attempts < 15) {
+          const tagName = nextEl.prop('tagName')?.toLowerCase();
+          
+          if (tagName === 'p' || tagName === 'div') {
+            const text = nextEl.clone().find('figure').remove().end().text().trim();
+            if (text && text.length > 10) {
+              const figure = nextEl.find('figure').first();
+              const img = figure.find('img').first();
+              const imgUrl = img.attr('src') || img.attr('data-src');
+              
+              steps.push({
+                stepNumber: stepNum++,
+                text: stripHtmlTags(text.replace(/^Step\s+\d+:\s*/i, '').trim()),
+                imageUrl: imgUrl && imgUrl.startsWith('http') ? imgUrl : undefined,
+                caption: figure.find('figcaption').text().trim() || img.attr('alt') || undefined,
+              });
+            }
+          }
+          
+          if (tagName === 'h2') break;
+          nextEl = nextEl.next();
+          attempts++;
+        }
+        return false;
+      }
+    });
+  }
+  
+  // Fallback: If no steps found with images, create steps from instructions array
+  if (steps.length === 0 && instructions.length > 0) {
+    return instructions.map((text, idx) => ({
+      stepNumber: idx + 1,
+      text: stripHtmlTags(text),
+    }));
+  }
+  
+  return steps;
 }
 
 /**
@@ -578,7 +851,7 @@ export async function getRecipeDetail(recipeId: string): Promise<RecipeDetail | 
                     // Clean up "Step N:" prefixes
                     const cleaned = text.replace(/^Step\s+\d+:\s*/i, '').trim();
                     if (cleaned) {
-                      instructions.push(cleaned);
+                      instructions.push(stripHtmlTags(cleaned));
                     }
                   }
                 });
@@ -605,7 +878,7 @@ export async function getRecipeDetail(recipeId: string): Promise<RecipeDetail | 
       $('[itemprop="recipeInstructions"] li, [itemprop="recipeInstructions"] p, [itemprop="step"]').each((_, el) => {
         const text = $(el).text().trim();
         if (text && text.length > 0 && !instructions.includes(text)) {
-          instructions.push(text);
+          instructions.push(stripHtmlTags(text));
         }
       });
       
@@ -639,7 +912,7 @@ export async function getRecipeDetail(recipeId: string): Promise<RecipeDetail | 
         ).each((_, el) => {
           const text = $(el).text().trim();
           if (text && text.length > 0 && !instructions.includes(text)) {
-            instructions.push(text);
+            instructions.push(stripHtmlTags(text));
           }
         });
         
@@ -649,7 +922,7 @@ export async function getRecipeDetail(recipeId: string): Promise<RecipeDetail | 
           $('ol li p, .directions li p, .instructions li p, .method li p, .steps li p, [class*="recipe-steps"] li p').each((_, el) => {
             const text = $(el).text().trim();
             if (text && text.length > 0 && !instructions.includes(text)) {
-              instructions.push(text);
+              instructions.push(stripHtmlTags(text));
             }
           });
         }
@@ -671,6 +944,11 @@ export async function getRecipeDetail(recipeId: string): Promise<RecipeDetail | 
       }
     }
     
+    // Extract step images (site-specific DOM scraping)
+    console.log('Extracting step images from DOM...');
+    const steps = extractStepImages($, url, instructions);
+    console.log(`Extracted ${steps.length} steps, ${steps.filter(s => s.imageUrl).length} with images`);
+    
     // Get basic recipe info (using cheerio-only scraping)
     const basicRecipe = await scrapeRecipe(url);
     if (!basicRecipe) return null;
@@ -679,6 +957,7 @@ export async function getRecipeDetail(recipeId: string): Promise<RecipeDetail | 
       ...basicRecipe,
       ingredients: ingredients.length > 0 ? ingredients : ['Unable to extract ingredients from this page. This may be a collection page or the page structure is not supported.'],
       instructions: instructions.length > 0 ? instructions : ['Unable to extract instructions from this page. This may be a collection page or the page structure is not supported.'],
+      steps: steps.length > 0 ? steps : undefined,
       nutrition,
     };
   } catch (error) {
