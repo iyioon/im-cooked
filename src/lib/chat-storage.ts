@@ -11,6 +11,7 @@ export interface Message {
   timestamp: Date;
   recipes?: Recipe[];
   isRecipeSearch?: boolean;
+  query?: string;
 }
 
 const STORAGE_KEY = "im-cooked-chat-history";

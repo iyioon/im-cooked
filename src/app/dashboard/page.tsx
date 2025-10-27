@@ -75,6 +75,7 @@ export default function Dashboard() {
           timestamp: new Date(),
           recipes: data.recipes,
           isRecipeSearch: true,
+          query: currentInput,
         };
         setMessages((prev) => [...prev, recipeMessage]);
       } else {
@@ -204,7 +205,7 @@ export default function Dashboard() {
                           <div className="flex-1">
                             <RecipeResults
                               recipes={message.recipes}
-                              query={messages.find(m => m.id === String(Number(message.id) - 1))?.content || ""}
+                              query={message.query || ""}
                             />
                           </div>
                         ) : (

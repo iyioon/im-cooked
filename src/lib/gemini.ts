@@ -164,26 +164,72 @@ function extractFromJsonLd($: cheerio.CheerioAPI): {
       
       if (!recipeData) return;
       
-      // Extract ingredients
+      // Extract ingredients with deduplication
       const ingredients: string[] = [];
+      const seenIngredients = new Set<string>();
+
       if (Array.isArray(recipeData.recipeIngredient)) {
         recipeData.recipeIngredient.forEach((ing: string) => {
-          if (ing && ing.trim()) ingredients.push(ing.trim());
+          const cleaned = ing?.trim();
+          if (cleaned && !seenIngredients.has(cleaned.toLowerCase())) {
+            ingredients.push(cleaned);
+            seenIngredients.add(cleaned.toLowerCase());
+          }
         });
       }
       
-      // Extract instructions
+      // Extract instructions (handles ItemList, HowToSection, HowToStep, and plain strings)
       const instructions: string[] = [];
       if (Array.isArray(recipeData.recipeInstructions)) {
         recipeData.recipeInstructions.forEach((inst: any) => {
-          if (typeof inst === 'string') {
-            instructions.push(inst);
-          } else if (inst['@type'] === 'HowToStep' && inst.text) {
-            instructions.push(inst.text);
-          } else if (inst.text) {
-            instructions.push(inst.text);
+          // Handle HowToSection (multi-part recipes like "For the sauce:", "For assembly:")
+          if (inst['@type'] === 'HowToSection') {
+            // Add section name as a header
+            if (inst.name) {
+              instructions.push(`\n**${inst.name}**`);
+            }
+            // Process steps within section
+            if (Array.isArray(inst.itemListElement)) {
+              inst.itemListElement.forEach((step: any) => {
+                if (step['@type'] === 'HowToStep' && step.text) {
+                  const cleaned = step.text.trim().replace(/^Step\s+\d+:\s*/i, '').trim();
+                  if (cleaned) instructions.push(cleaned);
+                }
+              });
+            }
+          }
+          // Handle plain string
+          else if (typeof inst === 'string') {
+            const cleaned = inst.trim().replace(/^Step\s+\d+:\s*/i, '').trim();
+            if (cleaned) instructions.push(cleaned);
+          }
+          // Handle HowToStep object
+          else if (inst['@type'] === 'HowToStep' && inst.text) {
+            const cleaned = inst.text.trim().replace(/^Step\s+\d+:\s*/i, '').trim();
+            if (cleaned) instructions.push(cleaned);
+          }
+          // Handle ItemList of HowToStep objects (CRITICAL - Bon Appétit, Epicurious, Serious Eats)
+          else if (inst['@type'] === 'ItemList' && Array.isArray(inst.itemListElement)) {
+            inst.itemListElement.forEach((step: any) => {
+              if (step['@type'] === 'HowToStep' && step.text) {
+                const cleaned = step.text.trim().replace(/^Step\s+\d+:\s*/i, '').trim();
+                if (cleaned) instructions.push(cleaned);
+              } else if (typeof step === 'string') {
+                const cleaned = step.trim().replace(/^Step\s+\d+:\s*/i, '').trim();
+                if (cleaned) instructions.push(cleaned);
+              }
+            });
+          }
+          // Fallback: any object with .text property
+          else if (inst.text) {
+            const cleaned = inst.text.trim().replace(/^Step\s+\d+:\s*/i, '').trim();
+            if (cleaned) instructions.push(cleaned);
           }
         });
+      } else if (typeof recipeData.recipeInstructions === 'string') {
+        // Handle single string instruction (rare but possible)
+        const cleaned = recipeData.recipeInstructions.trim().replace(/^Step\s+\d+:\s*/i, '').trim();
+        if (cleaned) instructions.push(cleaned);
       }
       
       // Extract nutrition
@@ -201,7 +247,8 @@ function extractFromJsonLd($: cheerio.CheerioAPI): {
         result = { ingredients, instructions, nutrition };
       }
     } catch (e) {
-      // Skip non-JSON or invalid JSON
+      // Log parsing failures for debugging
+      console.warn('Failed to parse JSON-LD schema:', e);
     }
   });
   
@@ -260,28 +307,28 @@ async function scrapeRecipe(url: string): Promise<Recipe | null> {
     }
     
     // Extract prep time (look in common locations)
-    let prepTime: string | null = null;
+    let prepTime: string | undefined = undefined;
     const prepTimeEl = $('[itemprop="prepTime"], .prep-time, .prepTime, .recipe-meta-item-header:contains("Prep")').first();
     if (prepTimeEl.length > 0) {
-      prepTime = extractTime(prepTimeEl.text()) || extractTime(prepTimeEl.next().text());
+      prepTime = extractTime(prepTimeEl.text()) || extractTime(prepTimeEl.next().text()) || undefined;
     }
     
     // Extract cook time
-    let cookTime: string | null = null;
+    let cookTime: string | undefined = undefined;
     const cookTimeEl = $('[itemprop="cookTime"], .cook-time, .cookTime, .recipe-meta-item-header:contains("Cook")').first();
     if (cookTimeEl.length > 0) {
-      cookTime = extractTime(cookTimeEl.text()) || extractTime(cookTimeEl.next().text());
+      cookTime = extractTime(cookTimeEl.text()) || extractTime(cookTimeEl.next().text()) || undefined;
     }
     
     // Extract servings
-    let servings: string | null = null;
+    let servings: string | undefined = undefined;
     const servingsEl = $('[itemprop="recipeYield"], .servings, .yield, .recipe-meta-item-header:contains("Servings")').first();
     if (servingsEl.length > 0) {
-      servings = extractServings(servingsEl.text()) || extractServings(servingsEl.next().text());
+      servings = extractServings(servingsEl.text()) || extractServings(servingsEl.next().text()) || undefined;
     }
     
     // Determine difficulty based on cook time and ingredient count
-    let difficulty: "Easy" | "Medium" | "Hard" | null = null;
+    let difficulty: "Easy" | "Medium" | "Hard" | undefined = undefined;
     const totalTimeText = (prepTime || '') + ' ' + (cookTime || '');
     const totalMinutes = parseInt(totalTimeText.match(/(\d+)/)?.[0] || '0');
     
@@ -468,23 +515,111 @@ export async function getRecipeDetail(recipeId: string): Promise<RecipeDetail | 
     } else {
       console.log('JSON-LD extraction failed, falling back to HTML selectors...');
       
-      // FALLBACK 1: Schema.org markup in HTML
+      // FALLBACK 1: Heading-based extraction (most reliable after JSON-LD)
+      // All 8 sites use semantic headings: "Ingredients" + "Directions/Preparation/Method"
+      if (ingredients.length === 0) {
+        $('h1, h2, h3, h4, h5, h6').each((_, el) => {
+          const headingText = $(el).text().trim().toLowerCase();
+          if (headingText === 'ingredients' || headingText.startsWith('ingredients')) {
+            // Get the next UL or list container
+            let nextEl = $(el).next();
+            let attempts = 0;
+            while (nextEl.length > 0 && attempts < 5) {
+              const tagName = nextEl.prop('tagName')?.toLowerCase();
+              if (tagName === 'ul' || tagName === 'div') {
+                nextEl.find('li').each((_, li) => {
+                  // Filter out buttons, checkboxes, UI controls (e.g., Allrecipes scaling)
+                  const hasControl = $(li).find('button, input[type="checkbox"], input[type="radio"]').length > 0;
+                  if (!hasControl) {
+                    const text = $(li).text().trim();
+                    if (text && text.length > 0 && !ingredients.includes(text)) {
+                      ingredients.push(text);
+                    }
+                  }
+                });
+                break;
+              }
+              if (tagName === 'h1' || tagName === 'h2' || tagName === 'h3' || tagName === 'h4' || tagName === 'h5' || tagName === 'h6') {
+                // Hit another heading, stop
+                break;
+              }
+              nextEl = nextEl.next();
+              attempts++;
+            }
+            return false; // Break outer loop
+          }
+        });
+      }
+
+      if (instructions.length === 0) {
+        // Find "Directions", "Preparation", "Method", or "Instructions" heading
+        $('h1, h2, h3, h4, h5, h6').each((_, el) => {
+          const headingText = $(el).text().trim().toLowerCase();
+          const isInstructionHeading = 
+            headingText === 'directions' || 
+            headingText === 'preparation' || 
+            headingText === 'method' || 
+            headingText === 'instructions' ||
+            headingText.startsWith('directions') ||
+            headingText.startsWith('preparation') ||
+            headingText.startsWith('method') ||
+            headingText.startsWith('instructions');
+          
+          if (isInstructionHeading) {
+            // Get the next OL, UL, or DIV container
+            let nextEl = $(el).next();
+            let attempts = 0;
+            while (nextEl.length > 0 && attempts < 5) {
+              const tagName = nextEl.prop('tagName')?.toLowerCase();
+              if (tagName === 'ol' || tagName === 'ul' || tagName === 'div') {
+                nextEl.find('li, p').each((_, item) => {
+                  const text = $(item).text().trim();
+                  if (text && text.length > 0 && !instructions.includes(text)) {
+                    // Clean up "Step N:" prefixes
+                    const cleaned = text.replace(/^Step\s+\d+:\s*/i, '').trim();
+                    if (cleaned) {
+                      instructions.push(cleaned);
+                    }
+                  }
+                });
+                break;
+              }
+              if (tagName === 'h1' || tagName === 'h2' || tagName === 'h3' || tagName === 'h4' || tagName === 'h5' || tagName === 'h6') {
+                // Hit another major heading, stop
+                break;
+              }
+              nextEl = nextEl.next();
+              attempts++;
+            }
+            return false; // Break outer loop
+          }
+        });
+      }
+      
+      // FALLBACK 2: Schema.org markup in HTML
       $('[itemprop="recipeIngredient"]').each((_, el) => {
         const text = $(el).text().trim();
         if (text && text.length > 0) ingredients.push(text);
       });
       
-      $('[itemprop="recipeInstructions"] li, [itemprop="step"]').each((_, el) => {
+      $('[itemprop="recipeInstructions"] li, [itemprop="recipeInstructions"] p, [itemprop="step"]').each((_, el) => {
         const text = $(el).text().trim();
-        if (text && text.length > 0) instructions.push(text);
+        if (text && text.length > 0 && !instructions.includes(text)) {
+          instructions.push(text);
+        }
       });
       
-      // FALLBACK 2: Common class names and nested elements
+      // FALLBACK 3: Common class names and nested elements
       if (ingredients.length === 0) {
         // Try common ingredient selectors
         $('li[class*="ingredient"], .ingredients li, .ingredient-list li').each((_, el) => {
+          // Skip if it contains buttons or inputs (UI controls like Allrecipes scaling)
+          if ($(el).find('button, input').length > 0) return;
+          
           const text = $(el).text().trim();
-          if (text && text.length > 0) ingredients.push(text);
+          if (text && text.length > 0 && !ingredients.includes(text)) {
+            ingredients.push(text);
+          }
         });
         
         // If still empty, try nested p tags in ingredient lists
@@ -498,17 +633,24 @@ export async function getRecipeDetail(recipeId: string): Promise<RecipeDetail | 
       
       if (instructions.length === 0) {
         // Try common instruction selectors
-        $('li[class*="instruction"], .instructions li, ol[class*="instructions"] li, .preparation-step').each((_, el) => {
+        $(
+          'li[class*="instruction"], .instructions li, .directions li, .method li, ' +
+          'ol[class*="instructions"] li, ol[class*="directions"] li, .preparation-step'
+        ).each((_, el) => {
           const text = $(el).text().trim();
-          if (text && text.length > 0) instructions.push(text);
+          if (text && text.length > 0 && !instructions.includes(text)) {
+            instructions.push(text);
+          }
         });
         
         // If still empty, try nested p tags in ordered/unordered lists
         // This handles AllRecipes and similar sites that nest <p> inside <li>
         if (instructions.length === 0) {
-          $('ol li p, .directions li p, .instructions li p, .steps li p, [class*="recipe-steps"] li p').each((_, el) => {
+          $('ol li p, .directions li p, .instructions li p, .method li p, .steps li p, [class*="recipe-steps"] li p').each((_, el) => {
             const text = $(el).text().trim();
-            if (text && text.length > 0) instructions.push(text);
+            if (text && text.length > 0 && !instructions.includes(text)) {
+              instructions.push(text);
+            }
           });
         }
       }
@@ -535,8 +677,8 @@ export async function getRecipeDetail(recipeId: string): Promise<RecipeDetail | 
     
     return {
       ...basicRecipe,
-      ingredients: ingredients.length > 0 ? ingredients : ['Ingredients not available'],
-      instructions: instructions.length > 0 ? instructions : ['Instructions not available'],
+      ingredients: ingredients.length > 0 ? ingredients : ['Unable to extract ingredients from this page. This may be a collection page or the page structure is not supported.'],
+      instructions: instructions.length > 0 ? instructions : ['Unable to extract instructions from this page. This may be a collection page or the page structure is not supported.'],
       nutrition,
     };
   } catch (error) {
