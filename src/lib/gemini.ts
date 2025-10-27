@@ -479,19 +479,38 @@ export async function getRecipeDetail(recipeId: string): Promise<RecipeDetail | 
         if (text && text.length > 0) instructions.push(text);
       });
       
-      // FALLBACK 2: Common class names
+      // FALLBACK 2: Common class names and nested elements
       if (ingredients.length === 0) {
+        // Try common ingredient selectors
         $('li[class*="ingredient"], .ingredients li, .ingredient-list li').each((_, el) => {
           const text = $(el).text().trim();
           if (text && text.length > 0) ingredients.push(text);
         });
+        
+        // If still empty, try nested p tags in ingredient lists
+        if (ingredients.length === 0) {
+          $('.ingredients li p, ul[class*="ingredient"] li p').each((_, el) => {
+            const text = $(el).text().trim();
+            if (text && text.length > 0) ingredients.push(text);
+          });
+        }
       }
       
       if (instructions.length === 0) {
+        // Try common instruction selectors
         $('li[class*="instruction"], .instructions li, ol[class*="instructions"] li, .preparation-step').each((_, el) => {
           const text = $(el).text().trim();
           if (text && text.length > 0) instructions.push(text);
         });
+        
+        // If still empty, try nested p tags in ordered/unordered lists
+        // This handles AllRecipes and similar sites that nest <p> inside <li>
+        if (instructions.length === 0) {
+          $('ol li p, .directions li p, .instructions li p, .steps li p, [class*="recipe-steps"] li p').each((_, el) => {
+            const text = $(el).text().trim();
+            if (text && text.length > 0) instructions.push(text);
+          });
+        }
       }
       
       // Extract nutrition info from HTML
