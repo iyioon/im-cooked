@@ -21,22 +21,47 @@ const WHITELISTED_SITES = [
   "tasteofhome.com",
 ];
 
-// URL patterns to exclude (category/collection pages)
-const EXCLUDED_URL_PATTERNS = [
-  /\/best-[^/]+$/i,           // e.g., /best-pasta-recipes-8737255
-  /\/gallery\//i,             // Gallery pages
-  /\/recipes\/?$/i,           // Category landing pages ending in /recipes or /recipes/
-  /\/collection/i,            // Collection pages
-  /\/category\//i,            // Category pages
-  /\/guide\//i,               // Guide pages
-  /-\d{7,}$/i,                // IDs at end like -8737255 (often collections)
-];
-
 /**
- * Check if URL is a category/collection page (not an individual recipe)
+ * Check if URL is a collection/category page (not an individual recipe)
+ * 
+ * IMPROVED LOGIC:
+ * - Allows individual recipes with numeric IDs (e.g., recipe-11815611)
+ * - Filters collections like "best-pasta-recipes-8737255"
+ * - Key difference: Collections end in -recipes-<ID> (plural), recipes end in -recipe-<ID> (singular)
  */
 function isCollectionUrl(url: string): boolean {
-  return EXCLUDED_URL_PATTERNS.some(pattern => pattern.test(url));
+  // Pattern 1: Category landing pages ending in /recipes or /recipes/
+  if (/\/recipes\/?$/i.test(url)) {
+    return true;
+  }
+  
+  // Pattern 2: Gallery pages with /g followed by digits (e.g., /g1456/)
+  if (/\/g\d+\//i.test(url)) {
+    return true;
+  }
+  
+  // Pattern 3: Explicit gallery/collection/category/guide pages
+  if (/\/(gallery|collection|category|guide)\//i.test(url)) {
+    return true;
+  }
+  
+  // Pattern 4: URLs ending with -recipes-<numbers> (plural without -recipe- before ID)
+  // Example: best-pasta-recipes-8737255 (collection) vs pasta-bake-recipe-11815611 (recipe)
+  if (/-recipes-\d+$/i.test(url)) {
+    return true;
+  }
+  
+  // Pattern 5: URLs with /best- AND ending in /recipes/ (e.g., /best-chocolate-recipes/)
+  if (/\/best-[^/]+-recipes\/?$/i.test(url)) {
+    return true;
+  }
+  
+  // Pattern 6: Recipe index/listing pages (recipes-a-z, all-recipes, etc.)
+  if (/\/recipes-[a-z]|\/all-recipes/i.test(url)) {
+    return true;
+  }
+  
+  return false;
 }
 
 /**
@@ -381,7 +406,7 @@ export async function searchRecipes(query: string): Promise<Recipe[]> {
     console.log(`Filtered to ${recipeUrls.length} individual recipe URLs from whitelisted sites`);
     
     if (recipeUrls.length === 0) {
-      console.warn('No individual recipe URLs found. All resolved URLs:', actualUrls.slice(0, 5));
+      console.warn('No individual recipe URLs found. Sample resolved URLs:', actualUrls.slice(0, 5));
       return [];
     }
     
