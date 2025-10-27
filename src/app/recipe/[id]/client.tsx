@@ -120,6 +120,18 @@ export function RecipeDetailClient({ recipeId }: RecipeDetailClientProps) {
 
           <p className="text-lg text-gray-300 mb-6">{recipe.description}</p>
 
+          {/* View Original Recipe Button */}
+          <div className="mb-6">
+            <Button
+              onClick={() => window.open(recipe.sourceUrl, "_blank")}
+              variant="outline"
+              className="border-white/20 hover:bg-white/10 text-white"
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              View Original Recipe on {recipe.sourceName}
+            </Button>
+          </div>
+
           {/* Info Row */}
           <div className="flex flex-wrap gap-6">
             {recipe.prepTime && (
@@ -295,18 +307,6 @@ export function RecipeDetailClient({ recipeId }: RecipeDetailClientProps) {
                 </CardContent>
               </Card>
             )}
-
-            {/* Source Link */}
-            <div className="flex justify-center">
-              <Button
-                onClick={() => window.open(recipe.sourceUrl, "_blank")}
-                variant="outline"
-                className="border-white/20 hover:bg-white/10 text-white"
-              >
-                <ExternalLink className="mr-2 h-4 w-4" />
-                View Original Recipe on {recipe.sourceName}
-              </Button>
-            </div>
           </div>
         </div>
       </div>
