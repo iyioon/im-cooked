@@ -1,0 +1,355 @@
+import { GoogleGenAI } from "@google/genai";
+import * as cheerio from "cheerio";
+import { Recipe, RecipeDetail, IntentDetectionResponse } from "@/types/recipe";
+
+// Initialize Gemini AI
+const genAI = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY || "",
+});
+
+const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-2.0-flash-lite";
+
+// Whitelisted recipe sites
+const WHITELISTED_SITES = [
+  "allrecipes.com",
+  "foodnetwork.com",
+  "simplyrecipes.com",
+  "delish.com",
+  "bonappetit.com",
+  "epicurious.com",
+  "seriouseats.com",
+  "tasteofhome.com",
+];
+
+/**
+ * Detect if user message is a recipe search intent
+ */
+export async function detectRecipeIntent(
+  userMessage: string
+): Promise<IntentDetectionResponse> {
+  try {
+    const prompt = `Analyze this user message and determine if they are searching for a recipe or asking for recipe recommendations.
+
+User message: "${userMessage}"
+
+Respond with ONLY valid JSON in this exact format (no markdown, no code blocks):
+{
+  "isRecipeSearch": boolean,
+  "searchQuery": string or null
+}
+
+Examples:
+- "chocolate chip cookies" -> {"isRecipeSearch": true, "searchQuery": "chocolate chip cookies"}
+- "how long to cook chicken?" -> {"isRecipeSearch": false, "searchQuery": null}
+- "find me a pasta recipe" -> {"isRecipeSearch": true, "searchQuery": "pasta"}
+- "show me some cake recipes" -> {"isRecipeSearch": true, "searchQuery": "cake"}
+- "what's a good dinner idea?" -> {"isRecipeSearch": true, "searchQuery": "dinner"}`;
+
+    const result = await genAI.models.generateContent({
+      model: MODEL_NAME,
+      contents: prompt,
+    });
+    const response = result.text || "";
+    
+    // Clean up response - remove markdown code blocks if present
+    const cleanResponse = response
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+    
+    const parsed = JSON.parse(cleanResponse);
+    return parsed as IntentDetectionResponse;
+  } catch (error) {
+    console.error("Error detecting recipe intent:", error);
+    return { isRecipeSearch: false, searchQuery: null };
+  }
+}
+
+/**
+ * Scrape recipe data from a URL
+ */
+async function scrapeRecipe(url: string): Promise<Recipe | null> {
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      },
+    });
+    
+    if (!response.ok) return null;
+    
+    const html = await response.text();
+    const $ = cheerio.load(html);
+    
+    // Extract basic data using common selectors
+    const title = 
+      $('h1').first().text().trim() ||
+      $('meta[property="og:title"]').attr('content') ||
+      $('title').first().text().trim() ||
+      '';
+    
+    const description = 
+      $('meta[name="description"]').attr('content') ||
+      $('meta[property="og:description"]').attr('content') ||
+      $('p').first().text().trim().substring(0, 200) ||
+      '';
+    
+    const imageUrl = 
+      $('meta[property="og:image"]').attr('content') ||
+      $('img[src*="recipe"]').first().attr('src') ||
+      $('img').first().attr('src') ||
+      '';
+    
+    if (!title || !imageUrl) return null;
+    
+    // Get source name from URL
+    const sourceName = new URL(url).hostname.replace('www.', '').split('.')[0];
+    
+    // Use AI to structure the data better
+    const prompt = `Extract recipe information from this HTML content and return ONLY valid JSON (no markdown, no code blocks):
+
+Title: ${title}
+Description: ${description}
+Image URL: ${imageUrl}
+
+Additional HTML content (first 3000 chars):
+${html.substring(0, 3000)}
+
+Return JSON in this exact format:
+{
+  "title": "${title}",
+  "description": "1-2 sentence summary",
+  "prepTime": "X mins" or null,
+  "cookTime": "X mins" or null,
+  "servings": "X servings" or null,
+  "difficulty": "Easy" or "Medium" or "Hard" or null
+}`;
+
+    const result = await genAI.models.generateContent({
+      model: MODEL_NAME,
+      contents: prompt,
+    });
+    const aiResponse = (result.text || "")
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+    
+    const structured = JSON.parse(aiResponse);
+    
+    return {
+      id: Buffer.from(url).toString('base64'),
+      title: structured.title || title,
+      description: structured.description || description.substring(0, 150),
+      imageUrl: imageUrl.startsWith('http') ? imageUrl : `https:${imageUrl}`,
+      prepTime: structured.prepTime,
+      cookTime: structured.cookTime,
+      servings: structured.servings,
+      difficulty: structured.difficulty,
+      sourceUrl: url,
+      sourceName: sourceName.charAt(0).toUpperCase() + sourceName.slice(1),
+    };
+  } catch (error) {
+    console.error(`Error scraping recipe from ${url}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Follow a grounding redirect URL to get the actual destination URL
+ */
+async function resolveGroundingUrl(groundingUrl: string): Promise<string | null> {
+  try {
+    const response = await fetch(groundingUrl, {
+      method: 'HEAD',
+      redirect: 'manual', // Don't auto-follow redirects
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      },
+    });
+    
+    // Get the Location header which contains the actual URL
+    const actualUrl = response.headers.get('location');
+    return actualUrl;
+  } catch (error) {
+    console.error(`Error resolving grounding URL ${groundingUrl}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Search for recipes based on query using Google Search Grounding
+ */
+export async function searchRecipes(query: string): Promise<Recipe[]> {
+  try {
+    console.log(`Searching recipes with Google Search Grounding for: ${query}`);
+    
+    // Use Gemini with Google Search grounding to find recipe URLs
+    // Note: Keep the prompt simple and natural to ensure grounding metadata is populated
+    const response = await genAI.models.generateContent({
+      model: MODEL_NAME,
+      contents: `Find ${query} recipes from these cooking websites: allrecipes.com, foodnetwork.com, simplyrecipes.com, delish.com, bonappetit.com, epicurious.com, seriouseats.com, tasteofhome.com`,
+      config: {
+        tools: [{ googleSearch: {} }],
+      },
+    });
+    
+    console.log('Gemini response text:', response.text);
+    
+    // Extract URLs from grounding metadata
+    const groundingData = response.candidates?.[0]?.groundingMetadata;
+    
+    if (!groundingData || !groundingData.groundingChunks) {
+      console.warn('No grounding metadata found');
+      return [];
+    }
+    
+    console.log(`Found ${groundingData.groundingChunks.length} grounding chunks`);
+    
+    // Extract grounding redirect URLs from chunks
+    const groundingUrls = groundingData.groundingChunks
+      .filter(chunk => chunk.web?.uri)
+      .map(chunk => chunk.web!.uri!)
+      .filter((url): url is string => !!url);
+    
+    console.log(`Extracted ${groundingUrls.length} grounding URLs`);
+    
+    if (groundingUrls.length === 0) {
+      console.warn('No grounding URLs found in chunks');
+      return [];
+    }
+    
+    // Resolve redirect URLs to get actual recipe URLs
+    console.log('Resolving grounding redirect URLs...');
+    const resolvePromises = groundingUrls.map(url => 
+      Promise.race([
+        resolveGroundingUrl(url),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000))
+      ])
+    );
+    
+    const resolvedUrls = await Promise.all(resolvePromises);
+    const actualUrls = resolvedUrls.filter((url): url is string => url !== null);
+    
+    console.log(`Resolved ${actualUrls.length} actual URLs:`, actualUrls);
+    
+    // Filter by whitelisted domains
+    const recipeUrls = actualUrls
+      .filter(url => WHITELISTED_SITES.some(site => url.includes(site)))
+      .slice(0, 10);
+    
+    console.log(`Filtered to ${recipeUrls.length} recipe URLs from whitelisted sites:`, recipeUrls);
+    
+    if (recipeUrls.length === 0) {
+      console.warn('No recipe URLs found from whitelisted sites. All URLs:', actualUrls);
+      return [];
+    }
+    
+    // Scrape recipes with timeout protection
+    const recipePromises = recipeUrls.map(url => 
+      Promise.race([
+        scrapeRecipe(url),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000))
+      ])
+    );
+    
+    const recipes = await Promise.all(recipePromises);
+    
+    // Filter out null results
+    const validRecipes = recipes.filter((r): r is Recipe => r !== null);
+    
+    console.log(`Successfully scraped ${validRecipes.length} recipes`);
+    
+    return validRecipes;
+  } catch (error) {
+    console.error("Error searching recipes with Google Search Grounding:", error);
+    return [];
+  }
+}
+
+/**
+ * Get detailed recipe information
+ */
+export async function getRecipeDetail(recipeId: string): Promise<RecipeDetail | null> {
+  try {
+    // Decode URL from ID
+    const url = Buffer.from(recipeId, 'base64').toString('utf-8');
+    
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      },
+    });
+    
+    if (!response.ok) return null;
+    
+    const html = await response.text();
+    const $ = cheerio.load(html);
+    
+    // Extract ingredients
+    const ingredients: string[] = [];
+    $('li[class*="ingredient"], .ingredients li, [itemprop="recipeIngredient"]').each((_, el) => {
+      const text = $(el).text().trim();
+      if (text && text.length > 0) {
+        ingredients.push(text);
+      }
+    });
+    
+    // Extract instructions
+    const instructions: string[] = [];
+    $('li[class*="instruction"], .instructions li, [itemprop="recipeInstructions"] li, ol[class*="instructions"] li').each((_, el) => {
+      const text = $(el).text().trim();
+      if (text && text.length > 0) {
+        instructions.push(text);
+      }
+    });
+    
+    // Get basic recipe info
+    const basicRecipe = await scrapeRecipe(url);
+    if (!basicRecipe) return null;
+    
+    // Use AI to organize and extract nutrition if available
+    const prompt = `Extract detailed recipe information from this HTML. Return ONLY valid JSON (no markdown, no code blocks):
+
+Ingredients found:
+${ingredients.slice(0, 20).join('\n')}
+
+Instructions found:
+${instructions.slice(0, 10).join('\n')}
+
+HTML snippet (first 2000 chars):
+${html.substring(0, 2000)}
+
+Return JSON in this exact format:
+{
+  "ingredients": string[] (cleaned up ingredient list),
+  "instructions": string[] (step-by-step, word-for-word from source),
+  "nutrition": {
+    "calories": "X cal" or null,
+    "protein": "X g" or null,
+    "carbs": "X g" or null,
+    "fat": "X g" or null
+  } or null
+}`;
+
+    const result = await genAI.models.generateContent({
+      model: MODEL_NAME,
+      contents: prompt,
+    });
+    const aiResponse = (result.text || "")
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+    
+    const structured = JSON.parse(aiResponse);
+    
+    return {
+      ...basicRecipe,
+      ingredients: structured.ingredients.length > 0 ? structured.ingredients : ingredients,
+      instructions: structured.instructions.length > 0 ? structured.instructions : instructions,
+      nutrition: structured.nutrition,
+    };
+  } catch (error) {
+    console.error("Error getting recipe detail:", error);
+    return null;
+  }
+}

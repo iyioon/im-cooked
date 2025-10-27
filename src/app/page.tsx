@@ -3,6 +3,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 import { Badge } from "@/components/ui/badge";
 import { Mic, Timer, MessageCircle, Search, Sparkles, ChefHat } from "lucide-react";
 import { VideoBackground } from "@/components/video-background";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -37,10 +38,12 @@ export default function Home() {
 
           {/* Single prominent CTA */}
           <div className="animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-300">
-            <Button size="lg" className="h-14 px-12 text-lg font-semibold shadow-2xl shadow-primary/20 hover:shadow-primary/30 hover:scale-105 transition-all bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0">
-              <Sparkles className="mr-2 h-6 w-6" />
-              Start Cooking
-            </Button>
+            <Link href="/dashboard">
+              <Button size="lg" className="h-14 px-12 text-lg font-semibold shadow-2xl shadow-primary/20 hover:shadow-primary/30 hover:scale-105 transition-all bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0">
+                <Sparkles className="mr-2 h-6 w-6" />
+                Start Cooking
+              </Button>
+            </Link>
           </div>
 
           {/* Subtle trust badge */}
@@ -176,9 +179,11 @@ export default function Home() {
             Ready to transform your cooking?
           </h2>
           
-          <Button size="lg" className="h-14 px-12 text-lg font-semibold shadow-2xl shadow-primary/20 hover:shadow-primary/30 hover:scale-105 transition-all bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0">
-            Get Started Free
-          </Button>
+          <Link href="/dashboard">
+            <Button size="lg" className="h-14 px-12 text-lg font-semibold shadow-2xl shadow-primary/20 hover:shadow-primary/30 hover:scale-105 transition-all bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0">
+              Get Started Free
+            </Button>
+          </Link>
         </div>
       </section>
 
