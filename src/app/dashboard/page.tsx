@@ -1,27 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ChefHat, Send, User, Bot } from "lucide-react";
+import { ChefHat, Send, User, Bot, Trash2 } from "lucide-react";
 import { RecipeResults, RecipeResultsLoading } from "@/components/recipe-results";
 import { Recipe } from "@/types/recipe";
-
-interface Message {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  timestamp: Date;
-  recipes?: Recipe[];
-  isRecipeSearch?: boolean;
-}
+import { Message, saveChatHistory, loadChatHistory, clearChatHistory } from "@/lib/chat-storage";
 
 export default function Dashboard() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  // Load chat history on mount
+  useEffect(() => {
+    const history = loadChatHistory();
+    if (history.length > 0) {
+      setMessages(history);
+    }
+  }, []);
+
+  // Save chat history whenever messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      saveChatHistory(messages);
+    }
+  }, [messages]);
+
+  const handleClearHistory = () => {
+    setMessages([]);
+    clearChatHistory();
+  };
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
@@ -111,6 +123,19 @@ export default function Dashboard() {
               I'm Cooked
             </h1>
           </div>
+          
+          {/* Clear History Button */}
+          {messages.length > 0 && (
+            <Button
+              onClick={handleClearHistory}
+              variant="ghost"
+              size="sm"
+              className="text-gray-400 hover:text-white hover:bg-white/10"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Clear History
+            </Button>
+          )}
         </div>
       </header>
 

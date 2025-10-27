@@ -1,0 +1,69 @@
+/**
+ * Client-side storage utilities for persisting chat history
+ */
+
+import { Recipe } from "@/types/recipe";
+
+export interface Message {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: Date;
+  recipes?: Recipe[];
+  isRecipeSearch?: boolean;
+}
+
+const STORAGE_KEY = "im-cooked-chat-history";
+const MAX_MESSAGES = 100; // Limit to prevent storage bloat
+
+/**
+ * Save messages to localStorage
+ */
+export function saveChatHistory(messages: Message[]): void {
+  try {
+    // Limit number of messages to store
+    const messagesToStore = messages.slice(-MAX_MESSAGES);
+    
+    // Convert Date objects to ISO strings for storage
+    const serialized = messagesToStore.map(msg => ({
+      ...msg,
+      timestamp: msg.timestamp.toISOString(),
+    }));
+    
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(serialized));
+  } catch (error) {
+    console.error("Failed to save chat history:", error);
+  }
+}
+
+/**
+ * Load messages from localStorage
+ */
+export function loadChatHistory(): Message[] {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return [];
+    
+    const parsed = JSON.parse(stored);
+    
+    // Convert ISO strings back to Date objects
+    return parsed.map((msg: any) => ({
+      ...msg,
+      timestamp: new Date(msg.timestamp),
+    }));
+  } catch (error) {
+    console.error("Failed to load chat history:", error);
+    return [];
+  }
+}
+
+/**
+ * Clear chat history
+ */
+export function clearChatHistory(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (error) {
+    console.error("Failed to clear chat history:", error);
+  }
+}
