@@ -6,6 +6,7 @@ import { RecipeDetail } from "@/types/recipe";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   ArrowLeft,
   Clock,
@@ -200,10 +201,7 @@ export function RecipeDetailClient({ recipeId }: RecipeDetailClientProps) {
                 <ul className="space-y-3">
                   {recipe.ingredients.map((ingredient, index) => (
                     <li key={index} className="flex items-start gap-3 text-gray-300">
-                      <input
-                        type="checkbox"
-                        className="mt-1 h-4 w-4 rounded border-white/20 bg-white/5 text-blue-600 focus:ring-blue-500"
-                      />
+                      <Checkbox className="mt-1 border-white/20 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600" />
                       <span className="text-sm">{ingredient}</span>
                     </li>
                   ))}
