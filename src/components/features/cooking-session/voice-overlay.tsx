@@ -401,16 +401,6 @@ export function VoiceOverlay({
                   />
                 </div>
               </div>
-
-              {/* User Transcript Preview */}
-              {userTranscript && !userTranscript.startsWith('[CONTEXT UPDATE]') && (
-                <div className="bg-white/5 border border-white/10 rounded-lg p-4 max-w-2xl mx-auto">
-                  <p className="text-sm text-gray-400 mb-1">You said:</p>
-                  <p className="text-lg text-white">
-                    {userTranscript}
-                  </p>
-                </div>
-              )}
             </div>
           )}
         </div>
