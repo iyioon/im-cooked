@@ -5,15 +5,19 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ChefHat, Send, User, Bot, Trash2 } from "lucide-react";
+import { ChefHat, Send, User, Bot, Trash2, Settings } from "lucide-react";
 import { RecipeResults, RecipeResultsLoading } from "@/components/recipe-results";
-import { Recipe } from "@/types/recipe";
+import { Recipe, UserPreferences } from "@/types/recipe";
 import { Message, saveChatHistory, loadChatHistory, clearChatHistory } from "@/lib/chat-storage";
+import { PreferencesDialog } from "@/components/preferences-dialog";
+import { loadPreferences } from "@/lib/preferences-manager";
 
 export default function Dashboard() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [preferencesOpen, setPreferencesOpen] = useState(false);
+  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Load chat history on mount
@@ -23,6 +27,20 @@ export default function Dashboard() {
       setMessages(history);
     }
   }, []);
+
+  // Load preferences on mount
+  useEffect(() => {
+    const prefs = loadPreferences();
+    setPreferences(prefs);
+  }, []);
+
+  // Reload preferences when dialog closes
+  useEffect(() => {
+    if (!preferencesOpen) {
+      const prefs = loadPreferences();
+      setPreferences(prefs);
+    }
+  }, [preferencesOpen]);
 
   // Save chat history whenever messages change
   useEffect(() => {
@@ -63,7 +81,10 @@ export default function Dashboard() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ query: currentInput }),
+        body: JSON.stringify({
+          query: currentInput,
+          preferences: preferences
+        }),
       });
 
       if (!response.ok) {
@@ -130,19 +151,30 @@ export default function Dashboard() {
               I'm Cooked
             </h1>
           </div>
-          
-          {/* Clear History Button */}
-          {messages.length > 0 && (
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2">
             <Button
-              onClick={handleClearHistory}
+              onClick={() => setPreferencesOpen(true)}
               variant="ghost"
               size="sm"
               className="text-gray-400 hover:text-white hover:bg-white/10"
             >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Clear History
+              <Settings className="h-4 w-4 mr-2" />
+              Settings
             </Button>
-          )}
+            {messages.length > 0 && (
+              <Button
+                onClick={handleClearHistory}
+                variant="ghost"
+                size="sm"
+                className="text-gray-400 hover:text-white hover:bg-white/10"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Clear History
+              </Button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -273,6 +305,12 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Preferences Dialog */}
+      <PreferencesDialog
+        open={preferencesOpen}
+        onOpenChange={setPreferencesOpen}
+      />
     </div>
   );
 }

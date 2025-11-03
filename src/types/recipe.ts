@@ -39,3 +39,84 @@ export interface IntentDetectionResponse {
   isRecipeSearch: boolean;
   searchQuery: string | null;
 }
+
+export interface ParsedIngredient {
+  original: string;
+  quantity?: number;
+  unit?: string;
+  ingredient: string;
+  preparation?: string; // e.g., "chopped", "diced", "melted"
+}
+
+export interface IngredientSubstitution {
+  original: ParsedIngredient;
+  substitute: {
+    ingredient: string;
+    quantity?: number;
+    unit?: string;
+    preparation?: string;
+  };
+  reason: string;
+  impact?: {
+    taste?: string;
+    texture?: string;
+    nutrition?: string;
+    cookingTime?: string;
+  };
+}
+
+export interface DishContext {
+  dishType: string; // e.g., "dessert", "main course", "soup"
+  cuisine?: string; // e.g., "Italian", "Asian"
+  cookingMethod?: string; // e.g., "baking", "frying"
+  dietaryTags?: string[]; // e.g., ["vegetarian", "gluten-free"]
+}
+
+export interface SubstitutionRequest {
+  recipeId: string;
+  recipeTitle: string;
+  originalIngredient: string;
+  userInput?: string; // User's desired substitute
+  dietaryRestrictions?: string[];
+}
+
+export interface SubstitutionResponse {
+  dishContext: DishContext;
+  suggestions: IngredientSubstitution[];
+  modifiedRecipe?: {
+    ingredients: string[];
+    instructionChanges?: Array<{
+      step: number;
+      original: string;
+      modified: string;
+    }>;
+    warnings?: string[];
+  };
+}
+
+export interface UserPreferences {
+  // Location & Regional
+  location?: {
+    country?: string;
+    region?: string; // e.g., "California", "Ontario"
+  };
+  measurementSystem?: "metric" | "imperial";
+
+  // Dietary
+  dietaryRestrictions?: string[]; // e.g., ["vegetarian", "gluten-free", "dairy-free"]
+  allergies?: string[]; // e.g., ["peanuts", "shellfish", "eggs"]
+
+  // Preferences
+  skillLevel?: "beginner" | "intermediate" | "advanced";
+  preferredCuisines?: string[]; // e.g., ["Italian", "Asian", "Mexican"]
+  avoidedIngredients?: string[]; // General dislikes
+
+  // Household
+  defaultServings?: number;
+  availableEquipment?: string[]; // e.g., ["oven", "air fryer", "instant pot"]
+
+  // Search behavior
+  maxPrepTime?: number; // in minutes
+  maxCookTime?: number; // in minutes
+  difficultyPreference?: "easy" | "medium" | "hard" | "any";
+}
