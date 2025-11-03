@@ -160,8 +160,15 @@ export function RecipeDetailClient({ recipeId }: RecipeDetailClientProps) {
 
           <p className="text-lg text-gray-300 mb-6">{recipe.description}</p>
 
-          {/* View Original Recipe Button */}
-          <div className="mb-6">
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-4 mb-6">
+            <Button
+              onClick={() => router.push(`/cooking-session/${recipe.id}`)}
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg shadow-green-500/20"
+            >
+              <ChefHat className="mr-2 h-4 w-4" />
+              Start Cooking Session
+            </Button>
             <Button
               onClick={() => window.open(recipe.sourceUrl, "_blank")}
               variant="outline"
