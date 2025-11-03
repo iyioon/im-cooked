@@ -422,15 +422,32 @@ export default function Dashboard() {
 
       setSelectedRecipe(updatedRecipe);
 
-      // Add confirmation message to chat
+      // Remove the substitution suggestions message and add confirmation
       const confirmMessage: Message = {
         id: Date.now().toString(),
         role: "assistant",
-        content: `✓ Applied: ${suggestion.original.ingredient} → ${suggestion.substitute.ingredient}. Your recipe has been updated!`,
+        content: `Substitution applied: ${suggestion.original.ingredient} → ${suggestion.substitute.ingredient}`,
         timestamp: new Date(),
       };
 
-      setMessages((prev) => [...prev, confirmMessage]);
+      // Remove the previous message with suggestions and add confirmation
+      setMessages((prev) => {
+        // Find and remove the last message with suggestedSubstitutions
+        const lastSuggestionIndex = prev.findLastIndex(
+          (msg) => msg.suggestedSubstitutions !== undefined
+        );
+
+        if (lastSuggestionIndex !== -1) {
+          // Remove suggestions message and add confirmation
+          const updated = [...prev];
+          updated.splice(lastSuggestionIndex, 1);
+          updated.push(confirmMessage);
+          return updated;
+        }
+
+        // If no suggestions message found, just add confirmation
+        return [...prev, confirmMessage];
+      });
     } catch (error) {
       console.error("Error applying substitution:", error);
       const errorMessage: Message = {
