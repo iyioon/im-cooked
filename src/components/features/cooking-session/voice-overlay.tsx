@@ -182,7 +182,7 @@ export function VoiceOverlay({
   useEffect(() => {
     onTimerComplete((timer) => {
       if (isConnected) {
-        const timerMessage = `[TIMER COMPLETE] The "${timer.label}" timer has finished. Please notify the user that their ${timer.label} timer is done.`;
+        const timerMessage = `[TIMER COMPLETE] The "${timer.label}" timer (${Math.floor(timer.totalSeconds / 60)} minutes ${timer.totalSeconds % 60} seconds) has finished. Please notify the user clearly that their timer for "${timer.label}" is done.`;
         sendContextUpdate(timerMessage);
       }
 
