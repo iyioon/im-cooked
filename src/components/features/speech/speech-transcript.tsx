@@ -1,180 +1,93 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-
-// Extend Window interface for WebKit Speech Recognition
-declare global {
-  interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
-  }
-}
-
-interface SpeechRecognitionEvent extends Event {
-  results: SpeechRecognitionResultList;
-  resultIndex: number;
-}
-
-interface SpeechRecognitionResultList {
-  length: number;
-  item(index: number): SpeechRecognitionResult;
-  [index: number]: SpeechRecognitionResult;
-}
-
-interface SpeechRecognitionResult {
-  isFinal: boolean;
-  length: number;
-  item(index: number): SpeechRecognitionAlternative;
-  [index: number]: SpeechRecognitionAlternative;
-}
-
-interface SpeechRecognitionAlternative {
-  transcript: string;
-  confidence: number;
-}
-
-interface SpeechRecognitionErrorEvent extends Event {
-  error: string;
-  message: string;
-}
+import { useGeminiLive } from "@/hooks/useGeminiLive";
 
 export function SpeechTranscript() {
-  const [isListening, setIsListening] = useState(false);
-  const [transcript, setTranscript] = useState("");
-  const [interimTranscript, setInterimTranscript] = useState("");
-  const [isSupported, setIsSupported] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const recognitionRef = useRef<any>(null);
-  const restartTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const {
+    // Connection state
+    connectionState,
+    isConnected,
+    error,
 
+    // Recording state
+    isRecording,
+    isSpeaking,
+
+    // Playback state
+    isAIPlaying,
+    isAISpeaking,
+
+    // Volume meters
+    inputVolume,
+    outputVolume,
+
+    // Transcripts
+    userTranscript,
+    aiTranscript,
+
+    // Controls
+    connect,
+    disconnect,
+    startRecording,
+    stopRecording,
+    interrupt,
+  } = useGeminiLive({
+    apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "",
+    systemInstruction:
+      "You are a helpful AI assistant. Respond to the user's questions in a friendly and conversational manner. Keep your responses concise and natural.",
+  });
+
+  // Auto-connect on mount
   useEffect(() => {
-    // Check if Speech Recognition is supported
-    const SpeechRecognition =
-      typeof window !== "undefined" &&
-      (window.SpeechRecognition || window.webkitSpeechRecognition);
-
-    if (SpeechRecognition) {
-      setIsSupported(true);
-
-      // Initialize speech recognition
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = "en-US";
-      recognition.maxAlternatives = 1;
-
-      recognition.onstart = () => {
-        setIsListening(true);
-        setError(null);
-      };
-
-      recognition.onresult = (event: SpeechRecognitionEvent) => {
-        let interim = "";
-        let final = "";
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const result = event.results[i];
-          const transcriptText = result[0].transcript;
-
-          if (result.isFinal) {
-            final += transcriptText + " ";
-          } else {
-            interim += transcriptText;
-          }
-        }
-
-        if (final) {
-          setTranscript((prev) => prev + final);
-        }
-        setInterimTranscript(interim);
-      };
-
-      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-        console.error("Speech recognition error:", event.error);
-        
-        // Handle recoverable errors by auto-restarting
-        if (event.error === "network" || event.error === "no-speech" || event.error === "audio-capture") {
-          setError(`Connection issue. Attempting to reconnect...`);
-          setIsListening(false);
-          
-          // Clear any existing restart timeout
-          if (restartTimeoutRef.current) {
-            clearTimeout(restartTimeoutRef.current);
-          }
-          
-          // Attempt to restart after a brief delay
-          restartTimeoutRef.current = setTimeout(() => {
-            if (recognitionRef.current) {
-              try {
-                recognitionRef.current.start();
-                setError(null);
-              } catch (err) {
-                console.error("Failed to restart recognition:", err);
-                setError("Failed to restart. Please try again manually.");
-              }
-            }
-          }, 1000);
-        } else if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-          setError("Microphone access denied. Please allow microphone permissions.");
-          setIsListening(false);
-        } else {
-          setError(`Error: ${event.error}`);
-          setIsListening(false);
-        }
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-        setInterimTranscript("");
-      };
-
-      recognitionRef.current = recognition;
-    } else {
-      setIsSupported(false);
-      setError("Speech Recognition is not supported in your browser.");
-    }
+    connect().catch((err) => {
+      console.error("Failed to connect:", err);
+    });
 
     return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
+      disconnect();
     };
   }, []);
 
-  const startListening = () => {
-    if (recognitionRef.current && !isListening) {
-      try {
-        recognitionRef.current.start();
-      } catch (err) {
-        console.error("Error starting recognition:", err);
-        setError("Failed to start speech recognition");
-      }
+  const handleStartConversation = async () => {
+    if (!isConnected) {
+      await connect();
     }
+    await startRecording();
   };
 
-  const stopListening = () => {
-    if (recognitionRef.current && isListening) {
-      recognitionRef.current.stop();
-    }
+  const handleStopConversation = () => {
+    stopRecording();
   };
 
-  const clearTranscript = () => {
-    setTranscript("");
-    setInterimTranscript("");
+  const handleClearTranscript = () => {
+    disconnect();
+    // Reconnect to clear state
+    connect().catch((err) => {
+      console.error("Failed to reconnect:", err);
+    });
   };
 
-  if (!isSupported) {
+  const handleInterrupt = () => {
+    interrupt();
+  };
+
+  // Check if API key is configured
+  if (!process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
         <Card className="p-8 max-w-md mx-4">
           <h2 className="text-xl font-semibold mb-4 text-center">
-            Not Supported
+            API Key Missing
           </h2>
-          <p className="text-center text-muted-foreground">
-            Speech Recognition is not supported in your browser. Please try
-            Chrome, Edge, or Safari.
+          <p className="text-center text-muted-foreground mb-4">
+            Please configure your Gemini API key in the environment variables.
+          </p>
+          <p className="text-sm text-muted-foreground text-center">
+            Add <code className="bg-muted px-2 py-1 rounded">NEXT_PUBLIC_GEMINI_API_KEY</code> to your{" "}
+            <code className="bg-muted px-2 py-1 rounded">.env.local</code> file.
           </p>
         </Card>
       </div>
@@ -187,36 +100,102 @@ export function SpeechTranscript() {
         <div className="flex flex-col items-center gap-6">
           {/* Title */}
           <h2 className="text-2xl font-semibold text-center">
-            Real-time Speech Transcript
+            Gemini Live Voice Conversation
           </h2>
 
-          {/* Status indicator */}
+          {/* Connection status */}
           <div className="flex items-center gap-2">
             <div
               className={`w-3 h-3 rounded-full ${
-                isListening ? "bg-red-500 animate-pulse" : "bg-gray-400"
+                connectionState === "connected"
+                  ? "bg-green-500"
+                  : connectionState === "connecting"
+                  ? "bg-yellow-500 animate-pulse"
+                  : "bg-gray-400"
               }`}
             />
-            <span className="text-sm font-medium">
-              {isListening ? "Listening..." : "Not listening"}
+            <span className="text-sm font-medium capitalize">
+              {connectionState}
             </span>
           </div>
 
+          {/* Voice activity indicators */}
+          <div className="w-full grid grid-cols-2 gap-4">
+            {/* User input */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">You</span>
+                <span
+                  className={`text-xs ${
+                    isSpeaking ? "text-green-500" : "text-muted-foreground"
+                  }`}
+                >
+                  {isSpeaking ? "Speaking" : "Silent"}
+                </span>
+              </div>
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-green-500 transition-all duration-100"
+                  style={{ width: `${inputVolume}%` }}
+                />
+              </div>
+            </div>
+
+            {/* AI output */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">AI</span>
+                <span
+                  className={`text-xs ${
+                    isAISpeaking ? "text-blue-500" : "text-muted-foreground"
+                  }`}
+                >
+                  {isAISpeaking ? "Speaking" : "Silent"}
+                </span>
+              </div>
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-blue-500 transition-all duration-100"
+                  style={{ width: `${outputVolume}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
           {/* Transcript display */}
-          <div className="w-full min-h-[200px] max-h-[400px] overflow-y-auto p-4 bg-muted rounded-lg">
-            {transcript || interimTranscript ? (
-              <p className="text-lg leading-relaxed">
-                {transcript}
-                {interimTranscript && (
-                  <span className="text-muted-foreground italic">
-                    {interimTranscript}
-                  </span>
-                )}
-              </p>
-            ) : (
-              <p className="text-muted-foreground text-center italic">
-                Start speaking to see your transcript here...
-              </p>
+          <div className="w-full min-h-[300px] max-h-[400px] overflow-y-auto space-y-4">
+            {/* User transcript */}
+            {userTranscript && (
+              <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
+                <div className="text-xs font-medium text-green-600 mb-2">
+                  You
+                </div>
+                <p className="text-sm leading-relaxed">{userTranscript}</p>
+              </div>
+            )}
+
+            {/* AI transcript */}
+            {aiTranscript && (
+              <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                <div className="text-xs font-medium text-blue-600 mb-2 flex items-center justify-between">
+                  <span>AI Assistant</span>
+                  {isAIPlaying && (
+                    <span className="text-xs text-muted-foreground">
+                      Speaking...
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm leading-relaxed">{aiTranscript}</p>
+              </div>
+            )}
+
+            {/* Empty state */}
+            {!userTranscript && !aiTranscript && (
+              <div className="flex items-center justify-center h-[300px]">
+                <p className="text-muted-foreground text-center italic">
+                  Start a conversation to see transcripts here...
+                </p>
+              </div>
             )}
           </div>
 
@@ -229,29 +208,45 @@ export function SpeechTranscript() {
 
           {/* Controls */}
           <div className="flex gap-4 flex-wrap justify-center">
-            {!isListening ? (
-              <Button onClick={startListening} size="lg">
-                Start Listening
+            {!isRecording ? (
+              <Button
+                onClick={handleStartConversation}
+                size="lg"
+                disabled={connectionState === "connecting"}
+              >
+                Start Conversation
               </Button>
             ) : (
-              <Button onClick={stopListening} size="lg" variant="destructive">
-                Stop Listening
+              <Button
+                onClick={handleStopConversation}
+                size="lg"
+                variant="destructive"
+              >
+                Stop Recording
               </Button>
             )}
+
+            {isAIPlaying && (
+              <Button onClick={handleInterrupt} size="lg" variant="outline">
+                Interrupt AI
+              </Button>
+            )}
+
             <Button
-              onClick={clearTranscript}
+              onClick={handleClearTranscript}
               size="lg"
               variant="outline"
-              disabled={!transcript && !interimTranscript}
+              disabled={!userTranscript && !aiTranscript}
             >
-              Clear Transcript
+              Clear & Reset
             </Button>
           </div>
 
           {/* Instructions */}
           <p className="text-sm text-muted-foreground text-center max-w-md">
-            Click "Start Listening" and allow microphone access. Speak clearly
-            into your microphone to see the transcript appear in real-time.
+            Click "Start Conversation" to begin. The AI will listen and respond
+            with voice. You can interrupt the AI at any time by clicking
+            "Interrupt AI".
           </p>
         </div>
       </Card>
