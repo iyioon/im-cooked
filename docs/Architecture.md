@@ -1439,8 +1439,3 @@ describe('Recipe Allergy Safety', () => {
 - WCAG 2.1: https://www.w3.org/WAI/WCAG21/quickref/
 - OWASP Top 10: https://owasp.org/www-project-top-ten/
 
----
-
-**Document End**
-
-*This architecture represents a production-ready, research-grounded design for a conversational AI cooking assistant that balances innovation with safety, accessibility, and ethical responsibility.*
