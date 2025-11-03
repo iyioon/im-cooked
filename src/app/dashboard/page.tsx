@@ -1,23 +1,31 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ChefHat, Send, User, Bot, Trash2, Settings } from "lucide-react";
 import { RecipeResults, RecipeResultsLoading } from "@/components/features/recipe/recipe-results";
-import { Recipe, UserPreferences } from "@/types/recipe";
+import { RecipeSidebar } from "@/components/recipe-sidebar";
+import { ChatSubstitutionSuggestion } from "@/components/chat-substitution-suggestion";
+import { Recipe, UserPreferences, RecipeDetail, RecipeDetailWithContext } from "@/types/recipe";
 import { Message, saveChatHistory, loadChatHistory, clearChatHistory } from "@/lib/chat-storage";
 import { PreferencesDialog } from "@/components/features/preferences/preferences-dialog";
 import { loadPreferences } from "@/lib/preferences-manager";
+import { createCookingSession } from "@/lib/cooking-session-manager";
 
 export default function Dashboard() {
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
+  const [selectedRecipe, setSelectedRecipe] = useState<RecipeDetailWithContext | null>(null);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
+  const [isFetchingRecipeDetail, setIsFetchingRecipeDetail] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Load chat history on mount
@@ -59,6 +67,97 @@ export default function Dashboard() {
     clearChatHistory();
   };
 
+  const handleViewRecipe = (recipe: Recipe) => {
+    router.push(`/recipe/${recipe.id}`);
+  };
+
+  const handleSelectRecipe = async (recipe: Recipe) => {
+    setIsFetchingRecipeDetail(true);
+    try {
+      const response = await fetch(`/api/recipes/${recipe.id}`);
+      if (!response.ok) throw new Error("Failed to fetch recipe details");
+
+      const recipeDetail: RecipeDetail = await response.json();
+
+      const recipeWithContext: RecipeDetailWithContext = {
+        original: recipeDetail,
+        current: { ...recipeDetail },
+        modifications: {
+          substitutions: [],
+          ingredientEdits: [],
+          warnings: [],
+        },
+        metadata: {
+          selectedAt: new Date(),
+          lastModifiedAt: new Date(),
+          userPreferences: preferences || null,
+        },
+      };
+
+      setSelectedRecipe(recipeWithContext);
+      setIsSidebarExpanded(true);
+    } catch (error) {
+      console.error("Error fetching recipe details:", error);
+    } finally {
+      setIsFetchingRecipeDetail(false);
+    }
+  };
+
+  const handleSidebarClose = () => {
+    setSelectedRecipe(null);
+  };
+
+  const handleToggleSidebarExpand = () => {
+    setIsSidebarExpanded((prev) => !prev);
+  };
+
+  const handleIngredientModified = (modifiedRecipe: RecipeDetailWithContext) => {
+    setSelectedRecipe(modifiedRecipe);
+  };
+
+  const handleStartCooking = () => {
+    if (selectedRecipe) {
+      // Use the modified recipe from the sidebar
+      const recipeToUse = selectedRecipe.current;
+      const session = createCookingSession(recipeToUse);
+      router.push(`/cooking-session/${selectedRecipe.current.id}?session=${session.id}`);
+      handleSidebarClose();
+    }
+  };
+
+  // Extract ingredient name from user message for substitution queries
+  const extractIngredientFromMessage = (message: string): string | null => {
+    // Pattern: "substitute/replace/swap ... for/with ... [ingredient]"
+    // Examples: "substitute for butter", "substitute baking soda", "what are good alternatives for eggs"
+    const patterns = [
+      // Pattern 1: "substitute [ingredient]" or "replace [ingredient]" (no preposition)
+      /(?:substitute|replace|swap)\s+(?:for\s+)?(\w+(?:\s+\w+)?)/i,
+      // Pattern 2: "substitute for/with [ingredient]"
+      /(?:substitute|replace|swap|alternative)s?\s+(?:for|with)\s+(\w+(?:\s+\w+)?)/i,
+      // Pattern 3: "instead of [ingredient]" or "without [ingredient]"
+      /(?:instead of|without)\s+(\w+(?:\s+\w+)?)/i,
+      // Pattern 4: "what can I use instead of/to replace [ingredient]"
+      /what\s+(?:can|could|would|should)\s+(?:I\s+use\s+)?(?:instead of|to replace)\s+(\w+(?:\s+\w+)?)/i,
+      // Pattern 5: "how can I replace [ingredient]"
+      /how\s+(?:can|could)\s+I\s+replace\s+(\w+(?:\s+\w+)?)/i,
+    ];
+
+    for (const pattern of patterns) {
+      const match = message.match(pattern);
+      if (match && match[1]) {
+        return match[1].trim().toLowerCase();
+      }
+    }
+
+    return null;
+  };
+
+  // Check if message is asking for substitutions
+  const isSubstitutionQuery = (message: string): boolean => {
+    const substitutionKeywords = /substitute|alternative|replace|swap|instead of|without/i;
+    return substitutionKeywords.test(message);
+  };
+
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
 
@@ -75,7 +174,43 @@ export default function Dashboard() {
     setIsLoading(true);
 
     try {
-      // Call recipe search API
+      // Check if this is a substitution query for the selected recipe
+      if (selectedRecipe && isSubstitutionQuery(currentInput)) {
+        try {
+          // Use LLM to match the ingredient the user is asking about
+          const matchResponse = await fetch("/api/recipes/match-ingredient", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              recipeTitle: selectedRecipe.current.title,
+              recipeIngredients: selectedRecipe.current.ingredients,
+              userMessage: currentInput,
+            }),
+          });
+
+          if (matchResponse.ok) {
+            const matchResult = await matchResponse.json();
+
+            // If LLM successfully matched an ingredient, use it
+            if (matchResult.matched && matchResult.ingredient) {
+              console.log("LLM matched ingredient:", matchResult.ingredient);
+              await handleSubstitutionFromChat(matchResult.ingredient, currentInput);
+              return;
+            }
+          }
+        } catch (err) {
+          console.error("Error matching ingredient with LLM:", err);
+          // Fall back to regex-based matching if LLM matching fails
+          const ingredient = extractIngredientFromMessage(currentInput);
+          if (ingredient) {
+            console.log("Fallback: Regex matched ingredient:", ingredient);
+            await handleSubstitutionFromChat(ingredient, currentInput);
+            return;
+          }
+        }
+      }
+
+      // Call recipe search API (default behavior)
       const response = await fetch("/api/recipes/search", {
         method: "POST",
         headers: {
@@ -117,7 +252,7 @@ export default function Dashboard() {
       }
     } catch (error) {
       console.error("Error searching recipes:", error);
-      
+
       // Show error message
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -138,11 +273,198 @@ export default function Dashboard() {
     }
   };
 
+  // Handle substitution requests from chat
+  const handleSubstitutionFromChat = async (
+    ingredient: string,
+    userMessage: string
+  ) => {
+    if (!selectedRecipe) {
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: "Please select a recipe first to get substitution suggestions. Click on a recipe in the search results to get started!",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+      return;
+    }
+
+    try {
+      // Call existing /api/recipes/substitute endpoint
+      const response = await fetch("/api/recipes/substitute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipeId: selectedRecipe.current.id,
+          recipeTitle: selectedRecipe.current.title,
+          originalIngredient: ingredient,
+          userInput: userMessage,
+          recipe: selectedRecipe.current,
+          preferences: preferences,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to get substitution suggestions");
+      }
+
+      const suggestionsData = await response.json();
+
+      // Add message with suggestions to chat
+      const messageWithSuggestions: Message = {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: `Here are some great substitutes for ${ingredient} in your recipe:`,
+        timestamp: new Date(),
+        suggestedSubstitutions: {
+          originalIngredient: ingredient,
+          suggestions: suggestionsData.suggestions,
+          explanation: `These alternatives work well with ${selectedRecipe.current.title}. Each option has different impacts on taste, texture, and nutrition.`,
+        },
+      };
+
+      setMessages((prev) => [...prev, messageWithSuggestions]);
+    } catch (error) {
+      console.error("Error getting substitutions:", error);
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: `I'm having trouble finding substitutes for "${ingredient}". Please try again in a moment!`,
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    }
+  };
+
+  // Handle applying a substitution from chat
+  const handleApplySubstitutionFromChat = async (
+    suggestion: any
+  ) => {
+    if (!selectedRecipe) {
+      console.error("No selected recipe");
+      return;
+    }
+
+    try {
+      // Call existing /api/recipes/apply-substitution endpoint
+      const response = await fetch("/api/recipes/apply-substitution", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipeTitle: selectedRecipe.current.title,
+          recipe: selectedRecipe.current,
+          selectedSubstitution: suggestion,
+          preferences: preferences,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to apply substitution");
+      }
+
+      const appliedData = await response.json();
+
+      // Build updated instructions using same logic as sidebar
+      const updatedInstructions = appliedData.instructionChanges
+        ? selectedRecipe.current.instructions.map((instr, idx) => {
+            const change = appliedData.instructionChanges.find(
+              (c: any) => c.step === idx + 1
+            );
+            return change ? change.modified : instr;
+          })
+        : selectedRecipe.current.instructions;
+
+      // Build updated steps using same logic as sidebar
+      const updatedSteps = appliedData.instructionChanges && selectedRecipe.current.steps
+        ? selectedRecipe.current.steps.map((step) => {
+            const originalInstruction = selectedRecipe.current.instructions[step.stepNumber - 1];
+            if (originalInstruction) {
+              const change = appliedData.instructionChanges.find(
+                (c: any) => c.original === originalInstruction
+              );
+              if (change) {
+                return { ...step, text: change.modified };
+              }
+            }
+
+            const changeByStep = appliedData.instructionChanges?.find(
+              (c: any) => c.step === step.stepNumber
+            );
+            if (changeByStep) {
+              return { ...step, text: changeByStep.modified };
+            }
+
+            return step;
+          })
+        : selectedRecipe.current.steps;
+
+      // Update selectedRecipe with applied substitution
+      const updatedRecipe: RecipeDetailWithContext = {
+        ...selectedRecipe,
+        current: {
+          ...selectedRecipe.current,
+          ingredients: appliedData.ingredients || selectedRecipe.current.ingredients,
+          instructions: updatedInstructions,
+          ...(updatedSteps && { steps: updatedSteps }),
+        },
+        modifications: {
+          ...selectedRecipe.modifications,
+          warnings: [
+            ...selectedRecipe.modifications.warnings,
+            ...(appliedData.warnings || []),
+          ],
+        },
+        metadata: {
+          ...selectedRecipe.metadata,
+          lastModifiedAt: new Date(),
+        },
+      };
+
+      setSelectedRecipe(updatedRecipe);
+
+      // Remove the substitution suggestions message and add confirmation
+      const confirmMessage: Message = {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: `Substitution applied: ${suggestion.original.ingredient} → ${suggestion.substitute.ingredient}`,
+        timestamp: new Date(),
+      };
+
+      // Remove the previous message with suggestions and add confirmation
+      setMessages((prev) => {
+        // Find and remove the last message with suggestedSubstitutions
+        const lastSuggestionIndex = prev.findLastIndex(
+          (msg) => msg.suggestedSubstitutions !== undefined
+        );
+
+        if (lastSuggestionIndex !== -1) {
+          // Remove suggestions message and add confirmation
+          const updated = [...prev];
+          updated.splice(lastSuggestionIndex, 1);
+          updated.push(confirmMessage);
+          return updated;
+        }
+
+        // If no suggestions message found, just add confirmation
+        return [...prev, confirmMessage];
+      });
+    } catch (error) {
+      console.error("Error applying substitution:", error);
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        role: "assistant",
+        content: "I'm having trouble applying the substitution. Please try again!",
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, errorMessage]);
+    }
+  };
+
   return (
     <div className="flex h-screen flex-col bg-black text-white">
       {/* Top Bar */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/80 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 w-full">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg">
               <ChefHat className="h-6 w-6 text-white" strokeWidth={2} />
@@ -178,10 +500,13 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Chat Area */}
-      <main className="flex-1 pt-16 pb-32">
-        <div className="mx-auto h-full max-w-6xl px-4 sm:px-6 lg:px-8">
-          <ScrollArea className="h-full py-8">
+      {/* Chat Area with Sidebar Container - Side by side layout */}
+      <main className="flex-1 pt-16 pb-32 overflow-hidden">
+        <div className="h-full flex">
+          {/* Chat Section - Takes remaining space */}
+          <div className="flex-1 overflow-hidden">
+            <div className="h-full px-4 sm:px-6 lg:px-8">
+              <ScrollArea className="h-full py-8">
             {messages.length === 0 ? (
               // Empty State
               <div className="flex h-full flex-col items-center justify-center text-center">
@@ -238,12 +563,23 @@ export default function Dashboard() {
                             <Bot className="h-5 w-5 text-white" strokeWidth={2} />
                           </AvatarFallback>
                         </Avatar>
-                        
+
                         {message.isRecipeSearch && message.recipes ? (
                           <div className="flex-1">
                             <RecipeResults
                               recipes={message.recipes}
                               query={message.query || ""}
+                              onViewRecipe={handleViewRecipe}
+                              onSelectRecipe={handleSelectRecipe}
+                            />
+                          </div>
+                        ) : message.suggestedSubstitutions ? (
+                          <div className="flex-1">
+                            <ChatSubstitutionSuggestion
+                              originalIngredient={message.suggestedSubstitutions.originalIngredient}
+                              suggestions={message.suggestedSubstitutions.suggestions}
+                              explanation={message.suggestedSubstitutions.explanation}
+                              onApply={handleApplySubstitutionFromChat}
                             />
                           </div>
                         ) : (
@@ -276,7 +612,21 @@ export default function Dashboard() {
                 <div ref={messagesEndRef} />
               </div>
             )}
-          </ScrollArea>
+              </ScrollArea>
+            </div>
+          </div>
+
+          {/* Recipe Sidebar - Side panel */}
+          {selectedRecipe && (
+            <RecipeSidebar
+              recipe={selectedRecipe}
+              isExpanded={isSidebarExpanded}
+              onToggleExpand={handleToggleSidebarExpand}
+              onClose={handleSidebarClose}
+              onStartCooking={handleStartCooking}
+              onIngredientModified={handleIngredientModified}
+            />
+          )}
         </div>
       </main>
 

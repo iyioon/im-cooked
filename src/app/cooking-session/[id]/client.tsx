@@ -46,33 +46,48 @@ export function CookingSessionClient({
   } = useCookingSession(sessionId);
 
   useEffect(() => {
-    async function fetchRecipe() {
+    async function initializeSession() {
       try {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/recipes/${recipeId}`);
-        if (!response.ok) {
-          throw new Error("Failed to load recipe");
-        }
+        // If session ID exists, load it and use the embedded recipe
+        if (sessionId && session) {
+          // Use the modified recipe if available, otherwise fall back to original
+          const recipeFromSession = session.modifiedRecipe || session.originalRecipe;
+          if (recipeFromSession) {
+            setRecipe(recipeFromSession);
+          } else {
+            // Legacy session: fetch from API
+            const response = await fetch(`/api/recipes/${recipeId}`);
+            if (!response.ok) {
+              throw new Error("Failed to load recipe");
+            }
+            const data = await response.json();
+            setRecipe(data);
+          }
+        } else if (!sessionId) {
+          // No session yet, fetch recipe and create one
+          const response = await fetch(`/api/recipes/${recipeId}`);
+          if (!response.ok) {
+            throw new Error("Failed to load recipe");
+          }
 
-        const data = await response.json();
-        setRecipe(data);
-
-        if (!sessionId && data) {
+          const data = await response.json();
+          setRecipe(data);
           const newSession = createSession(data);
           router.replace(`/cooking-session/${recipeId}?session=${newSession.id}`);
         }
       } catch (err) {
-        console.error("Error fetching recipe:", err);
+        console.error("Error initializing session:", err);
         setError(err instanceof Error ? err.message : "Failed to load recipe");
       } finally {
         setLoading(false);
       }
     }
 
-    fetchRecipe();
-  }, [recipeId, sessionId, createSession, router]);
+    initializeSession();
+  }, [recipeId, sessionId, session, createSession, router]);
 
   const handleSendMessage = (message: CookingSessionMessage) => {
     addChatMessage(message);

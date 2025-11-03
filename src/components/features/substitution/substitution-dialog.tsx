@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { SubstitutionResponse, RecipeDetail, UserPreferences } from "@/types/recipe";
+import { SubstitutionResponse, RecipeDetail, UserPreferences, IngredientSubstitution } from "@/types/recipe";
 import { loadPreferences } from "@/lib/preferences-manager";
 import { Loader2, Sparkles, AlertCircle, CheckCircle2 } from "lucide-react";
 
@@ -23,6 +23,7 @@ interface SubstitutionDialogProps {
   recipe: RecipeDetail;
   ingredient: string;
   onApplySubstitution?: (modifiedRecipe: SubstitutionResponse) => void;
+  cookingSessionId?: string;
 }
 
 export function SubstitutionDialog({
@@ -31,9 +32,11 @@ export function SubstitutionDialog({
   recipe,
   ingredient,
   onApplySubstitution,
+  cookingSessionId,
 }: SubstitutionDialogProps) {
   const [userInput, setUserInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [applyingSubstitution, setApplyingSubstitution] = useState(false);
   const [suggestions, setSuggestions] = useState<SubstitutionResponse | null>(
     null
   );
@@ -84,11 +87,127 @@ export function SubstitutionDialog({
     }
   };
 
-  const handleApply = (suggestion: SubstitutionResponse) => {
-    if (onApplySubstitution) {
-      onApplySubstitution(suggestion);
+  const handleApply = async (suggestion: IngredientSubstitution) => {
+    setApplyingSubstitution(true);
+    setError(null);
+
+    try {
+      // Call the apply-substitution endpoint to regenerate the recipe
+      const response = await fetch("/api/recipes/apply-substitution", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipeTitle: recipe.title,
+          recipe: recipe,
+          selectedSubstitution: suggestion,
+          preferences: preferences,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to apply substitution");
+      }
+
+      const appliedRecipeData = await response.json();
+
+      // If cooking session ID is provided, save the substitution record and update the modified recipe
+      if (cookingSessionId) {
+        // Build the modified recipe with updated ingredients and instructions
+        // Apply instruction changes to instructions array
+        const updatedInstructions = appliedRecipeData.instructionChanges
+          ? recipe.instructions.map((instr, idx) => {
+              const change = appliedRecipeData.instructionChanges.find(
+                (c: any) => c.step === idx + 1
+              );
+              return change ? change.modified : instr;
+            })
+          : recipe.instructions;
+
+        const modifiedRecipe: RecipeDetail = {
+          ...recipe,
+          ingredients: appliedRecipeData.ingredients || recipe.ingredients,
+          instructions: updatedInstructions,
+          // Rebuild steps array by matching original text with new instructions
+          // This handles cases where steps were extracted from DOM and may not align with instructions array
+          ...(recipe.steps && {
+            steps: recipe.steps.map((step) => {
+              // Find the original instruction at this position
+              const originalInstruction = recipe.instructions[step.stepNumber - 1];
+
+              // Find if this instruction was changed by matching the original text
+              if (originalInstruction && appliedRecipeData.instructionChanges) {
+                const change = appliedRecipeData.instructionChanges.find(
+                  (c: any) => c.original === originalInstruction
+                );
+                if (change) {
+                  return { ...step, text: change.modified };
+                }
+              }
+
+              // If no match found by text, try by step index as fallback
+              if (appliedRecipeData.instructionChanges) {
+                const changeByStep = appliedRecipeData.instructionChanges.find(
+                  (c: any) => c.step === step.stepNumber
+                );
+                if (changeByStep) {
+                  return { ...step, text: changeByStep.modified };
+                }
+              }
+
+              return step;
+            }),
+          }),
+        };
+
+        await fetch("/api/cooking-session/add-substitution", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId: cookingSessionId,
+            substitution: {
+              id: `sub-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              original: {
+                ingredient: suggestion.original.ingredient,
+                quantity: suggestion.original.quantity,
+                unit: suggestion.original.unit,
+              },
+              substitute: {
+                ingredient: suggestion.substitute.ingredient,
+                quantity: suggestion.substitute.quantity,
+                unit: suggestion.substitute.unit,
+              },
+              reason: suggestion.reason,
+              impacts: suggestion.impact,
+              appliedAt: new Date(),
+            },
+            modifiedRecipe: modifiedRecipe,  // Include the modified recipe
+          }),
+        });
+      }
+
+      // Call the callback with the modified recipe
+      if (onApplySubstitution) {
+        onApplySubstitution({
+          dishContext: suggestions?.dishContext || { dishType: "unknown" },
+          suggestions: [suggestion],
+          modifiedRecipe: {
+            ingredients: appliedRecipeData.ingredients || recipe.ingredients,
+            instructionChanges: appliedRecipeData.instructionChanges,
+            warnings: appliedRecipeData.warnings,
+          },
+        });
+      }
+
+      onOpenChange(false);
+    } catch (err) {
+      console.error("Error applying substitution:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to apply substitution"
+      );
+    } finally {
+      setApplyingSubstitution(false);
     }
-    onOpenChange(false);
   };
 
   return (
@@ -262,45 +381,25 @@ export function SubstitutionDialog({
 
                       {/* Apply Button */}
                       <Button
-                        onClick={() =>
-                          handleApply({
-                            ...suggestions,
-                            suggestions: [suggestion],
-                          })
-                        }
+                        onClick={() => handleApply(suggestion)}
+                        disabled={applyingSubstitution}
                         size="sm"
                         className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                       >
-                        Use This Substitution
+                        {applyingSubstitution ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Applying...
+                          </>
+                        ) : (
+                          "Use This Substitution"
+                        )}
                       </Button>
                     </CardContent>
                   </Card>
                 ))}
               </div>
 
-              {/* Warnings */}
-              {suggestions.modifiedRecipe?.warnings &&
-                suggestions.modifiedRecipe.warnings.length > 0 && (
-                  <Card className="bg-yellow-500/10 border-yellow-500/20">
-                    <CardContent className="pt-4">
-                      <div className="flex items-start gap-2">
-                        <AlertCircle className="h-4 w-4 text-yellow-400 mt-0.5" />
-                        <div className="space-y-1">
-                          <h4 className="text-sm font-semibold text-yellow-400">
-                            Important Notes
-                          </h4>
-                          <ul className="text-sm text-yellow-300 space-y-1">
-                            {suggestions.modifiedRecipe.warnings.map(
-                              (warning, index) => (
-                                <li key={index}>• {warning}</li>
-                              )
-                            )}
-                          </ul>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
             </div>
           )}
         </div>

@@ -10,3 +10,9 @@ export type { CookingAssistantParams } from "./cooking-assistant";
 
 export { buildSubstitutionPrompt } from "./substitution";
 export type { SubstitutionParams } from "./substitution";
+
+export { buildApplySubstitutionPrompt } from "./apply-substitution";
+export type { ApplySubstitutionParams } from "./apply-substitution";
+
+export { buildMatchIngredientPrompt } from "./match-ingredient";
+export type { MatchIngredientParams } from "./match-ingredient";
