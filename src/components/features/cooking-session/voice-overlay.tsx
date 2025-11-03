@@ -67,6 +67,7 @@ export function VoiceOverlay({
     disconnect,
     startRecording,
     stopRecording,
+    sendText,
     sendContextUpdate,
     onFunctionCall,
     sendToolResponse,
@@ -107,7 +108,7 @@ export function VoiceOverlay({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Handle step changes - silently update AI context
+  // Handle step changes - send as user message so AI responds
   useEffect(() => {
     if (isConnected && previousStepRef.current !== currentStepNumber) {
       const updateMessage = buildStepChangeUpdate(
@@ -117,10 +118,10 @@ export function VoiceOverlay({
       );
       
       console.log("Step changed in voice overlay, sending update:", updateMessage);
-      sendContextUpdate(updateMessage);
+      sendText(updateMessage);
       previousStepRef.current = currentStepNumber;
     }
-  }, [currentStepNumber, currentStep, totalSteps, isConnected, sendContextUpdate]);
+  }, [currentStepNumber, currentStep, totalSteps, isConnected, sendText]);
 
   // Register function call handler
   useEffect(() => {
@@ -402,7 +403,7 @@ export function VoiceOverlay({
               </div>
 
               {/* User Transcript Preview */}
-              {userTranscript && (
+              {userTranscript && !userTranscript.startsWith('[CONTEXT UPDATE]') && (
                 <div className="bg-white/5 border border-white/10 rounded-lg p-4 max-w-2xl mx-auto">
                   <p className="text-sm text-gray-400 mb-1">You said:</p>
                   <p className="text-lg text-white">
