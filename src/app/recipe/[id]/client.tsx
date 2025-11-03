@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { SubstitutionDialog } from "@/components/substitution-dialog";
+import { SubstitutionDialog } from "@/components/features/substitution/substitution-dialog";
 import {
   ArrowLeft,
   Clock,

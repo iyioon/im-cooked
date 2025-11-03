@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ChefHat, Send, User, Bot, Trash2, Settings } from "lucide-react";
-import { RecipeResults, RecipeResultsLoading } from "@/components/recipe-results";
+import { RecipeResults, RecipeResultsLoading } from "@/components/features/recipe/recipe-results";
 import { Recipe, UserPreferences } from "@/types/recipe";
 import { Message, saveChatHistory, loadChatHistory, clearChatHistory } from "@/lib/chat-storage";
-import { PreferencesDialog } from "@/components/preferences-dialog";
+import { PreferencesDialog } from "@/components/features/preferences/preferences-dialog";
 import { loadPreferences } from "@/lib/preferences-manager";
 
 export default function Dashboard() {
