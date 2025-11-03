@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CookingSessionMessage, RecipeStep, RecipeDetail } from "@/types/recipe";
 import { TextChatInput } from "./text-chat-input";
-import { useVoiceChatControls } from "./voice-chat-controls";
 import { ChatMessages } from "./chat-messages";
 import { ChefHat } from "lucide-react";
 
@@ -33,7 +32,6 @@ export function CookingAssistantChat({
   isFirstStep,
   isLastStep,
 }: CookingAssistantChatProps) {
-  const [voiceMode, setVoiceMode] = useState(false);
   const [suggestedQuestionInput, setSuggestedQuestionInput] = useState("");
 
   const suggestedQuestions = [
@@ -43,25 +41,9 @@ export function CookingAssistantChat({
     "How long should this take?",
   ];
 
-  const handleToggleVoiceMode = () => {
-    setVoiceMode(!voiceMode);
-  };
-
   const handleSuggestedQuestionClick = (question: string) => {
     setSuggestedQuestionInput(question);
   };
-
-  const voiceChatControls = useVoiceChatControls({
-    recipeTitle: recipe.title,
-    currentStep: currentStep,
-    currentStepNumber: currentStepNumber,
-    allSteps: recipe.steps || [],
-    ingredients: recipe.ingredients,
-    totalSteps: totalSteps,
-    voiceMode: voiceMode,
-    onToggleVoiceMode: handleToggleVoiceMode,
-    onSendMessage: onSendMessage,
-  });
 
   return (
     <Card className="bg-white/5 border-white/10 backdrop-blur-sm flex flex-col h-full overflow-hidden">
@@ -76,9 +58,6 @@ export function CookingAssistantChat({
               Step {currentStepNumber} of {totalSteps}
             </p>
           </div>
-          
-          {/* Voice Mode Toggle */}
-          {voiceChatControls.toggleButton}
         </div>
       </CardHeader>
 
@@ -86,32 +65,26 @@ export function CookingAssistantChat({
         <ChatMessages
           messages={messages}
           loading={false}
-          voiceMode={voiceMode}
+          voiceMode={false}
           suggestedQuestions={suggestedQuestions}
           onSuggestedQuestionClick={handleSuggestedQuestionClick}
         />
       </CardContent>
 
       <div className="shrink-0 p-4 border-t border-white/10">
-        {voiceMode ? (
-          // Voice mode controls
-          voiceChatControls.controls
-        ) : (
-          // Text mode controls
-          <TextChatInput
-            recipeTitle={recipe.title}
-            currentStep={currentStep}
-            currentStepNumber={currentStepNumber}
-            allSteps={recipe.steps || []}
-            ingredients={recipe.ingredients}
-            initialInput={suggestedQuestionInput}
-            onSendMessage={onSendMessage}
-            onNextStep={onNextStep}
-            onPreviousStep={onPreviousStep}
-            isFirstStep={isFirstStep}
-            isLastStep={isLastStep}
-          />
-        )}
+        <TextChatInput
+          recipeTitle={recipe.title}
+          currentStep={currentStep}
+          currentStepNumber={currentStepNumber}
+          allSteps={recipe.steps || []}
+          ingredients={recipe.ingredients}
+          initialInput={suggestedQuestionInput}
+          onSendMessage={onSendMessage}
+          onNextStep={onNextStep}
+          onPreviousStep={onPreviousStep}
+          isFirstStep={isFirstStep}
+          isLastStep={isLastStep}
+        />
       </div>
     </Card>
   );
