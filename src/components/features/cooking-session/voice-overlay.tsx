@@ -184,14 +184,6 @@ export function VoiceOverlay({
       if (isConnected) {
         const timerMessage = `[TIMER COMPLETE] The "${timer.label}" timer has finished. Please notify the user that their ${timer.label} timer is done.`;
         sendContextUpdate(timerMessage);
-        
-        // Play a sound notification
-        if (typeof window !== "undefined" && "speechSynthesis" in window) {
-          const utterance = new SpeechSynthesisUtterance(`Timer complete: ${timer.label}`);
-          utterance.rate = 1.2;
-          utterance.pitch = 1.1;
-          window.speechSynthesis.speak(utterance);
-        }
       }
 
       // Auto-remove timer after 3 seconds
