@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { RecipeStep, RecipeDetail } from "@/types/recipe";
 import { useGeminiLive } from "@/hooks/useGeminiLive";
 import { buildVoiceCookingContext, buildStepChangeUpdate } from "@/lib/prompts/cooking-assistant";
+import { cookingTools } from "@/lib/prompts/cooking-tools";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { X, Mic, MicOff, Volume2, Loader2 } from "lucide-react";
@@ -14,6 +15,9 @@ interface VoiceOverlayProps {
   currentStepNumber: number;
   totalSteps: number;
   onClose: () => void;
+  onNextStep: () => void;
+  onPreviousStep: () => void;
+  onGoToStep: (stepNumber: number) => void;
 }
 
 export function VoiceOverlay({
@@ -22,6 +26,9 @@ export function VoiceOverlay({
   currentStepNumber,
   totalSteps,
   onClose,
+  onNextStep,
+  onPreviousStep,
+  onGoToStep,
 }: VoiceOverlayProps) {
   const previousStepRef = useRef(currentStepNumber);
   const [isInitializing, setIsInitializing] = useState(true);
@@ -51,11 +58,14 @@ export function VoiceOverlay({
     startRecording,
     stopRecording,
     sendContextUpdate,
+    onFunctionCall,
+    sendToolResponse,
     error: voiceError,
     connectionState,
   } = useGeminiLive({
     apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "",
     systemInstruction,
+    tools: cookingTools,
   });
 
   // Connect on mount
@@ -95,6 +105,62 @@ export function VoiceOverlay({
       previousStepRef.current = currentStepNumber;
     }
   }, [currentStepNumber, currentStep, totalSteps, isConnected, sendContextUpdate]);
+
+  // Register function call handler
+  useEffect(() => {
+    const handleFunctionCall = (call: { id: string; name: string; args: Record<string, unknown> }) => {
+      console.log("Function call received:", call);
+
+      if (call.name === "navigateToStep") {
+        const args = call.args as { action: "next" | "previous" | "goto"; stepNumber?: number };
+        
+        if (args.action === "next") {
+          onNextStep();
+          sendToolResponse([{
+            id: call.id,
+            name: call.name,
+            response: { success: true, message: "Moved to next step" }
+          }]);
+        } else if (args.action === "previous") {
+          onPreviousStep();
+          sendToolResponse([{
+            id: call.id,
+            name: call.name,
+            response: { success: true, message: "Moved to previous step" }
+          }]);
+        } else if (args.action === "goto" && args.stepNumber) {
+          onGoToStep(args.stepNumber);
+          sendToolResponse([{
+            id: call.id,
+            name: call.name,
+            response: { success: true, message: `Moved to step ${args.stepNumber}` }
+          }]);
+        }
+      } else if (call.name === "markStepComplete") {
+        onNextStep();
+        sendToolResponse([{
+          id: call.id,
+          name: call.name,
+          response: { success: true, message: "Step marked complete, moved to next step" }
+        }]);
+      } else if (call.name === "setTimer") {
+        const args = call.args as { minutes: number; seconds?: number; label?: string };
+        const totalSeconds = Math.floor(args.minutes * 60) + (args.seconds || 0);
+        const label = args.label || "Timer";
+        
+        console.log(`Timer requested: ${label} for ${totalSeconds} seconds`);
+        // TODO: Implement timer UI
+        
+        sendToolResponse([{
+          id: call.id,
+          name: call.name,
+          response: { success: true, message: `Timer set for ${args.minutes} minutes` }
+        }]);
+      }
+    };
+
+    onFunctionCall(handleFunctionCall);
+  }, [onFunctionCall, onNextStep, onPreviousStep, onGoToStep, sendToolResponse]);
 
   // Toggle recording
   const handleToggleRecording = async () => {
@@ -191,15 +257,6 @@ export function VoiceOverlay({
                   AI is speaking...
                 </Badge>
               </div>
-              
-              {/* AI Transcript */}
-              {aiTranscript && (
-                <div className="bg-white/5 border border-white/10 rounded-lg p-6 max-w-2xl mx-auto">
-                  <p className="text-xl text-white leading-relaxed">
-                    {aiTranscript}
-                  </p>
-                </div>
-              )}
 
               {/* Output Volume Meter */}
               <div className="max-w-md mx-auto">

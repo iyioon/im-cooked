@@ -20,6 +20,12 @@ export interface UseGeminiLiveConfig {
   autoConnect?: boolean;
 }
 
+export interface FunctionCallData {
+  id: string;
+  name: string;
+  args: Record<string, unknown>;
+}
+
 export interface UseGeminiLiveReturn {
   // Connection state
   connectionState: ConnectionState;
@@ -51,6 +57,16 @@ export interface UseGeminiLiveReturn {
   sendText: (text: string) => void;
   sendContextUpdate: (text: string) => void;
   interrupt: () => void;
+
+  // Function calling
+  onFunctionCall: (handler: (call: FunctionCallData) => void) => void;
+  sendToolResponse: (
+    functionResponses: Array<{
+      id: string;
+      name: string;
+      response: Record<string, unknown>;
+    }>
+  ) => void;
 }
 
 export function useGeminiLive(
@@ -361,6 +377,45 @@ export function useGeminiLive(
   }, []);
 
   /**
+   * Register a function call handler
+   */
+  const onFunctionCall = useCallback((handler: (call: FunctionCallData) => void) => {
+    const client = clientRef.current;
+    if (!client) {
+      console.warn("Cannot register function call handler: client not initialized");
+      return;
+    }
+
+    client.on("functionCall", handler);
+  }, []);
+
+  /**
+   * Send tool response back to AI
+   */
+  const sendToolResponse = useCallback(
+    (
+      functionResponses: Array<{
+        id: string;
+        name: string;
+        response: Record<string, unknown>;
+      }>
+    ) => {
+      const client = clientRef.current;
+
+      if (!client) {
+        throw new Error("Client not initialized");
+      }
+
+      if (!client.isConnected()) {
+        throw new Error("Not connected to Gemini Live");
+      }
+
+      client.sendToolResponse(functionResponses);
+    },
+    []
+  );
+
+  /**
    * Auto-connect if configured
    */
   useEffect(() => {
@@ -402,5 +457,9 @@ export function useGeminiLive(
     sendText,
     sendContextUpdate,
     interrupt,
+
+    // Function calling
+    onFunctionCall,
+    sendToolResponse,
   };
 }

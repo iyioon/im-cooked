@@ -35,6 +35,7 @@ export function CookingSessionClient({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showVoiceOverlay, setShowVoiceOverlay] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const {
     session,
@@ -42,10 +43,14 @@ export function CookingSessionClient({
     createSession,
     goToNextStep,
     goToPreviousStep,
+    goToStep,
     addChatMessage,
   } = useCookingSession(sessionId);
 
   useEffect(() => {
+    // Prevent re-initialization when session updates due to step/chat changes
+    if (isInitialized) return;
+
     async function initializeSession() {
       try {
         setLoading(true);
@@ -66,6 +71,7 @@ export function CookingSessionClient({
             const data = await response.json();
             setRecipe(data);
           }
+          setIsInitialized(true);
         } else if (!sessionId) {
           // No session yet, fetch recipe and create one
           const response = await fetch(`/api/recipes/${recipeId}`);
@@ -77,6 +83,7 @@ export function CookingSessionClient({
           setRecipe(data);
           const newSession = createSession(data);
           router.replace(`/cooking-session/${recipeId}?session=${newSession.id}`);
+          setIsInitialized(true);
         }
       } catch (err) {
         console.error("Error initializing session:", err);
@@ -87,7 +94,7 @@ export function CookingSessionClient({
     }
 
     initializeSession();
-  }, [recipeId, sessionId, session, createSession, router]);
+  }, [recipeId, sessionId, session, createSession, router, isInitialized]);
 
   const handleSendMessage = (message: CookingSessionMessage) => {
     addChatMessage(message);
@@ -299,6 +306,9 @@ export function CookingSessionClient({
           currentStepNumber={session.currentStep}
           totalSteps={totalSteps}
           onClose={() => setShowVoiceOverlay(false)}
+          onNextStep={goToNextStep}
+          onPreviousStep={goToPreviousStep}
+          onGoToStep={goToStep}
         />
       )}
     </>
