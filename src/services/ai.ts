@@ -7,7 +7,18 @@ const genAI = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || "",
 });
 
-const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-2.5-flash-native-audio-dialog";
+/**
+ * Model: gemini-2.0-flash
+ * 
+ * Selected for this cooking assistant because:
+ * - Fast response times ideal for real-time chat interactions
+ * - Cost-effective for frequent cooking assistance queries
+ * - 1M token context window for long conversations with recipe context
+ * - Excellent text generation quality for cooking instructions
+ * - Stable version (not experimental) for production use
+ * - Supports function calling for ingredient substitutions
+ */
+const MODEL_NAME = "gemini-2.0-flash";
 
 /**
  * Get the configured Gemini AI instance
