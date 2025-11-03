@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Mic, Timer, MessageCircle, Search, Sparkles, ChefHat } from "lucide-react";
-import { VideoBackground } from "@/components/video-background";
+import { VideoBackground } from "@/components/layout/video-background";
 import Link from "next/link";
 
 export default function Home() {

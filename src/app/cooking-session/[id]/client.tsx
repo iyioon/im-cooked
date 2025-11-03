@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { CookingAssistantChat } from "@/components/cooking-assistant-chat";
+import { CookingAssistantChat } from "@/components/features/cooking-session/cooking-assistant-chat";
 import { useCookingSession } from "@/hooks/useCookingSession";
 import {
   ArrowLeft,
