@@ -657,14 +657,61 @@ async function resolveGroundingUrl(groundingUrl: string): Promise<string | null>
 /**
  * Search for recipes based on query using Google Search Grounding
  */
-export async function searchRecipes(query: string): Promise<Recipe[]> {
+export async function searchRecipes(query: string, preferences?: import("@/types/recipe").UserPreferences): Promise<Recipe[]> {
   try {
     console.log(`Searching recipes with Google Search Grounding for: ${query}`);
-    
+
+    // Build context-aware search query
+    let searchQuery = `Find ${query} recipes`;
+
+    // Add dietary restrictions
+    if (preferences?.dietaryRestrictions?.length) {
+      searchQuery += ` that are ${preferences.dietaryRestrictions.join(", ")}`;
+    }
+
+    // Add allergy considerations
+    if (preferences?.allergies?.length) {
+      searchQuery += ` without ${preferences.allergies.join(", ")}`;
+    }
+
+    // Add preferred cuisines
+    if (preferences?.preferredCuisines?.length) {
+      searchQuery += ` (prefer ${preferences.preferredCuisines.join(", ")} cuisine)`;
+    }
+
+    // Add location context for regional ingredients
+    if (preferences?.location?.country) {
+      searchQuery += ` suitable for ${preferences.location.country}`;
+      if (preferences.location.region) {
+        searchQuery += ` (${preferences.location.region})`;
+      }
+    }
+
+    // Add difficulty preference
+    if (preferences?.difficultyPreference && preferences.difficultyPreference !== "any") {
+      searchQuery += ` ${preferences.difficultyPreference} difficulty`;
+    }
+
+    // Add time constraints
+    if (preferences?.maxPrepTime || preferences?.maxCookTime) {
+      const timeConstraints = [];
+      if (preferences.maxPrepTime) {
+        timeConstraints.push(`prep time under ${preferences.maxPrepTime} minutes`);
+      }
+      if (preferences.maxCookTime) {
+        timeConstraints.push(`cook time under ${preferences.maxCookTime} minutes`);
+      }
+      searchQuery += ` with ${timeConstraints.join(" and ")}`;
+    }
+
+    searchQuery += ` from these cooking websites: allrecipes.com, foodnetwork.com, simplyrecipes.com, delish.com, bonappetit.com, epicurious.com, seriouseats.com, tasteofhome.com`;
+
+    console.log(`Enhanced search query: ${searchQuery}`);
+
     // Use Gemini with Google Search grounding to find recipe URLs
     const response = await genAI.models.generateContent({
       model: MODEL_NAME,
-      contents: `Find ${query} recipes from these cooking websites: allrecipes.com, foodnetwork.com, simplyrecipes.com, delish.com, bonappetit.com, epicurious.com, seriouseats.com, tasteofhome.com`,
+      contents: searchQuery,
       config: {
         tools: [{ googleSearch: {} }],
       },

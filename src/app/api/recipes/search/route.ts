@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchRecipes } from "@/lib/gemini";
+import { UserPreferences } from "@/types/recipe";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { query } = body;
+    const { query, preferences } = body as { query: string; preferences?: UserPreferences };
 
     if (!query || typeof query !== "string") {
       return NextResponse.json(
@@ -18,7 +19,7 @@ export async function POST(request: NextRequest) {
       setTimeout(() => reject(new Error("Search timeout")), 30000)
     );
 
-    const searchPromise = searchRecipes(query);
+    const searchPromise = searchRecipes(query, preferences);
 
     const recipes = await Promise.race([searchPromise, timeoutPromise]);
 

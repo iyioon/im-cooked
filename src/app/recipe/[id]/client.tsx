@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { RecipeDetail } from "@/types/recipe";
+import { RecipeDetail, SubstitutionResponse } from "@/types/recipe";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { SubstitutionDialog } from "@/components/substitution-dialog";
 import {
   ArrowLeft,
   Clock,
@@ -14,6 +15,7 @@ import {
   Users,
   ExternalLink,
   AlertCircle,
+  Replace,
 } from "lucide-react";
 
 interface RecipeDetailClientProps {
@@ -25,6 +27,13 @@ export function RecipeDetailClient({ recipeId }: RecipeDetailClientProps) {
   const [recipe, setRecipe] = useState<RecipeDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Substitution state
+  const [substitutionDialogOpen, setSubstitutionDialogOpen] = useState(false);
+  const [selectedIngredient, setSelectedIngredient] = useState<string>("");
+  const [modifiedIngredients, setModifiedIngredients] = useState<string[]>([]);
+  const [modifiedInstructions, setModifiedInstructions] = useState<string[]>([]);
+  const [substitutionWarnings, setSubstitutionWarnings] = useState<string[]>([]);
 
   useEffect(() => {
     async function fetchRecipe() {
@@ -50,6 +59,36 @@ export function RecipeDetailClient({ recipeId }: RecipeDetailClientProps) {
 
     fetchRecipe();
   }, [recipeId]);
+
+  const handleOpenSubstitution = (ingredient: string) => {
+    setSelectedIngredient(ingredient);
+    setSubstitutionDialogOpen(true);
+  };
+
+  const handleApplySubstitution = (substitutionResponse: SubstitutionResponse) => {
+    if (substitutionResponse.modifiedRecipe) {
+      setModifiedIngredients(substitutionResponse.modifiedRecipe.ingredients);
+
+      // Apply instruction changes if any
+      if (substitutionResponse.modifiedRecipe.instructionChanges && recipe) {
+        const newInstructions = [...recipe.instructions];
+        substitutionResponse.modifiedRecipe.instructionChanges.forEach((change) => {
+          if (change.step >= 1 && change.step <= newInstructions.length) {
+            newInstructions[change.step - 1] = change.modified;
+          }
+        });
+        setModifiedInstructions(newInstructions);
+      }
+
+      // Store warnings
+      if (substitutionResponse.modifiedRecipe.warnings) {
+        setSubstitutionWarnings(substitutionResponse.modifiedRecipe.warnings);
+      }
+    }
+  };
+
+  const displayIngredients = modifiedIngredients.length > 0 ? modifiedIngredients : recipe?.ingredients || [];
+  const displayInstructions = modifiedInstructions.length > 0 ? modifiedInstructions : recipe?.instructions || [];
 
   if (loading) {
     return <RecipeDetailLoading />;
@@ -195,17 +234,65 @@ export function RecipeDetailClient({ recipeId }: RecipeDetailClientProps) {
           <div className="md:col-span-1">
             <Card className="bg-white/5 border-white/10 backdrop-blur-sm sticky top-6">
               <CardHeader>
-                <CardTitle className="text-white">Ingredients</CardTitle>
+                <CardTitle className="text-white flex items-center justify-between">
+                  Ingredients
+                  {modifiedIngredients.length > 0 && (
+                    <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/50">
+                      Modified
+                    </Badge>
+                  )}
+                </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
+                {/* Warnings */}
+                {substitutionWarnings.length > 0 && (
+                  <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3 space-y-1">
+                    <div className="flex items-center gap-2 text-yellow-400 text-sm font-semibold">
+                      <AlertCircle className="h-4 w-4" />
+                      Important Notes
+                    </div>
+                    <ul className="text-xs text-yellow-300 space-y-1 ml-6">
+                      {substitutionWarnings.map((warning, index) => (
+                        <li key={index}>• {warning}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Ingredients List */}
                 <ul className="space-y-3">
-                  {recipe.ingredients.map((ingredient, index) => (
-                    <li key={index} className="flex items-start gap-3 text-gray-300">
+                  {displayIngredients.map((ingredient, index) => (
+                    <li key={index} className="flex items-start gap-2 text-gray-300 group">
                       <Checkbox className="mt-1 border-white/20 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600" />
-                      <span className="text-sm">{ingredient}</span>
+                      <span className="text-sm flex-1">{ingredient}</span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleOpenSubstitution(ingredient)}
+                        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500/20 text-blue-400"
+                        title="Substitute ingredient"
+                      >
+                        <Replace className="h-3.5 w-3.5" />
+                      </Button>
                     </li>
                   ))}
                 </ul>
+
+                {/* Reset Button */}
+                {modifiedIngredients.length > 0 && (
+                  <Button
+                    onClick={() => {
+                      setModifiedIngredients([]);
+                      setModifiedInstructions([]);
+                      setSubstitutionWarnings([]);
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="w-full border-white/20 hover:bg-white/10 text-white"
+                  >
+                    Reset to Original
+                  </Button>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -215,11 +302,18 @@ export function RecipeDetailClient({ recipeId }: RecipeDetailClientProps) {
             {/* Instructions */}
             <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
               <CardHeader>
-                <CardTitle className="text-white">Instructions</CardTitle>
+                <CardTitle className="text-white flex items-center justify-between">
+                  Instructions
+                  {modifiedInstructions.length > 0 && (
+                    <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/50">
+                      Modified
+                    </Badge>
+                  )}
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                {recipe.steps && recipe.steps.length > 0 ? (
-                  // Enhanced steps with images
+                {recipe.steps && recipe.steps.length > 0 && modifiedInstructions.length === 0 ? (
+                  // Enhanced steps with images (only show if not modified)
                   <div className="space-y-6">
                     {recipe.steps.map((step, index) => (
                       <div key={index} className="flex flex-col gap-4">
@@ -229,7 +323,7 @@ export function RecipeDetailClient({ recipeId }: RecipeDetailClientProps) {
                           </span>
                           <p className="text-gray-300 pt-1">{step.text}</p>
                         </div>
-                        
+
                         {step.imageUrl && (
                           <div className="ml-12">
                             <img
@@ -246,9 +340,9 @@ export function RecipeDetailClient({ recipeId }: RecipeDetailClientProps) {
                     ))}
                   </div>
                 ) : (
-                  // Fallback to plain instructions
+                  // Fallback to plain instructions or modified instructions
                   <ol className="space-y-4">
-                    {recipe.instructions.map((instruction, index) => (
+                    {displayInstructions.map((instruction, index) => (
                       <li key={index} className="flex gap-4">
                         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
                           {index + 1}
@@ -308,6 +402,17 @@ export function RecipeDetailClient({ recipeId }: RecipeDetailClientProps) {
           </div>
         </div>
       </div>
+
+      {/* Substitution Dialog */}
+      {recipe && (
+        <SubstitutionDialog
+          open={substitutionDialogOpen}
+          onOpenChange={setSubstitutionDialogOpen}
+          recipe={recipe}
+          ingredient={selectedIngredient}
+          onApplySubstitution={handleApplySubstitution}
+        />
+      )}
     </div>
   );
 }
