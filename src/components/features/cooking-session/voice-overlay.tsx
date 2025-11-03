@@ -3,10 +3,12 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import { RecipeStep, RecipeDetail } from "@/types/recipe";
 import { useGeminiLive } from "@/hooks/useGeminiLive";
+import { useTimer } from "@/hooks/useTimer";
 import { buildVoiceCookingContext, buildStepChangeUpdate } from "@/lib/prompts/cooking-assistant";
 import { cookingTools } from "@/lib/prompts/cooking-tools";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { TimerDisplay } from "./timer-display";
 import { X, Mic, MicOff, Volume2, Loader2 } from "lucide-react";
 
 interface VoiceOverlayProps {
@@ -34,6 +36,9 @@ export function VoiceOverlay({
   const [isInitializing, setIsInitializing] = useState(true);
   const initialStepRef = useRef(currentStepNumber);
   const initialStepTextRef = useRef(currentStep);
+
+  // Initialize timer management
+  const { timers, addTimer, removeTimer, onTimerComplete } = useTimer();
 
   // Build system instruction for voice context - memoized to prevent reconnection
   // We only build this once on mount with the initial step
@@ -159,8 +164,8 @@ export function VoiceOverlay({
         const totalSeconds = Math.floor(args.minutes * 60) + (args.seconds || 0);
         const label = args.label || "Timer";
         
-        console.log(`Timer requested: ${label} for ${totalSeconds} seconds`);
-        // TODO: Implement timer UI
+        // Add the timer
+        addTimer(totalSeconds, label);
         
         sendToolResponse([{
           id: call.id,
@@ -171,7 +176,25 @@ export function VoiceOverlay({
     };
 
     onFunctionCall(handleFunctionCall);
-  }, [onFunctionCall, onNextStep, onPreviousStep, onGoToStep, sendToolResponse]);
+  }, [onFunctionCall, onNextStep, onPreviousStep, onGoToStep, sendToolResponse, addTimer]);
+
+  // Handle timer completion - notify AI
+  useEffect(() => {
+    onTimerComplete((timer) => {
+      if (isConnected) {
+        const timerMessage = `[TIMER COMPLETE] The "${timer.label}" timer has finished. Please notify the user that their ${timer.label} timer is done.`;
+        sendContextUpdate(timerMessage);
+        
+        // Play a sound notification
+        if (typeof window !== "undefined" && "speechSynthesis" in window) {
+          const utterance = new SpeechSynthesisUtterance(`Timer complete: ${timer.label}`);
+          utterance.rate = 1.2;
+          utterance.pitch = 1.1;
+          window.speechSynthesis.speak(utterance);
+        }
+      }
+    });
+  }, [onTimerComplete, isConnected, sendContextUpdate]);
 
   // Toggle recording
   const handleToggleRecording = async () => {
@@ -391,6 +414,9 @@ export function VoiceOverlay({
           </div>
         </div>
       </div>
+
+      {/* Timer Display */}
+      <TimerDisplay timers={timers} onRemove={removeTimer} />
     </div>
   );
 }
