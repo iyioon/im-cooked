@@ -178,7 +178,7 @@ export function VoiceOverlay({
     onFunctionCall(handleFunctionCall);
   }, [onFunctionCall, onNextStep, onPreviousStep, onGoToStep, sendToolResponse, addTimer]);
 
-  // Handle timer completion - notify AI
+  // Handle timer completion - notify AI and auto-remove after delay
   useEffect(() => {
     onTimerComplete((timer) => {
       if (isConnected) {
@@ -193,8 +193,13 @@ export function VoiceOverlay({
           window.speechSynthesis.speak(utterance);
         }
       }
+
+      // Auto-remove timer after 3 seconds
+      setTimeout(() => {
+        removeTimer(timer.id);
+      }, 3000);
     });
-  }, [onTimerComplete, isConnected, sendContextUpdate]);
+  }, [onTimerComplete, isConnected, sendContextUpdate, removeTimer]);
 
   // Toggle recording
   const handleToggleRecording = async () => {
