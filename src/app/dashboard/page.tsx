@@ -1,23 +1,29 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ChefHat, Send, User, Bot, Trash2, Settings } from "lucide-react";
 import { RecipeResults, RecipeResultsLoading } from "@/components/recipe-results";
-import { Recipe, UserPreferences } from "@/types/recipe";
+import { RecipeSidebar } from "@/components/recipe-sidebar";
+import { Recipe, UserPreferences, RecipeDetail, RecipeDetailWithContext } from "@/types/recipe";
 import { Message, saveChatHistory, loadChatHistory, clearChatHistory } from "@/lib/chat-storage";
 import { PreferencesDialog } from "@/components/preferences-dialog";
 import { loadPreferences } from "@/lib/preferences-manager";
 
 export default function Dashboard() {
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [preferencesOpen, setPreferencesOpen] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
+  const [selectedRecipe, setSelectedRecipe] = useState<RecipeDetailWithContext | null>(null);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
+  const [isFetchingRecipeDetail, setIsFetchingRecipeDetail] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Load chat history on mount
@@ -57,6 +63,61 @@ export default function Dashboard() {
   const handleClearHistory = () => {
     setMessages([]);
     clearChatHistory();
+  };
+
+  const handleViewRecipe = (recipe: Recipe) => {
+    router.push(`/recipe/${recipe.id}`);
+  };
+
+  const handleSelectRecipe = async (recipe: Recipe) => {
+    setIsFetchingRecipeDetail(true);
+    try {
+      const response = await fetch(`/api/recipes/${recipe.id}`);
+      if (!response.ok) throw new Error("Failed to fetch recipe details");
+
+      const recipeDetail: RecipeDetail = await response.json();
+
+      const recipeWithContext: RecipeDetailWithContext = {
+        original: recipeDetail,
+        current: { ...recipeDetail },
+        modifications: {
+          substitutions: [],
+          ingredientEdits: [],
+          warnings: [],
+        },
+        metadata: {
+          selectedAt: new Date(),
+          lastModifiedAt: new Date(),
+          userPreferences: preferences || null,
+        },
+      };
+
+      setSelectedRecipe(recipeWithContext);
+      setIsSidebarExpanded(true);
+    } catch (error) {
+      console.error("Error fetching recipe details:", error);
+    } finally {
+      setIsFetchingRecipeDetail(false);
+    }
+  };
+
+  const handleSidebarClose = () => {
+    setSelectedRecipe(null);
+  };
+
+  const handleToggleSidebarExpand = () => {
+    setIsSidebarExpanded((prev) => !prev);
+  };
+
+  const handleIngredientModified = (modifiedRecipe: RecipeDetailWithContext) => {
+    setSelectedRecipe(modifiedRecipe);
+  };
+
+  const handleStartCooking = () => {
+    if (selectedRecipe) {
+      router.push(`/cooking-session/${selectedRecipe.current.id}`);
+      handleSidebarClose();
+    }
   };
 
   const handleSendMessage = async () => {
@@ -142,7 +203,7 @@ export default function Dashboard() {
     <div className="flex h-screen flex-col bg-black text-white">
       {/* Top Bar */}
       <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/10 bg-black/80 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 w-full">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg">
               <ChefHat className="h-6 w-6 text-white" strokeWidth={2} />
@@ -178,10 +239,13 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Chat Area */}
-      <main className="flex-1 pt-16 pb-32">
-        <div className="mx-auto h-full max-w-6xl px-4 sm:px-6 lg:px-8">
-          <ScrollArea className="h-full py-8">
+      {/* Chat Area with Sidebar Container - Side by side layout */}
+      <main className="flex-1 pt-16 pb-32 overflow-hidden">
+        <div className="h-full flex">
+          {/* Chat Section - Takes remaining space */}
+          <div className="flex-1 overflow-hidden">
+            <div className="h-full px-4 sm:px-6 lg:px-8">
+              <ScrollArea className="h-full py-8">
             {messages.length === 0 ? (
               // Empty State
               <div className="flex h-full flex-col items-center justify-center text-center">
@@ -244,6 +308,8 @@ export default function Dashboard() {
                             <RecipeResults
                               recipes={message.recipes}
                               query={message.query || ""}
+                              onViewRecipe={handleViewRecipe}
+                              onSelectRecipe={handleSelectRecipe}
                             />
                           </div>
                         ) : (
@@ -276,7 +342,21 @@ export default function Dashboard() {
                 <div ref={messagesEndRef} />
               </div>
             )}
-          </ScrollArea>
+              </ScrollArea>
+            </div>
+          </div>
+
+          {/* Recipe Sidebar - Side panel */}
+          {selectedRecipe && (
+            <RecipeSidebar
+              recipe={selectedRecipe}
+              isExpanded={isSidebarExpanded}
+              onToggleExpand={handleToggleSidebarExpand}
+              onClose={handleSidebarClose}
+              onStartCooking={handleStartCooking}
+              onIngredientModified={handleIngredientModified}
+            />
+          )}
         </div>
       </main>
 

@@ -20,11 +20,13 @@ interface RecipeResultsProps {
   recipes: Recipe[];
   query: string;
   onRetry?: () => void;
+  onViewRecipe?: (recipe: Recipe) => void;
+  onSelectRecipe?: (recipe: Recipe) => void;
 }
 
 const RECIPES_PER_PAGE = 3;
 
-export function RecipeResults({ recipes, query, onRetry }: RecipeResultsProps) {
+export function RecipeResults({ recipes, query, onRetry, onViewRecipe, onSelectRecipe }: RecipeResultsProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const router = useRouter();
 
@@ -32,10 +34,6 @@ export function RecipeResults({ recipes, query, onRetry }: RecipeResultsProps) {
   const startIndex = (currentPage - 1) * RECIPES_PER_PAGE;
   const endIndex = startIndex + RECIPES_PER_PAGE;
   const currentRecipes = recipes.slice(startIndex, endIndex);
-
-  const handleRecipeClick = (recipe: Recipe) => {
-    router.push(`/recipe/${recipe.id}`);
-  };
 
   // Empty state
   if (recipes.length === 0) {
@@ -83,7 +81,8 @@ export function RecipeResults({ recipes, query, onRetry }: RecipeResultsProps) {
           <RecipeCard
             key={recipe.id}
             recipe={recipe}
-            onClick={() => handleRecipeClick(recipe)}
+            onViewRecipe={onViewRecipe}
+            onSelectRecipe={onSelectRecipe}
           />
         ))}
       </div>

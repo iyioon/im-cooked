@@ -161,3 +161,42 @@ export interface CookingSession {
   messages: CookingSessionMessage[]; // Chat messages
   appliedSubstitutions: SubstitutionRecord[]; // Track substitutions made during this session
 }
+
+// Recipe Context Types for Dashboard Sidebar
+export interface IngredientEdit {
+  originalIngredient: string;
+  editedIngredient: string;
+  editType: "quantity" | "unit" | "item" | "preparation";
+  editedAt: Date;
+}
+
+export interface AppliedSubstitutionWithContext {
+  originalIngredient: string;
+  parsedIngredient: ParsedIngredient;
+  substitutedWith: string;
+  parsedSubstitution: ParsedIngredient;
+  reason?: string;
+  appliedAt: Date;
+  impacts?: {
+    taste?: string;
+    texture?: string;
+    nutrition?: string;
+    cookingTime?: string;
+  };
+  warnings?: string[];
+}
+
+export interface RecipeDetailWithContext {
+  original: RecipeDetail; // Immutable original recipe
+  current: RecipeDetail; // Current modified state
+  modifications: {
+    substitutions: AppliedSubstitutionWithContext[];
+    ingredientEdits: IngredientEdit[];
+    warnings: string[];
+  };
+  metadata: {
+    selectedAt: Date;
+    lastModifiedAt: Date;
+    userPreferences: UserPreferences | null;
+  };
+}
