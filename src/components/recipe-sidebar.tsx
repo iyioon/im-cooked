@@ -18,7 +18,7 @@ import {
   Replace,
   ChevronLeft,
 } from 'lucide-react';
-import { SubstitutionDialog } from './substitution-dialog';
+import { SubstitutionDialog } from '@/components/features/substitution/substitution-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 
