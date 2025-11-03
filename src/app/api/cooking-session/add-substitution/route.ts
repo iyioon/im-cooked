@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SubstitutionRecord } from "@/types/recipe";
-import { addSubstitutionToSession } from "@/lib/cooking-session-manager";
+import { SubstitutionRecord, RecipeDetail } from "@/types/recipe";
+import { addSubstitutionToSession, updateModifiedRecipe } from "@/lib/cooking-session-manager";
 
 interface AddSubstitutionRequest {
   sessionId: string;
   substitution: SubstitutionRecord;
+  modifiedRecipe?: RecipeDetail;  // Optional modified recipe to persist
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body: AddSubstitutionRequest = await request.json();
-    const { sessionId, substitution } = body;
+    const { sessionId, substitution, modifiedRecipe } = body;
 
     if (!sessionId || !substitution) {
       return NextResponse.json(
@@ -20,13 +21,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Add substitution to the session
-    const updatedSession = addSubstitutionToSession(sessionId, substitution);
+    let updatedSession = addSubstitutionToSession(sessionId, substitution);
 
     if (!updatedSession) {
       return NextResponse.json(
         { error: "Session not found" },
         { status: 404 }
       );
+    }
+
+    // If a modified recipe is provided, update the session's modified recipe
+    if (modifiedRecipe) {
+      updatedSession = updateModifiedRecipe(sessionId, modifiedRecipe);
     }
 
     return NextResponse.json({

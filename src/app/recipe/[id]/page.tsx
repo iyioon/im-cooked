@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { RecipeDetailClient } from "./client";
 import { Metadata } from "next";
+import { ModifiedRecipeProvider } from "@/contexts/ModifiedRecipeContext";
 
 export const metadata: Metadata = {
   title: "Recipe Details | I'm Cooked",
@@ -15,9 +16,11 @@ export default async function RecipeDetailPage({
   const { id } = await params;
 
   return (
-    <Suspense fallback={<RecipeDetailLoading />}>
-      <RecipeDetailClient recipeId={id} />
-    </Suspense>
+    <ModifiedRecipeProvider>
+      <Suspense fallback={<RecipeDetailLoading />}>
+        <RecipeDetailClient recipeId={id} />
+      </Suspense>
+    </ModifiedRecipeProvider>
   );
 }
 

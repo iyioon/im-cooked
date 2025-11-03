@@ -19,6 +19,8 @@ export function createCookingSession(recipe: RecipeDetail): CookingSession {
     ingredientsCollapsed: false,
     messages: [],
     appliedSubstitutions: [],
+    originalRecipe: recipe,      // Store immutable snapshot of original recipe
+    modifiedRecipe: recipe,      // Start with same recipe, will be updated as modifications are applied
   };
 
   // Save to localStorage
@@ -64,7 +66,15 @@ export function loadAllCookingSessions(): CookingSession[] {
  */
 export function loadCookingSession(sessionId: string): CookingSession | null {
   const sessions = loadAllCookingSessions();
-  return sessions.find(s => s.id === sessionId) || null;
+  const session = sessions.find(s => s.id === sessionId) || null;
+
+  // Migration: For legacy sessions without modifiedRecipe, try to fetch the original recipe
+  // This maintains backward compatibility
+  if (session && !session.modifiedRecipe && session.originalRecipe) {
+    session.modifiedRecipe = session.originalRecipe;
+  }
+
+  return session;
 }
 
 /**
@@ -245,6 +255,24 @@ export function addSubstitutionToSession(
   if (!session) return null;
 
   session.appliedSubstitutions.push(substitution);
+  session.lastActiveAt = new Date();
+  saveCookingSession(session);
+
+  return session;
+}
+
+/**
+ * Update the modified recipe in the session
+ * This should be called whenever substitutions or other modifications are applied
+ */
+export function updateModifiedRecipe(
+  sessionId: string,
+  modifiedRecipe: RecipeDetail
+): CookingSession | null {
+  const session = loadCookingSession(sessionId);
+  if (!session) return null;
+
+  session.modifiedRecipe = modifiedRecipe;
   session.lastActiveAt = new Date();
   saveCookingSession(session);
 

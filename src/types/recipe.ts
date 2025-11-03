@@ -160,6 +160,8 @@ export interface CookingSession {
   ingredientsCollapsed: boolean;
   messages: CookingSessionMessage[]; // Chat messages
   appliedSubstitutions: SubstitutionRecord[]; // Track substitutions made during this session
+  originalRecipe?: RecipeDetail; // Immutable snapshot of recipe at session creation
+  modifiedRecipe?: RecipeDetail; // Current modified recipe (reflects all changes including substitutions)
 }
 
 // Recipe Context Types for Dashboard Sidebar

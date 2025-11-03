@@ -18,7 +18,6 @@ import {
   Replace,
   ChevronLeft,
 } from 'lucide-react';
-import Image from 'next/image';
 import { SubstitutionDialog } from './substitution-dialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
@@ -81,11 +80,48 @@ export function RecipeSidebar({
 
   const handleApplySubstitution = (substitutionResponse: any) => {
     // Convert SubstitutionResponse to RecipeDetailWithContext
+    // Apply instruction changes to both instructions array and steps array
+    const updatedInstructions = substitutionResponse.modifiedRecipe?.instructionChanges
+      ? recipe.current.instructions.map((instr, idx) => {
+          const change = substitutionResponse.modifiedRecipe.instructionChanges.find(
+            (c: any) => c.step === idx + 1
+          );
+          return change ? change.modified : instr;
+        })
+      : recipe.current.instructions;
+
+    const updatedSteps = substitutionResponse.modifiedRecipe?.instructionChanges && recipe.current.steps
+      ? recipe.current.steps.map((step) => {
+          // Match by original instruction text first
+          const originalInstruction = recipe.current.instructions[step.stepNumber - 1];
+          if (originalInstruction) {
+            const change = substitutionResponse.modifiedRecipe.instructionChanges.find(
+              (c: any) => c.original === originalInstruction
+            );
+            if (change) {
+              return { ...step, text: change.modified };
+            }
+          }
+
+          // Fallback: match by step number
+          const changeByStep = substitutionResponse.modifiedRecipe.instructionChanges.find(
+            (c: any) => c.step === step.stepNumber
+          );
+          if (changeByStep) {
+            return { ...step, text: changeByStep.modified };
+          }
+
+          return step;
+        })
+      : recipe.current.steps;
+
     const modifiedRecipe: RecipeDetailWithContext = {
       ...recipe,
       current: {
         ...recipe.current,
         ingredients: substitutionResponse.modifiedRecipe?.ingredients || recipe.current.ingredients,
+        instructions: updatedInstructions,
+        ...(updatedSteps && { steps: updatedSteps }),
       },
       modifications: {
         ...recipe.modifications,
@@ -176,12 +212,11 @@ export function RecipeSidebar({
           <div className="flex-1 overflow-y-auto no-scrollbar">
             {/* Recipe Image */}
             {recipe.current.imageUrl && (
-              <div className="relative w-full aspect-video bg-white/5">
-                <Image
+              <div className="relative w-full aspect-video bg-white/5 overflow-hidden">
+                <img
                   src={recipe.current.imageUrl}
                   alt={recipe.current.title}
-                  fill
-                  className="object-cover"
+                  className="w-full h-full object-cover"
                 />
               </div>
             )}

@@ -13,6 +13,7 @@ import { Recipe, UserPreferences, RecipeDetail, RecipeDetailWithContext } from "
 import { Message, saveChatHistory, loadChatHistory, clearChatHistory } from "@/lib/chat-storage";
 import { PreferencesDialog } from "@/components/preferences-dialog";
 import { loadPreferences } from "@/lib/preferences-manager";
+import { createCookingSession } from "@/lib/cooking-session-manager";
 
 export default function Dashboard() {
   const router = useRouter();
@@ -115,7 +116,10 @@ export default function Dashboard() {
 
   const handleStartCooking = () => {
     if (selectedRecipe) {
-      router.push(`/cooking-session/${selectedRecipe.current.id}`);
+      // Use the modified recipe from the sidebar
+      const recipeToUse = selectedRecipe.current;
+      const session = createCookingSession(recipeToUse);
+      router.push(`/cooking-session/${selectedRecipe.current.id}?session=${session.id}`);
       handleSidebarClose();
     }
   };

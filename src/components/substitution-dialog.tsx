@@ -111,8 +111,55 @@ export function SubstitutionDialog({
 
       const appliedRecipeData = await response.json();
 
-      // If cooking session ID is provided, save the substitution record
+      // If cooking session ID is provided, save the substitution record and update the modified recipe
       if (cookingSessionId) {
+        // Build the modified recipe with updated ingredients and instructions
+        // Apply instruction changes to instructions array
+        const updatedInstructions = appliedRecipeData.instructionChanges
+          ? recipe.instructions.map((instr, idx) => {
+              const change = appliedRecipeData.instructionChanges.find(
+                (c: any) => c.step === idx + 1
+              );
+              return change ? change.modified : instr;
+            })
+          : recipe.instructions;
+
+        const modifiedRecipe: RecipeDetail = {
+          ...recipe,
+          ingredients: appliedRecipeData.ingredients || recipe.ingredients,
+          instructions: updatedInstructions,
+          // Rebuild steps array by matching original text with new instructions
+          // This handles cases where steps were extracted from DOM and may not align with instructions array
+          ...(recipe.steps && {
+            steps: recipe.steps.map((step) => {
+              // Find the original instruction at this position
+              const originalInstruction = recipe.instructions[step.stepNumber - 1];
+
+              // Find if this instruction was changed by matching the original text
+              if (originalInstruction && appliedRecipeData.instructionChanges) {
+                const change = appliedRecipeData.instructionChanges.find(
+                  (c: any) => c.original === originalInstruction
+                );
+                if (change) {
+                  return { ...step, text: change.modified };
+                }
+              }
+
+              // If no match found by text, try by step index as fallback
+              if (appliedRecipeData.instructionChanges) {
+                const changeByStep = appliedRecipeData.instructionChanges.find(
+                  (c: any) => c.step === step.stepNumber
+                );
+                if (changeByStep) {
+                  return { ...step, text: changeByStep.modified };
+                }
+              }
+
+              return step;
+            }),
+          }),
+        };
+
         await fetch("/api/cooking-session/add-substitution", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -134,6 +181,7 @@ export function SubstitutionDialog({
               impacts: suggestion.impact,
               appliedAt: new Date(),
             },
+            modifiedRecipe: modifiedRecipe,  // Include the modified recipe
           }),
         });
       }

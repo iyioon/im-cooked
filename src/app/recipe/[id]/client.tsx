@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SubstitutionDialog } from "@/components/substitution-dialog";
+import { useModifiedRecipe } from "@/hooks/useModifiedRecipe";
+import { createCookingSession } from "@/lib/cooking-session-manager";
 import {
   ArrowLeft,
   Clock,
@@ -24,6 +26,7 @@ interface RecipeDetailClientProps {
 
 export function RecipeDetailClient({ recipeId }: RecipeDetailClientProps) {
   const router = useRouter();
+  const { setRecipe: setContextRecipe, modifiedRecipe, clearModifications } = useModifiedRecipe();
   const [recipe, setRecipe] = useState<RecipeDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +52,8 @@ export function RecipeDetailClient({ recipeId }: RecipeDetailClientProps) {
 
         const data = await response.json();
         setRecipe(data);
+        // Initialize context with fetched recipe
+        setContextRecipe(data);
       } catch (err) {
         console.error("Error fetching recipe:", err);
         setError(err instanceof Error ? err.message : "Failed to load recipe");
@@ -58,7 +63,7 @@ export function RecipeDetailClient({ recipeId }: RecipeDetailClientProps) {
     }
 
     fetchRecipe();
-  }, [recipeId]);
+  }, [recipeId, setContextRecipe]);
 
   const handleOpenSubstitution = (ingredient: string) => {
     setSelectedIngredient(ingredient);
@@ -163,7 +168,15 @@ export function RecipeDetailClient({ recipeId }: RecipeDetailClientProps) {
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-4 mb-6">
             <Button
-              onClick={() => router.push(`/cooking-session/${recipe.id}`)}
+              onClick={() => {
+                // Use modified recipe if available, otherwise use original
+                const recipeToUse = modifiedRecipe || recipe;
+                if (recipeToUse) {
+                  const session = createCookingSession(recipeToUse);
+                  clearModifications(); // Reset context for next recipe
+                  router.push(`/cooking-session/${recipe.id}?session=${session.id}`);
+                }
+              }}
               className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg shadow-green-500/20"
             >
               <ChefHat className="mr-2 h-4 w-4" />
