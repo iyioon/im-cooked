@@ -96,10 +96,6 @@ TASK:
    - Describe potential impacts on: taste, texture, nutrition, cooking time
    - Provide any necessary warnings
 
-5. If instructions need to change due to the substitution:
-   - Identify which steps are affected
-   - Provide modified instructions for those steps
-
 IMPORTANT PRIORITIES:
 - Taste preservation is the highest priority
 - Dietary restrictions must be respected
@@ -138,17 +134,6 @@ RESPONSE FORMAT (JSON only, no markdown):
         "cookingTime": "description of cooking time changes or null"
       }
     }
-  ],
-  "modifiedRecipe": {
-    "ingredients": ["array of all ingredients with substitution applied"],
-    "instructionChanges": [
-      {
-        "step": number,
-        "original": "original instruction",
-        "modified": "modified instruction"
-      }
-    ] or null,
-    "warnings": ["array of important warnings"] or null
-  }
+  ]
 }`;
 }

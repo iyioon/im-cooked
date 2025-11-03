@@ -116,6 +116,30 @@ export interface UserPreferences {
   difficultyPreference?: "easy" | "medium" | "hard" | "any";
 }
 
+// Substitution Tracking
+export interface SubstitutionRecord {
+  id: string;
+  stepAppliedAt?: number; // cooking step where substitution was made (optional)
+  original: {
+    ingredient: string;
+    quantity?: number;
+    unit?: string;
+  };
+  substitute: {
+    ingredient: string;
+    quantity?: number;
+    unit?: string;
+  };
+  reason: string;
+  impacts?: {
+    taste?: string;
+    texture?: string;
+    nutrition?: string;
+    cookingTime?: string;
+  };
+  appliedAt: Date; // timestamp
+}
+
 // Cooking Session Types
 export interface CookingSessionMessage {
   id: string;
@@ -135,4 +159,5 @@ export interface CookingSession {
   notes: Record<number, string>; // Notes per step number
   ingredientsCollapsed: boolean;
   messages: CookingSessionMessage[]; // Chat messages
+  appliedSubstitutions: SubstitutionRecord[]; // Track substitutions made during this session
 }

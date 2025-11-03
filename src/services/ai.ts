@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
-import { SubstitutionResponse, RecipeDetail, RecipeStep } from "@/types/recipe";
-import { buildCookingAssistantPrompt, buildSubstitutionPrompt } from "@/lib/prompts";
+import { SubstitutionResponse, RecipeDetail, RecipeStep, IngredientSubstitution } from "@/types/recipe";
+import { buildCookingAssistantPrompt, buildSubstitutionPrompt, buildApplySubstitutionPrompt } from "@/lib/prompts";
 
 // Initialize Gemini AI
 const genAI = new GoogleGenAI({
@@ -101,5 +101,58 @@ export async function getSubstitutionSuggestions(params: {
   } catch (error) {
     console.error("Error getting substitution suggestions:", error);
     throw new Error("Failed to generate substitution suggestions");
+  }
+}
+
+/**
+ * Apply a specific substitution and regenerate the recipe
+ */
+export async function applySubstitutionToRecipe(params: {
+  recipeTitle: string;
+  recipe: RecipeDetail;
+  selectedSubstitution: IngredientSubstitution;
+  dietaryRestrictions?: string[];
+  allergies?: string[];
+  avoidedIngredients?: string[];
+}): Promise<{
+  ingredients: string[];
+  instructionChanges?: Array<{
+    step: number;
+    original: string;
+    modified: string;
+    reason?: string;
+  }>;
+  warnings?: string[];
+  summary?: string;
+}> {
+  try {
+    const prompt = buildApplySubstitutionPrompt({
+      recipeTitle: params.recipeTitle,
+      recipe: params.recipe,
+      selectedSubstitution: params.selectedSubstitution,
+      dietaryRestrictions: params.dietaryRestrictions || [],
+      allergies: params.allergies || [],
+      avoidedIngredients: params.avoidedIngredients || [],
+    });
+
+    const result = await genAI.models.generateContent({
+      model: MODEL_NAME,
+      contents: prompt,
+    });
+
+    const text = result.text || "";
+
+    // Clean up response - remove markdown code blocks if present
+    const cleanResponse = text
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+
+    // Parse the JSON response
+    const appliedRecipe = JSON.parse(cleanResponse);
+    return appliedRecipe;
+  } catch (error) {
+    console.error("Error applying substitution to recipe:", error);
+    throw new Error("Failed to apply substitution to recipe");
   }
 }

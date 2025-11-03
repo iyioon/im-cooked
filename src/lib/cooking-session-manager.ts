@@ -1,4 +1,4 @@
-import { CookingSession, CookingSessionMessage, RecipeDetail } from "@/types/recipe";
+import { CookingSession, CookingSessionMessage, RecipeDetail, SubstitutionRecord } from "@/types/recipe";
 
 const COOKING_SESSIONS_KEY = "im-cooked-cooking-sessions";
 const MAX_SESSIONS = 10; // Keep last 10 sessions
@@ -18,6 +18,7 @@ export function createCookingSession(recipe: RecipeDetail): CookingSession {
     notes: {},
     ingredientsCollapsed: false,
     messages: [],
+    appliedSubstitutions: [],
   };
 
   // Save to localStorage
@@ -46,6 +47,10 @@ export function loadAllCookingSessions(): CookingSession[] {
       messages: session.messages.map(msg => ({
         ...msg,
         timestamp: new Date(msg.timestamp),
+      })),
+      appliedSubstitutions: (session.appliedSubstitutions || []).map(sub => ({
+        ...sub,
+        appliedAt: new Date(sub.appliedAt),
       })),
     }));
   } catch (error) {
@@ -227,4 +232,21 @@ export function getActiveCookingSessions(maxAgeHours: number = 24): CookingSessi
 export function clearAllCookingSessions(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(COOKING_SESSIONS_KEY);
+}
+
+/**
+ * Add a substitution record to the session
+ */
+export function addSubstitutionToSession(
+  sessionId: string,
+  substitution: SubstitutionRecord
+): CookingSession | null {
+  const session = loadCookingSession(sessionId);
+  if (!session) return null;
+
+  session.appliedSubstitutions.push(substitution);
+  session.lastActiveAt = new Date();
+  saveCookingSession(session);
+
+  return session;
 }
