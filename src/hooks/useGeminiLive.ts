@@ -49,6 +49,7 @@ export interface UseGeminiLiveReturn {
   startRecording: () => Promise<void>;
   stopRecording: () => void;
   sendText: (text: string) => void;
+  sendContextUpdate: (text: string) => void;
   interrupt: () => void;
 }
 
@@ -320,6 +321,33 @@ export function useGeminiLive(
   );
 
   /**
+   * Send silent context update to AI (doesn't appear in transcripts)
+   */
+  const sendContextUpdate = useCallback(
+    (text: string) => {
+      const client = clientRef.current;
+
+      if (!client) {
+        console.warn("Cannot send context update: client not initialized");
+        return;
+      }
+
+      if (!client.isConnected()) {
+        console.warn("Cannot send context update: not connected to Gemini Live");
+        return;
+      }
+
+      try {
+        // Send as incomplete turn so AI doesn't respond immediately
+        client.sendText(text, false);
+      } catch (err) {
+        console.error("Error sending context update:", err);
+      }
+    },
+    []
+  );
+
+  /**
    * Interrupt AI mid-response
    */
   const interrupt = useCallback(() => {
@@ -372,6 +400,7 @@ export function useGeminiLive(
     startRecording,
     stopRecording,
     sendText,
+    sendContextUpdate,
     interrupt,
   };
 }
