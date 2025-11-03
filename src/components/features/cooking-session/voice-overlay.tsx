@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { RecipeStep, RecipeDetail } from "@/types/recipe";
 import { useGeminiLive } from "@/hooks/useGeminiLive";
 import { buildVoiceCookingContext, buildStepChangeUpdate } from "@/lib/prompts/cooking-assistant";
@@ -32,16 +32,21 @@ export function VoiceOverlay({
 }: VoiceOverlayProps) {
   const previousStepRef = useRef(currentStepNumber);
   const [isInitializing, setIsInitializing] = useState(true);
+  const initialStepRef = useRef(currentStepNumber);
+  const initialStepTextRef = useRef(currentStep);
 
-  // Build system instruction for voice context
-  const systemInstruction = buildVoiceCookingContext({
-    recipeTitle: recipe.title,
-    currentStep: currentStep,
-    currentStepNumber: currentStepNumber,
-    allSteps: recipe.steps || [],
-    ingredients: recipe.ingredients,
-    totalSteps,
-  });
+  // Build system instruction for voice context - memoized to prevent reconnection
+  // We only build this once on mount with the initial step
+  const systemInstruction = useMemo(() => {
+    return buildVoiceCookingContext({
+      recipeTitle: recipe.title,
+      currentStep: initialStepTextRef.current,
+      currentStepNumber: initialStepRef.current,
+      allSteps: recipe.steps || [],
+      ingredients: recipe.ingredients,
+      totalSteps,
+    });
+  }, [recipe.title, recipe.steps, recipe.ingredients, totalSteps]);
 
   // Initialize Gemini Live
   const {
@@ -68,12 +73,17 @@ export function VoiceOverlay({
     tools: cookingTools,
   });
 
-  // Connect on mount
+  // Connect on mount and send initial greeting
   useEffect(() => {
     const initializeVoice = async () => {
       try {
         await connect();
         setIsInitializing(false);
+        
+        // Send initial context to have AI explain the current step
+        const initialMessage = `The user just started voice mode. Please greet them and explain Step ${currentStepNumber} in 15-30 seconds.`;
+        sendContextUpdate(initialMessage);
+        previousStepRef.current = currentStepNumber;
       } catch (error) {
         console.error("Failed to connect to voice:", error);
         setIsInitializing(false);
@@ -89,6 +99,7 @@ export function VoiceOverlay({
       }
       disconnect();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Handle step changes - silently update AI context

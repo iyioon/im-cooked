@@ -128,7 +128,7 @@ STEP NAVIGATION:
 - When they say "previous step", "go back", or "last step", use navigateToStep with action: "previous"
 - When they say "go to step X" or "skip to step X", use navigateToStep with action: "goto" and stepNumber: X
 - When they indicate they're done ("I'm finished", "done with this step", "what's next"), use markStepComplete
-- After calling these functions, briefly acknowledge the step change (e.g., "Moving to the next step" or "Going back one step")
+- After calling navigation functions, ONLY say a brief acknowledgment (e.g., "Moving to the next step" or "Going back"). DO NOT explain the new step yet - you will receive a context update and should explain the step then.
 
 TIMER SUPPORT:
 - When users request a timer (e.g., "set a timer for 10 minutes", "remind me in 5 minutes"), use the setTimer function
@@ -162,5 +162,5 @@ export function buildStepChangeUpdate(
   newStep: RecipeStep | undefined,
   totalSteps: number
 ): string {
-  return `[CONTEXT UPDATE] The user has moved to Step ${newStepNumber} of ${totalSteps}. Current step: "${newStep?.text || 'Unknown'}"`;
+  return `[CONTEXT UPDATE] The user has moved to Step ${newStepNumber} of ${totalSteps}. Current step: "${newStep?.text || 'Unknown'}". Please explain this step to the user in 15-30 seconds.`;
 }
