@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { searchRecipes } from "@/lib/gemini";
+import { searchRecipes } from "@/services/recipe-scraper";
 import { UserPreferences } from "@/types/recipe";
 
 export async function POST(request: NextRequest) {

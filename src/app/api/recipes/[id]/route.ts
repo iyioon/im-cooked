@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getRecipeDetail } from "@/lib/gemini";
+import { getRecipeDetail } from "@/services/recipe-scraper";
 
 export async function GET(
   _request: NextRequest,

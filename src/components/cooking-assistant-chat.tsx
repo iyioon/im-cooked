@@ -42,16 +42,13 @@ export function CookingAssistantChat({
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Detect navigation intent from user input
   const detectNavigationIntent = (message: string): "next" | "previous" | null => {
     const lowerMessage = message.toLowerCase().trim();
     
-    // Next step patterns
     const nextPatterns = [
       /^next$/,
       /^next step$/,
@@ -69,7 +66,6 @@ export function CookingAssistantChat({
       /^let'?s move on$/,
     ];
     
-    // Previous step patterns
     const previousPatterns = [
       /^previous$/,
       /^previous step$/,
@@ -101,12 +97,10 @@ export function CookingAssistantChat({
       timestamp: new Date(),
     };
 
-    // Add user message immediately
     onSendMessage(userMessage);
     const userInput = input;
     setInput("");
 
-    // Check for navigation intent
     const navigationIntent = detectNavigationIntent(userInput);
     
     if (navigationIntent === "next") {
@@ -153,11 +147,9 @@ export function CookingAssistantChat({
       return;
     }
 
-    // No navigation intent detected, send to AI
     setLoading(true);
 
     try {
-      // Call AI assistant API
       const response = await fetch("/api/cooking-session/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -165,6 +157,7 @@ export function CookingAssistantChat({
           recipeTitle: recipe.title,
           currentStep: currentStep,
           currentStepNumber: currentStepNumber,
+          allSteps: recipe.steps || [],
           ingredients: recipe.ingredients,
           userMessage: userInput,
         }),
@@ -215,8 +208,8 @@ export function CookingAssistantChat({
   ];
 
   return (
-    <Card className="bg-white/5 border-white/10 backdrop-blur-sm flex flex-col h-full">
-      <CardHeader className="border-b border-white/10 shrink-0">
+    <Card className="bg-white/5 border-white/10 backdrop-blur-sm flex flex-col h-full overflow-hidden">
+      <CardHeader className="shrink-0 border-b border-white/10">
         <CardTitle className="text-white flex items-center gap-2">
           <ChefHat className="h-5 w-5 text-blue-400" />
           Cooking Assistant
@@ -226,112 +219,107 @@ export function CookingAssistantChat({
         </p>
       </CardHeader>
 
-      <CardContent className="flex-1 flex flex-col p-0 overflow-hidden min-h-0">
-        {/* Messages - Full height scrollable */}
-        <div className="flex-1 overflow-y-auto p-4 min-h-0">
-          {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center py-8">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 border border-blue-500/20 mb-4">
-                <ChefHat className="h-8 w-8 text-blue-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-white mb-2">
-                I'm here to help!
-              </h3>
-              <p className="text-sm text-gray-400 mb-4 max-w-xs">
-                Ask me questions about the current step, ingredients, or cooking techniques.
-              </p>
-
-              {/* Suggested questions */}
-              <div className="space-y-2 w-full max-w-xs">
-                {suggestedQuestions.map((question, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setInput(question)}
-                    className="w-full text-left px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-gray-300 hover:bg-white/10 hover:border-white/20 transition-all"
-                  >
-                    {question}
-                  </button>
-                ))}
-              </div>
+      <CardContent className="flex-1 overflow-y-auto p-4">
+        {messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 border border-blue-500/20 mb-4">
+              <ChefHat className="h-8 w-8 text-blue-400" />
             </div>
-          ) : (
-            <div className="space-y-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex gap-3 ${
-                    message.role === "user" ? "justify-end" : "justify-start"
-                  }`}
+            <h3 className="text-lg font-semibold text-white mb-2">
+              I'm here to help!
+            </h3>
+            <p className="text-sm text-gray-400 mb-4 max-w-xs">
+              Ask me questions about the current step, ingredients, or cooking techniques.
+            </p>
+
+            <div className="space-y-2 w-full max-w-xs">
+              {suggestedQuestions.map((question, index) => (
+                <button
+                  key={index}
+                  onClick={() => setInput(question)}
+                  className="w-full text-left px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-gray-300 hover:bg-white/10 hover:border-white/20 transition-all"
                 >
-                  {message.role === "assistant" && (
-                    <Avatar className="h-8 w-8 border-2 border-blue-500/50">
-                      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600">
-                        <ChefHat className="h-4 w-4 text-white" />
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
-
-                  <div
-                    className={`max-w-[80%] rounded-2xl px-4 py-2 ${
-                      message.role === "user"
-                        ? "bg-gradient-to-br from-blue-600 to-purple-600 text-white"
-                        : "bg-white/5 border border-white/10 text-gray-300"
-                    }`}
-                  >
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                      {message.content}
-                    </p>
-                  </div>
-
-                  {message.role === "user" && (
-                    <Avatar className="h-8 w-8 border-2 border-purple-500/50">
-                      <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-600">
-                        <User className="h-4 w-4 text-white" />
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
-                </div>
+                  {question}
+                </button>
               ))}
-
-              {loading && (
-                <div className="flex gap-3 justify-start">
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex gap-3 ${
+                  message.role === "user" ? "justify-end" : "justify-start"
+                }`}
+              >
+                {message.role === "assistant" && (
                   <Avatar className="h-8 w-8 border-2 border-blue-500/50">
                     <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600">
                       <ChefHat className="h-4 w-4 text-white" />
                     </AvatarFallback>
                   </Avatar>
-                  <div className="max-w-[80%] rounded-2xl px-4 py-2 bg-white/5 border border-white/10">
-                    <Loader2 className="h-4 w-4 text-blue-400 animate-spin" />
-                  </div>
+                )}
+
+                <div
+                  className={`max-w-[80%] rounded-2xl px-4 py-2 ${
+                    message.role === "user"
+                      ? "bg-gradient-to-br from-blue-600 to-purple-600 text-white"
+                      : "bg-white/5 border border-white/10 text-gray-300"
+                  }`}
+                >
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                    {message.content}
+                  </p>
                 </div>
-              )}
 
-              <div ref={messagesEndRef} />
-            </div>
-          )}
-        </div>
+                {message.role === "user" && (
+                  <Avatar className="h-8 w-8 border-2 border-purple-500/50">
+                    <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-600">
+                      <User className="h-4 w-4 text-white" />
+                    </AvatarFallback>
+                  </Avatar>
+                )}
+              </div>
+            ))}
 
-        {/* Input - Fixed at bottom */}
-        <div className="p-4 border-t border-white/10 shrink-0">
-          <div className="flex gap-2">
-            <Input
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder="Ask me anything..."
-              disabled={loading}
-              className="bg-white/5 border-white/10 text-white placeholder:text-gray-500"
-            />
-            <Button
-              onClick={handleSendMessage}
-              disabled={!input.trim() || loading}
-              className="bg-blue-600 hover:bg-blue-700 text-white shrink-0"
-            >
-              <Send className="h-4 w-4" />
-            </Button>
+            {loading && (
+              <div className="flex gap-3 justify-start">
+                <Avatar className="h-8 w-8 border-2 border-blue-500/50">
+                  <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600">
+                    <ChefHat className="h-4 w-4 text-white" />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="max-w-[80%] rounded-2xl px-4 py-2 bg-white/5 border border-white/10">
+                  <Loader2 className="h-4 w-4 text-blue-400 animate-spin" />
+                </div>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
           </div>
-        </div>
+        )}
       </CardContent>
+
+      <div className="shrink-0 p-4 border-t border-white/10">
+        <div className="flex gap-2">
+          <Input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyPress}
+            placeholder="Ask me anything..."
+            disabled={loading}
+            className="bg-white/5 border-white/10 text-white placeholder:text-gray-500"
+          />
+          <Button
+            onClick={handleSendMessage}
+            disabled={!input.trim() || loading}
+            className="bg-blue-600 hover:bg-blue-700 text-white shrink-0"
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
     </Card>
   );
 }

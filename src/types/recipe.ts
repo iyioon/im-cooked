@@ -35,11 +35,6 @@ export interface RecipeSearchResponse {
   query: string;
 }
 
-export interface IntentDetectionResponse {
-  isRecipeSearch: boolean;
-  searchQuery: string | null;
-}
-
 export interface ParsedIngredient {
   original: string;
   quantity?: number;

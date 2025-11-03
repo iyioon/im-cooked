@@ -39,12 +39,9 @@ export function CookingSessionClient({
     createSession,
     goToNextStep,
     goToPreviousStep,
-    toggleStepComplete,
-    toggleIngredientsPanel,
     addChatMessage,
   } = useCookingSession(sessionId);
 
-  // Fetch recipe data
   useEffect(() => {
     async function fetchRecipe() {
       try {
@@ -59,10 +56,8 @@ export function CookingSessionClient({
         const data = await response.json();
         setRecipe(data);
 
-        // Create session if it doesn't exist
         if (!sessionId && data) {
           const newSession = createSession(data);
-          // Update URL with session ID
           router.replace(`/cooking-session/${recipeId}?session=${newSession.id}`);
         }
       } catch (err) {
@@ -112,9 +107,9 @@ export function CookingSessionClient({
   const totalSteps = steps.length;
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="h-screen bg-black text-white flex flex-col">
       {/* Header */}
-      <header className="border-b border-white/10 bg-black/80 backdrop-blur-md">
+      <header className="shrink-0 border-b border-white/10 bg-black/80 backdrop-blur-md">
         <div className="mx-auto max-w-[2000px] flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4">
             <Button
@@ -148,7 +143,6 @@ export function CookingSessionClient({
               </Badge>
             )}
             
-            {/* Ingredients Dialog Trigger */}
             <Dialog>
               <DialogTrigger asChild>
                 <Button
@@ -180,25 +174,22 @@ export function CookingSessionClient({
         </div>
       </header>
 
-      {/* Main Content - 2 Column Layout */}
-      <div className="mx-auto max-w-[2000px] p-4 sm:p-6 lg:p-8">
-        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 h-[calc(100vh-8rem)]">
-          {/* Instructions Panel - Current Step Only with Bottom Navigation */}
-          <div className="flex flex-col h-full">
-            <Card className="bg-white/5 border-white/10 backdrop-blur-sm h-full flex flex-col">
-              <CardHeader className="border-b border-white/10 shrink-0">
+      {/* Main Content */}
+      <div className="flex-1 min-h-0">
+        <div className="mx-auto max-w-[2000px] h-full p-4 sm:p-6 lg:p-8">
+          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 h-full">
+            {/* Instructions Panel */}
+            <Card className="bg-white/5 border-white/10 backdrop-blur-sm flex flex-col h-full overflow-hidden">
+              <CardHeader className="shrink-0 border-b border-white/10">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-white">
-                    Current Step
-                  </CardTitle>
+                  <CardTitle className="text-white">Current Step</CardTitle>
                   <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/50">
                     {session.currentStep} / {totalSteps}
                   </Badge>
                 </div>
               </CardHeader>
               
-              {/* Current Step Content - Scrollable */}
-              <CardContent className="flex-1 overflow-y-auto p-6 min-h-0">
+              <CardContent className="flex-1 overflow-y-auto p-6">
                 {currentStep && (
                   <div className="space-y-4">
                     <div className="flex items-start gap-4">
@@ -230,8 +221,7 @@ export function CookingSessionClient({
                 )}
               </CardContent>
               
-              {/* Bottom Navigation */}
-              <div className="p-4 border-t border-white/10 shrink-0">
+              <div className="shrink-0 p-4 border-t border-white/10">
                 <div className="flex gap-2">
                   <Button
                     onClick={goToPreviousStep}
@@ -253,10 +243,8 @@ export function CookingSessionClient({
                 </div>
               </div>
             </Card>
-          </div>
 
-          {/* Cooking Assistant Chat Panel */}
-          <div className="flex flex-col h-full">
+            {/* Chat Panel */}
             <CookingAssistantChat
               recipe={recipe}
               currentStep={currentStep}
