@@ -42,18 +42,40 @@ export function useCookingSession(sessionId: string | null) {
     if (updated) setSession(updated);
   }, [session]);
 
-  // Navigate to next step
+  // Navigate to next step (auto-marks current step as complete)
   const goToNextStep = useCallback(() => {
     if (!session) return;
-    const updated = updateStep(session.id, session.currentStep + 1);
+    
+    // Mark current step as complete before moving forward
+    let updatedSession = session;
+    if (!session.completedSteps.includes(session.currentStep)) {
+      const withComplete = markComplete(session.id, session.currentStep);
+      if (withComplete) updatedSession = withComplete;
+    }
+    
+    // Move to next step
+    const updated = updateStep(updatedSession.id, updatedSession.currentStep + 1);
     if (updated) setSession(updated);
   }, [session]);
 
-  // Navigate to previous step
+  // Navigate to previous step (auto-marks new current step as incomplete)
   const goToPreviousStep = useCallback(() => {
     if (!session) return;
     if (session.currentStep > 1) {
-      const updated = updateStep(session.id, session.currentStep - 1);
+      const newStepNumber = session.currentStep - 1;
+      
+      // Move to previous step
+      const updated = updateStep(session.id, newStepNumber);
+      
+      // Mark the new current step (previous step) as incomplete
+      if (updated && updated.completedSteps.includes(newStepNumber)) {
+        const withIncomplete = markIncomplete(updated.id, newStepNumber);
+        if (withIncomplete) {
+          setSession(withIncomplete);
+          return;
+        }
+      }
+      
       if (updated) setSession(updated);
     }
   }, [session]);

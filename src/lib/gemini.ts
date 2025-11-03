@@ -7,7 +7,7 @@ const genAI = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || "",
 });
 
-const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-2.0-flash-lite";
+const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-2.5-flash-native-audio-dialog";
 
 // Whitelisted recipe sites
 const WHITELISTED_SITES = [
@@ -107,7 +107,7 @@ Examples:
 
     const result = await genAI.models.generateContent({
       model: MODEL_NAME,
-      contents: prompt,
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
     });
     const response = result.text || "";
     
@@ -711,7 +711,7 @@ export async function searchRecipes(query: string, preferences?: import("@/types
     // Use Gemini with Google Search grounding to find recipe URLs
     const response = await genAI.models.generateContent({
       model: MODEL_NAME,
-      contents: searchQuery,
+      contents: [{ role: "user", parts: [{ text: searchQuery }] }],
       config: {
         tools: [{ googleSearch: {} }],
       },

@@ -6,7 +6,7 @@ const genAI = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY || "",
 });
 
-const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-2.0-flash-lite";
+const MODEL_NAME = process.env.GEMINI_MODEL || "gemini-2.5-flash-native-audio-dialog";
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,10 +55,15 @@ IMPORTANT:
 - Consider food safety when relevant
 - Be conversational and friendly`;
 
-    // Call Gemini AI
+    // Call Gemini AI with correct format
     const result = await genAI.models.generateContent({
       model: MODEL_NAME,
-      contents: prompt,
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: prompt }],
+        },
+      ],
     });
 
     const responseText = result.text || "";

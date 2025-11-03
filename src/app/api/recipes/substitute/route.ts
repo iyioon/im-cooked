@@ -165,7 +165,7 @@ RESPONSE FORMAT (JSON only, no markdown):
 
     // Call Gemini AI
     const result = await genAI.models.generateContent({
-      model: process.env.GEMINI_MODEL || "gemini-2.0-flash-lite",
+      model: process.env.GEMINI_MODEL || "gemini-2.5-flash-native-audio-dialog",
       contents: prompt,
     });
 

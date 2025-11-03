@@ -5,14 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { CookingSessionMessage, RecipeStep, RecipeDetail } from "@/types/recipe";
 import {
   ChefHat,
   User,
   Send,
-  ChevronLeft,
-  ChevronRight,
   Loader2,
 } from "lucide-react";
 
@@ -50,6 +47,50 @@ export function CookingAssistantChat({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Detect navigation intent from user input
+  const detectNavigationIntent = (message: string): "next" | "previous" | null => {
+    const lowerMessage = message.toLowerCase().trim();
+    
+    // Next step patterns
+    const nextPatterns = [
+      /^next$/,
+      /^next step$/,
+      /^move (on|forward|to next)$/,
+      /^go to next( step)?$/,
+      /^continue$/,
+      /^proceed$/,
+      /^i'?m ready$/,
+      /^ready$/,
+      /^done$/,
+      /^finished$/,
+      /^what'?s next\??$/,
+      /^next please$/,
+      /^move on$/,
+      /^let'?s move on$/,
+    ];
+    
+    // Previous step patterns
+    const previousPatterns = [
+      /^previous$/,
+      /^previous step$/,
+      /^go back$/,
+      /^back$/,
+      /^last step$/,
+      /^return$/,
+      /^go to previous( step)?$/,
+    ];
+    
+    if (nextPatterns.some(pattern => pattern.test(lowerMessage))) {
+      return "next";
+    }
+    
+    if (previousPatterns.some(pattern => pattern.test(lowerMessage))) {
+      return "previous";
+    }
+    
+    return null;
+  };
+
   const handleSendMessage = async () => {
     if (!input.trim() || loading) return;
 
@@ -62,7 +103,57 @@ export function CookingAssistantChat({
 
     // Add user message immediately
     onSendMessage(userMessage);
+    const userInput = input;
     setInput("");
+
+    // Check for navigation intent
+    const navigationIntent = detectNavigationIntent(userInput);
+    
+    if (navigationIntent === "next") {
+      if (isLastStep) {
+        const assistantMessage: CookingSessionMessage = {
+          id: `msg-${Date.now()}-ai`,
+          role: "assistant",
+          content: "You're already on the last step! Great job making it this far.",
+          timestamp: new Date(),
+        };
+        onSendMessage(assistantMessage);
+      } else {
+        onNextStep();
+        const assistantMessage: CookingSessionMessage = {
+          id: `msg-${Date.now()}-ai`,
+          role: "assistant",
+          content: `Moving to step ${currentStepNumber + 1}!`,
+          timestamp: new Date(),
+        };
+        onSendMessage(assistantMessage);
+      }
+      return;
+    }
+    
+    if (navigationIntent === "previous") {
+      if (isFirstStep) {
+        const assistantMessage: CookingSessionMessage = {
+          id: `msg-${Date.now()}-ai`,
+          role: "assistant",
+          content: "You're already on the first step!",
+          timestamp: new Date(),
+        };
+        onSendMessage(assistantMessage);
+      } else {
+        onPreviousStep();
+        const assistantMessage: CookingSessionMessage = {
+          id: `msg-${Date.now()}-ai`,
+          role: "assistant",
+          content: `Going back to step ${currentStepNumber - 1}.`,
+          timestamp: new Date(),
+        };
+        onSendMessage(assistantMessage);
+      }
+      return;
+    }
+
+    // No navigation intent detected, send to AI
     setLoading(true);
 
     try {
@@ -75,7 +166,7 @@ export function CookingAssistantChat({
           currentStep: currentStep,
           currentStepNumber: currentStepNumber,
           ingredients: recipe.ingredients,
-          userMessage: input,
+          userMessage: userInput,
         }),
       });
 
@@ -125,7 +216,7 @@ export function CookingAssistantChat({
 
   return (
     <Card className="bg-white/5 border-white/10 backdrop-blur-sm flex flex-col h-full">
-      <CardHeader className="border-b border-white/10">
+      <CardHeader className="border-b border-white/10 shrink-0">
         <CardTitle className="text-white flex items-center gap-2">
           <ChefHat className="h-5 w-5 text-blue-400" />
           Cooking Assistant
@@ -135,9 +226,9 @@ export function CookingAssistantChat({
         </p>
       </CardHeader>
 
-      <CardContent className="flex-1 flex flex-col p-0 overflow-hidden">
-        {/* Messages */}
-        <ScrollArea className="flex-1 p-4">
+      <CardContent className="flex-1 flex flex-col p-0 overflow-hidden min-h-0">
+        {/* Messages - Full height scrollable */}
+        <div className="flex-1 overflow-y-auto p-4 min-h-0">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center py-8">
               <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 border border-blue-500/20 mb-4">
@@ -218,10 +309,10 @@ export function CookingAssistantChat({
               <div ref={messagesEndRef} />
             </div>
           )}
-        </ScrollArea>
+        </div>
 
-        {/* Input */}
-        <div className="p-4 border-t border-white/10 space-y-3">
+        {/* Input - Fixed at bottom */}
+        <div className="p-4 border-t border-white/10 shrink-0">
           <div className="flex gap-2">
             <Input
               value={input}
@@ -237,27 +328,6 @@ export function CookingAssistantChat({
               className="bg-blue-600 hover:bg-blue-700 text-white shrink-0"
             >
               <Send className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* Navigation */}
-          <div className="flex gap-2">
-            <Button
-              onClick={onPreviousStep}
-              disabled={isFirstStep}
-              variant="outline"
-              className="flex-1 border-white/20 hover:bg-white/10 text-white"
-            >
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Previous
-            </Button>
-            <Button
-              onClick={onNextStep}
-              disabled={isLastStep}
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-            >
-              Next
-              <ChevronRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
         </div>

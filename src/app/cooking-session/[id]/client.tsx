@@ -7,17 +7,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { CookingAssistantChat } from "@/components/cooking-assistant-chat";
 import { useCookingSession } from "@/hooks/useCookingSession";
 import {
   ArrowLeft,
   ChevronLeft,
   ChevronRight,
-  CheckCircle2,
-  Circle,
   Clock,
   Users,
-  ChefHat,
+  ShoppingBasket,
 } from "lucide-react";
 
 interface CookingSessionClientProps {
@@ -148,32 +147,25 @@ export function CookingSessionClient({
                 {recipe.servings}
               </Badge>
             )}
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content - 3 Column Layout */}
-      <div className="mx-auto max-w-[2000px] p-4 sm:p-6 lg:p-8">
-        <div className={`grid gap-6 ${session.ingredientsCollapsed ? "grid-cols-1 md:grid-cols-2" : "grid-cols-1 md:grid-cols-3"} h-[calc(100vh-8rem)]`}>
-          {/* Ingredients Panel (Collapsible) */}
-          {!session.ingredientsCollapsed && (
-            <div className="flex flex-col">
-              <Card className="bg-white/5 border-white/10 backdrop-blur-sm h-full flex flex-col">
-                <CardHeader className="border-b border-white/10">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-white">Ingredients</CardTitle>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={toggleIngredientsPanel}
-                      className="h-8 w-8 p-0 hover:bg-white/10"
-                    >
-                      <ChevronLeft className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="flex-1 overflow-y-auto">
-                  <ul className="space-y-3 pt-4">
+            
+            {/* Ingredients Dialog Trigger */}
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-white/20 hover:bg-white/10 text-white"
+                >
+                  <ShoppingBasket className="mr-2 h-4 w-4" />
+                  Show Ingredients
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md max-h-[80vh] flex flex-col">
+                <DialogHeader>
+                  <DialogTitle>Ingredients</DialogTitle>
+                </DialogHeader>
+                <div className="flex-1 overflow-y-auto pr-2">
+                  <ul className="space-y-3">
                     {recipe.ingredients.map((ingredient, index) => (
                       <li key={index} className="flex items-start gap-3 text-gray-300">
                         <Checkbox className="mt-1 border-white/20 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600" />
@@ -181,26 +173,21 @@ export function CookingSessionClient({
                       </li>
                     ))}
                   </ul>
-                </CardContent>
-              </Card>
-            </div>
-          )}
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
+        </div>
+      </header>
 
-          {/* Instructions Panel */}
-          <div className="flex flex-col">
+      {/* Main Content - 2 Column Layout */}
+      <div className="mx-auto max-w-[2000px] p-4 sm:p-6 lg:p-8">
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 h-[calc(100vh-8rem)]">
+          {/* Instructions Panel - Current Step Only with Bottom Navigation */}
+          <div className="flex flex-col h-full">
             <Card className="bg-white/5 border-white/10 backdrop-blur-sm h-full flex flex-col">
-              <CardHeader className="border-b border-white/10">
+              <CardHeader className="border-b border-white/10 shrink-0">
                 <div className="flex items-center justify-between">
-                  {session.ingredientsCollapsed && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={toggleIngredientsPanel}
-                      className="h-8 w-8 p-0 hover:bg-white/10"
-                    >
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  )}
                   <CardTitle className="text-white">
                     Current Step
                   </CardTitle>
@@ -209,8 +196,9 @@ export function CookingSessionClient({
                   </Badge>
                 </div>
               </CardHeader>
-              <CardContent className="flex-1 overflow-y-auto p-6 space-y-6">
-                {/* Current Step - Large and Prominent */}
+              
+              {/* Current Step Content - Scrollable */}
+              <CardContent className="flex-1 overflow-y-auto p-6 min-h-0">
                 {currentStep && (
                   <div className="space-y-4">
                     <div className="flex items-start gap-4">
@@ -238,63 +226,37 @@ export function CookingSessionClient({
                         )}
                       </div>
                     )}
-
-                    {/* Step Completion Checkbox */}
-                    <div className="flex items-center gap-3 p-4 rounded-lg bg-white/5 border border-white/10">
-                      <Checkbox
-                        checked={session.completedSteps.includes(session.currentStep)}
-                        onCheckedChange={() => toggleStepComplete(session.currentStep)}
-                        className="border-white/20 data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
-                      />
-                      <span className="text-sm text-gray-300">
-                        Mark this step as complete
-                      </span>
-                    </div>
                   </div>
                 )}
-
-                {/* All Steps Overview */}
-                <div className="pt-6 border-t border-white/10">
-                  <h3 className="text-sm font-semibold text-gray-400 mb-4">All Steps</h3>
-                  <div className="space-y-2">
-                    {steps.map((step) => {
-                      const isCurrent = step.stepNumber === session.currentStep;
-                      const isCompleted = session.completedSteps.includes(step.stepNumber);
-
-                      return (
-                        <div
-                          key={step.stepNumber}
-                          className={`flex items-start gap-3 p-3 rounded-lg border transition-all ${
-                            isCurrent
-                              ? "bg-blue-500/10 border-blue-500/50"
-                              : isCompleted
-                              ? "bg-green-500/5 border-green-500/20"
-                              : "bg-white/5 border-white/10"
-                          }`}
-                        >
-                          <div className="shrink-0 mt-0.5">
-                            {isCompleted ? (
-                              <CheckCircle2 className="h-4 w-4 text-green-400" />
-                            ) : (
-                              <Circle className="h-4 w-4 text-gray-500" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className={`text-sm ${isCurrent ? "text-white font-medium" : "text-gray-400"}`}>
-                              Step {step.stepNumber}: {step.text}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
               </CardContent>
+              
+              {/* Bottom Navigation */}
+              <div className="p-4 border-t border-white/10 shrink-0">
+                <div className="flex gap-2">
+                  <Button
+                    onClick={goToPreviousStep}
+                    disabled={session.currentStep === 1}
+                    variant="outline"
+                    className="flex-1 border-white/20 hover:bg-white/10 text-white disabled:opacity-50"
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-2" />
+                    Previous
+                  </Button>
+                  <Button
+                    onClick={goToNextStep}
+                    disabled={session.currentStep === totalSteps}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white disabled:opacity-50"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </div>
+              </div>
             </Card>
           </div>
 
           {/* Cooking Assistant Chat Panel */}
-          <div className="flex flex-col">
+          <div className="flex flex-col h-full">
             <CookingAssistantChat
               recipe={recipe}
               currentStep={currentStep}
