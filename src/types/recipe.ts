@@ -120,3 +120,24 @@ export interface UserPreferences {
   maxCookTime?: number; // in minutes
   difficultyPreference?: "easy" | "medium" | "hard" | "any";
 }
+
+// Cooking Session Types
+export interface CookingSessionMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: Date;
+}
+
+export interface CookingSession {
+  id: string;
+  recipeId: string;
+  recipeTitle: string;
+  currentStep: number; // 1-based index
+  completedSteps: number[]; // Array of completed step numbers
+  startedAt: Date;
+  lastActiveAt: Date;
+  notes: Record<number, string>; // Notes per step number
+  ingredientsCollapsed: boolean;
+  messages: CookingSessionMessage[]; // Chat messages
+}
