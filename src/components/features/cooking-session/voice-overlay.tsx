@@ -126,6 +126,8 @@ export function VoiceOverlay({
   useEffect(() => {
     const handleFunctionCall = (call: { id: string; name: string; args: Record<string, unknown> }) => {
       console.log("Function call received:", call);
+      console.log("Function name:", call.name);
+      console.log("Function args:", JSON.stringify(call.args));
 
       if (call.name === "navigateToStep") {
         const args = call.args as { action: "next" | "previous" | "goto"; stepNumber?: number };
@@ -160,18 +162,39 @@ export function VoiceOverlay({
           response: { success: true, message: "Step marked complete, moved to next step" }
         }]);
       } else if (call.name === "setTimer") {
+        console.log("setTimer function called!");
         const args = call.args as { minutes: number; seconds?: number; label?: string };
+        console.log("Timer args - minutes:", args.minutes, "seconds:", args.seconds, "label:", args.label);
+        
         const totalSeconds = Math.floor(args.minutes * 60) + (args.seconds || 0);
         const label = args.label || "Timer";
+        
+        console.log("Setting timer for", totalSeconds, "seconds with label:", label);
         
         // Add the timer
         addTimer(totalSeconds, label);
         
+        // Build response message with proper duration formatting
+        let durationText = "";
+        if (args.minutes > 0 && args.seconds && args.seconds > 0) {
+          durationText = `${args.minutes} minute${args.minutes !== 1 ? 's' : ''} and ${args.seconds} second${args.seconds !== 1 ? 's' : ''}`;
+        } else if (args.minutes > 0) {
+          durationText = `${args.minutes} minute${args.minutes !== 1 ? 's' : ''}`;
+        } else if (args.seconds && args.seconds > 0) {
+          durationText = `${args.seconds} second${args.seconds !== 1 ? 's' : ''}`;
+        }
+        
+        console.log("Sending timer response:", durationText);
+        
         sendToolResponse([{
           id: call.id,
           name: call.name,
-          response: { success: true, message: `Timer set for ${args.minutes} minutes` }
+          response: { success: true, message: `Timer set for ${durationText}` }
         }]);
+        
+        console.log("Timer function completed");
+      } else {
+        console.log("Unknown function call:", call.name);
       }
     };
 
@@ -181,8 +204,12 @@ export function VoiceOverlay({
   // Handle timer completion - notify AI and auto-remove after delay
   useEffect(() => {
     onTimerComplete((timer) => {
+      // Play alarm sound
+      playAlarmSound();
+      
       if (isConnected) {
         const timerMessage = `[TIMER COMPLETE] The "${timer.label}" timer (${Math.floor(timer.totalSeconds / 60)} minutes ${timer.totalSeconds % 60} seconds) has finished. Please notify the user clearly that their timer for "${timer.label}" is done.`;
+        console.log("Timer completed, sending context update:", timerMessage);
         sendContextUpdate(timerMessage);
       }
 
@@ -192,6 +219,38 @@ export function VoiceOverlay({
       }, 3000);
     });
   }, [onTimerComplete, isConnected, sendContextUpdate, removeTimer]);
+
+  // Play alarm sound using Web Audio API
+  const playAlarmSound = () => {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      
+      // Create three beeps
+      for (let i = 0; i < 3; i++) {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        // Set frequency (800 Hz for a pleasant beep)
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+        
+        // Set volume envelope
+        const startTime = audioContext.currentTime + (i * 0.3);
+        gainNode.gain.setValueAtTime(0, startTime);
+        gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.01);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.2);
+        
+        // Play beep
+        oscillator.start(startTime);
+        oscillator.stop(startTime + 0.2);
+      }
+    } catch (error) {
+      console.error("Failed to play alarm sound:", error);
+    }
+  };
 
   // Toggle recording
   const handleToggleRecording = async () => {

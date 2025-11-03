@@ -39,22 +39,22 @@ export const navigateToStepTool: FunctionDeclaration = {
 export const setTimerTool: FunctionDeclaration = {
   name: "setTimer",
   description:
-    "Set a cooking timer. Use this when the user asks to set a timer, like 'set a timer for 10 minutes' or 'remind me in 5 minutes'.",
+    "Set a cooking timer. Use this when the user asks to set a timer. Examples: 'set a timer for 10 minutes', 'remind me in 5 minutes', 'timer for 30 seconds'.",
   parameters: {
     type: "object",
     properties: {
       minutes: {
         type: "number",
-        description: "Timer duration in minutes (can be decimal, e.g., 1.5 for 90 seconds)",
+        description: "Timer duration in minutes. Use 0 if the user only specifies seconds. Can be decimal (e.g., 0.5 for 30 seconds).",
       },
       seconds: {
         type: "number",
-        description: "Additional seconds to add to the timer (0-59)",
+        description: "Additional seconds to add to the timer (0-59). If user says 'X seconds', set minutes=0 and seconds=X.",
       },
       label: {
         type: "string",
         description:
-          "Optional label describing what the timer is for (e.g., 'boil pasta', 'rest meat', 'preheat oven')",
+          "Descriptive label for what the timer is for (e.g., 'boil pasta', 'rest meat', 'preheat oven'). Base this on the cooking context.",
       },
     },
     required: ["minutes"],

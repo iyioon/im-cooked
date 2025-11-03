@@ -24,7 +24,7 @@ export function TimerDisplay({ timers, onRemove }: TimerDisplayProps) {
   if (timers.length === 0) return null;
 
   return (
-    <div className="fixed bottom-24 right-6 z-40 space-y-2 max-w-sm">
+    <div className="fixed top-6 right-6 z-40 space-y-2 max-w-sm">
       {timers.map((timer) => (
         <Card
           key={timer.id}
