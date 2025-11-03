@@ -1,4 +1,4 @@
-import { CookingSession, CookingSessionMessage, RecipeDetail } from "@/types/recipe";
+import { CookingSession, CookingSessionMessage, RecipeDetail, SubstitutionRecord } from "@/types/recipe";
 
 const COOKING_SESSIONS_KEY = "im-cooked-cooking-sessions";
 const MAX_SESSIONS = 10; // Keep last 10 sessions
@@ -18,6 +18,9 @@ export function createCookingSession(recipe: RecipeDetail): CookingSession {
     notes: {},
     ingredientsCollapsed: false,
     messages: [],
+    appliedSubstitutions: [],
+    originalRecipe: recipe,      // Store immutable snapshot of original recipe
+    modifiedRecipe: recipe,      // Start with same recipe, will be updated as modifications are applied
   };
 
   // Save to localStorage
@@ -47,6 +50,10 @@ export function loadAllCookingSessions(): CookingSession[] {
         ...msg,
         timestamp: new Date(msg.timestamp),
       })),
+      appliedSubstitutions: (session.appliedSubstitutions || []).map(sub => ({
+        ...sub,
+        appliedAt: new Date(sub.appliedAt),
+      })),
     }));
   } catch (error) {
     console.error("Failed to load cooking sessions:", error);
@@ -59,7 +66,15 @@ export function loadAllCookingSessions(): CookingSession[] {
  */
 export function loadCookingSession(sessionId: string): CookingSession | null {
   const sessions = loadAllCookingSessions();
-  return sessions.find(s => s.id === sessionId) || null;
+  const session = sessions.find(s => s.id === sessionId) || null;
+
+  // Migration: For legacy sessions without modifiedRecipe, try to fetch the original recipe
+  // This maintains backward compatibility
+  if (session && !session.modifiedRecipe && session.originalRecipe) {
+    session.modifiedRecipe = session.originalRecipe;
+  }
+
+  return session;
 }
 
 /**
@@ -227,4 +242,39 @@ export function getActiveCookingSessions(maxAgeHours: number = 24): CookingSessi
 export function clearAllCookingSessions(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(COOKING_SESSIONS_KEY);
+}
+
+/**
+ * Add a substitution record to the session
+ */
+export function addSubstitutionToSession(
+  sessionId: string,
+  substitution: SubstitutionRecord
+): CookingSession | null {
+  const session = loadCookingSession(sessionId);
+  if (!session) return null;
+
+  session.appliedSubstitutions.push(substitution);
+  session.lastActiveAt = new Date();
+  saveCookingSession(session);
+
+  return session;
+}
+
+/**
+ * Update the modified recipe in the session
+ * This should be called whenever substitutions or other modifications are applied
+ */
+export function updateModifiedRecipe(
+  sessionId: string,
+  modifiedRecipe: RecipeDetail
+): CookingSession | null {
+  const session = loadCookingSession(sessionId);
+  if (!session) return null;
+
+  session.modifiedRecipe = modifiedRecipe;
+  session.lastActiveAt = new Date();
+  saveCookingSession(session);
+
+  return session;
 }

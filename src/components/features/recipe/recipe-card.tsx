@@ -3,20 +3,21 @@
 import { Recipe } from "@/types/recipe";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Clock, ChefHat, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface RecipeCardProps {
   recipe: Recipe;
-  onClick: () => void;
+  onViewRecipe?: (recipe: Recipe) => void;
+  onSelectRecipe?: (recipe: Recipe) => void;
 }
 
-export function RecipeCard({ recipe, onClick }: RecipeCardProps) {
+export function RecipeCard({ recipe, onViewRecipe, onSelectRecipe }: RecipeCardProps) {
   return (
     <Card
-      onClick={onClick}
       className={cn(
-        "group relative overflow-hidden cursor-pointer transition-all duration-300 h-[400px] flex flex-col",
+        "group relative overflow-hidden transition-all duration-300 h-[400px] flex flex-col",
         "bg-white/5 border-white/10 hover:border-blue-500/50",
         "hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/20",
         "backdrop-blur-sm"
@@ -51,29 +52,29 @@ export function RecipeCard({ recipe, onClick }: RecipeCardProps) {
         </p>
       </CardContent>
 
-      {/* Footer */}
-      <CardFooter className="p-5 pt-0 flex items-center justify-between gap-2 flex-wrap">
+      {/* Footer with Metadata */}
+      <CardFooter className="p-5 pt-0 flex items-center justify-between gap-2 flex-wrap mb-3">
         {recipe.prepTime && (
           <div className="flex items-center gap-1.5 text-xs text-gray-400">
             <Clock className="h-3.5 w-3.5" />
             <span>{recipe.prepTime}</span>
           </div>
         )}
-        
+
         {recipe.cookTime && (
           <div className="flex items-center gap-1.5 text-xs text-gray-400">
             <ChefHat className="h-3.5 w-3.5" />
             <span>{recipe.cookTime}</span>
           </div>
         )}
-        
+
         {recipe.servings && (
           <div className="flex items-center gap-1.5 text-xs text-gray-400">
             <Users className="h-3.5 w-3.5" />
             <span>{recipe.servings}</span>
           </div>
         )}
-        
+
         {recipe.difficulty && (
           <Badge
             variant="outline"
@@ -87,6 +88,32 @@ export function RecipeCard({ recipe, onClick }: RecipeCardProps) {
             {recipe.difficulty}
           </Badge>
         )}
+      </CardFooter>
+
+      {/* Action Buttons */}
+      <CardFooter className="p-5 pt-0 flex gap-2 mt-auto">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            onViewRecipe?.(recipe);
+          }}
+          className="flex-1 bg-white/10 hover:bg-white/20 text-white border-white/20"
+        >
+          View
+        </Button>
+        <Button
+          variant="default"
+          size="sm"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelectRecipe?.(recipe);
+          }}
+          className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+        >
+          Select
+        </Button>
       </CardFooter>
     </Card>
   );

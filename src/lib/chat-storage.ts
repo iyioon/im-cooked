@@ -3,7 +3,7 @@
  * Updated to support multi-session management
  */
 
-import { Recipe } from "@/types/recipe";
+import { Recipe, IngredientSubstitution } from "@/types/recipe";
 
 export interface Message {
   id: string;
@@ -14,6 +14,11 @@ export interface Message {
   isRecipeSearch?: boolean;
   query?: string;
   streaming?: boolean; // For real-time message streaming
+  suggestedSubstitutions?: {
+    originalIngredient: string;
+    suggestions: IngredientSubstitution[];
+    explanation: string;
+  };
 }
 
 const STORAGE_KEY = "im-cooked-chat-history"; // Legacy key for backward compatibility
