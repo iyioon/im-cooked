@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { SubstitutionResponse, RecipeDetail, RecipeStep, IngredientSubstitution } from "@/types/recipe";
-import { buildCookingAssistantPrompt, buildSubstitutionPrompt, buildApplySubstitutionPrompt } from "@/lib/prompts";
+import { buildCookingAssistantPrompt, buildSubstitutionPrompt, buildApplySubstitutionPrompt, buildMatchIngredientPrompt } from "@/lib/prompts";
 
 // Initialize Gemini AI
 const genAI = new GoogleGenAI({
@@ -154,5 +154,53 @@ export async function applySubstitutionToRecipe(params: {
   } catch (error) {
     console.error("Error applying substitution to recipe:", error);
     throw new Error("Failed to apply substitution to recipe");
+  }
+}
+
+/**
+ * Match ingredient from user message using LLM
+ * Determines which ingredient from the recipe the user is referring to
+ */
+export async function matchIngredientFromMessage(params: {
+  recipeTitle: string;
+  recipeIngredients: string[];
+  userMessage: string;
+}): Promise<{
+  matched: string | null;
+  ingredient: string | null;
+  confidence: "high" | "medium" | "low";
+  reason: string;
+}> {
+  try {
+    const prompt = buildMatchIngredientPrompt({
+      recipeTitle: params.recipeTitle,
+      recipeIngredients: params.recipeIngredients,
+      userMessage: params.userMessage,
+    });
+
+    const result = await genAI.models.generateContent({
+      model: MODEL_NAME,
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: prompt }],
+        },
+      ],
+    });
+
+    const text = result.text || "";
+
+    // Clean up response - remove markdown code blocks if present
+    const cleanResponse = text
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+
+    // Parse the JSON response
+    const matchResult = JSON.parse(cleanResponse);
+    return matchResult;
+  } catch (error) {
+    console.error("Error matching ingredient from message:", error);
+    throw new Error("Failed to match ingredient from message");
   }
 }

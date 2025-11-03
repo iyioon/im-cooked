@@ -13,3 +13,6 @@ export type { SubstitutionParams } from "./substitution";
 
 export { buildApplySubstitutionPrompt } from "./apply-substitution";
 export type { ApplySubstitutionParams } from "./apply-substitution";
+
+export { buildMatchIngredientPrompt } from "./match-ingredient";
+export type { MatchIngredientParams } from "./match-ingredient";
