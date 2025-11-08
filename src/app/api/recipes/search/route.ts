@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { searchRecipes } from "@/services/recipe-scraper";
 import { UserPreferences } from "@/types/recipe";
+import { validateSearchQuery } from "@/services/ai";
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,6 +13,27 @@ export async function POST(request: NextRequest) {
         { error: "Query is required and must be a string" },
         { status: 400 }
       );
+    }
+
+    // Validate search query against dietary preferences
+    if (preferences) {
+      const validation = await validateSearchQuery({
+        query,
+        dietaryRestrictions: preferences.dietaryRestrictions,
+        allergies: preferences.allergies,
+      });
+
+      if (validation.hasConflict) {
+        console.log(`[Search Validation] Conflict detected: ${validation.reason}`);
+        return NextResponse.json({
+          recipes: [],
+          query,
+          conflict: {
+            message: validation.reason,
+            suggestions: validation.suggestions || [],
+          },
+        });
+      }
     }
 
     // Set a timeout for the entire operation
@@ -29,7 +51,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error in recipe search API:", error);
-    
+
     if (error instanceof Error && error.message === "Search timeout") {
       return NextResponse.json(
         { error: "Search request timed out. Please try again." },

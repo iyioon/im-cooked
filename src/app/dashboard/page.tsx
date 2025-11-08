@@ -281,6 +281,22 @@ export default function Dashboard() {
 
       const data = await response.json();
 
+      // Check if there's a dietary conflict
+      if (data.conflict) {
+        const conflictMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: `${data.conflict.message}\n\n${
+            data.conflict.suggestions && data.conflict.suggestions.length > 0
+              ? `Here are some alternative searches you might like:\n${data.conflict.suggestions.map((s: string) => `• ${s}`).join('\n')}`
+              : ''
+          }`,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, conflictMessage]);
+        return;
+      }
+
       if (data.recipes && data.recipes.length > 0) {
         // Recipe search successful - show recipe results
         const recipeMessage: Message = {

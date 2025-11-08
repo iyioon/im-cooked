@@ -174,37 +174,38 @@ async function scrapeAllRecipesSearch(
 
 /**
  * Search for recipes from AllRecipes.com
+ * Note: Does NOT filter by preferences - returns all recipes and lets substitution logic handle dietary needs
  */
 export async function searchRecipes(query: string, preferences?: UserPreferences): Promise<Recipe[]> {
   try {
     console.log(`Searching AllRecipes.com for: ${query}`);
-    
+
     // Step 1: Get recipe URLs from AllRecipes search
     const recipeUrls = await scrapeAllRecipesSearch(query, 10);
-    
+
     console.log(`Found ${recipeUrls.length} recipe URLs from AllRecipes`);
-    
+
     if (recipeUrls.length === 0) {
       console.warn('No recipe URLs found from AllRecipes search');
       return [];
     }
-    
+
     // Step 2: Scrape each recipe
     console.log('Scraping recipes with cheerio (no AI calls)...');
-    const recipePromises = recipeUrls.map(url => 
+    const recipePromises = recipeUrls.map(url =>
       Promise.race([
         scrapeRecipe(url),
         new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000))
       ])
     );
-    
+
     const recipes = await Promise.all(recipePromises);
-    
+
     // Filter out null results
     const validRecipes = recipes.filter((r): r is Recipe => r !== null);
-    
+
     console.log(`Successfully scraped ${validRecipes.length} recipes`);
-    
+
     return validRecipes;
   } catch (error) {
     console.error("Error searching recipes from AllRecipes:", error);

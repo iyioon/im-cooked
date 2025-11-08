@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { RecipeDetail, SubstitutionResponse } from "@/types/recipe";
+import { RecipeDetail, SubstitutionResponse, UserPreferences } from "@/types/recipe";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { SubstitutionDialog } from "@/components/features/substitution/substitution-dialog";
 import { useModifiedRecipe } from "@/hooks/useModifiedRecipe";
 import { createCookingSession } from "@/lib/cooking-session-manager";
+import { loadPreferences } from "@/lib/preferences-manager";
 import {
   ArrowLeft,
   Clock,
@@ -37,6 +38,7 @@ export function RecipeDetailClient({ recipeId }: RecipeDetailClientProps) {
   const [modifiedIngredients, setModifiedIngredients] = useState<string[]>([]);
   const [modifiedInstructions, setModifiedInstructions] = useState<string[]>([]);
   const [substitutionWarnings, setSubstitutionWarnings] = useState<string[]>([]);
+  const [autoSubstitutionWarnings, setAutoSubstitutionWarnings] = useState<string[]>([]);
 
   useEffect(() => {
     async function fetchRecipe() {
@@ -44,16 +46,45 @@ export function RecipeDetailClient({ recipeId }: RecipeDetailClientProps) {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`/api/recipes/${recipeId}`);
+        // Load user preferences
+        const preferences = loadPreferences();
+
+        // Fetch recipe with preferences for auto-substitution
+        const response = await fetch(`/api/recipes/${recipeId}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ preferences: preferences || undefined }),
+        });
 
         if (!response.ok) {
           throw new Error("Failed to load recipe");
         }
 
         const data = await response.json();
-        setRecipe(data);
+        setRecipe(data.recipe || data);
+
+        // If auto-substitutions were applied, update state
+        if (data.autoSubstitutions) {
+          setModifiedIngredients(data.autoSubstitutions.ingredients);
+          if (data.autoSubstitutions.instructionChanges) {
+            const baseInstructions = data.recipe?.instructions || data.instructions || [];
+            const newInstructions = [...baseInstructions];
+            data.autoSubstitutions.instructionChanges.forEach((change: any) => {
+              if (change.step >= 1 && change.step <= newInstructions.length) {
+                newInstructions[change.step - 1] = change.modified;
+              }
+            });
+            setModifiedInstructions(newInstructions);
+          }
+          if (data.autoSubstitutions.warnings) {
+            setAutoSubstitutionWarnings(data.autoSubstitutions.warnings);
+          }
+        }
+
         // Initialize context with fetched recipe
-        setContextRecipe(data);
+        setContextRecipe(data.recipe || data);
       } catch (err) {
         console.error("Error fetching recipe:", err);
         setError(err instanceof Error ? err.message : "Failed to load recipe");

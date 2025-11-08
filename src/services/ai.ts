@@ -342,7 +342,7 @@ export async function detectCookingSessionIntent(params: {
 
       // Parse the JSON response
       const intentResponse = JSON.parse(cleanResponse) as CookingSessionIntentResponse;
-      
+
       // Validate the response has required fields
       if (!intentResponse.intent || !['COOKING_QUESTION', 'SUBSTITUTION_REQUEST', 'GENERAL_COOKING', 'REJECT'].includes(intentResponse.intent)) {
         throw new Error('Invalid intent value in response');
@@ -353,7 +353,7 @@ export async function detectCookingSessionIntent(params: {
     } catch (error) {
       lastError = error as Error;
       console.error(`[Cooking Session Intent Attempt ${attempt}] Error:`, error);
-      
+
       if (attempt < MAX_RETRIES) {
         const delayMs = attempt * 500;
         console.log(`[Cooking Session Intent] Retrying in ${delayMs}ms...`);
@@ -365,10 +365,88 @@ export async function detectCookingSessionIntent(params: {
   // Fallback to COOKING_QUESTION as default
   console.error(`[Cooking Session Intent] All ${MAX_RETRIES} attempts failed. Using fallback COOKING_QUESTION intent.`);
   console.error('[Cooking Session Intent] Last error:', lastError);
-  
+
   return {
     intent: "COOKING_QUESTION",
     confidence: "low",
     reason: "Intent detection failed, defaulting to cooking question",
   };
+}
+
+/**
+ * Validate if a search query conflicts with user dietary preferences
+ * Returns suggestions for alternative searches if there's a conflict
+ */
+export async function validateSearchQuery(params: {
+  query: string;
+  dietaryRestrictions?: string[];
+  allergies?: string[];
+}): Promise<{
+  hasConflict: boolean;
+  reason?: string;
+  suggestions?: string[];
+}> {
+  try {
+    // If no restrictions, no conflict possible
+    if ((!params.dietaryRestrictions || params.dietaryRestrictions.length === 0) &&
+        (!params.allergies || params.allergies.length === 0)) {
+      return { hasConflict: false };
+    }
+
+    let restrictionsText = "";
+    if (params.dietaryRestrictions && params.dietaryRestrictions.length > 0) {
+      restrictionsText += `Dietary restrictions: ${params.dietaryRestrictions.join(", ")}\n`;
+    }
+    if (params.allergies && params.allergies.length > 0) {
+      restrictionsText += `Allergies: ${params.allergies.join(", ")}\n`;
+    }
+
+    const prompt = `You are a dietary compatibility checker. Analyze if the user's search query conflicts with their dietary preferences.
+
+Search Query: "${params.query}"
+
+User's Dietary Preferences:
+${restrictionsText}
+
+Determine if there's a fundamental conflict (e.g., searching for "chicken" when vegan, or "cheese pizza" when dairy-free).
+
+If there's a conflict, suggest 2-3 alternative searches that would be compatible.
+
+Respond with ONLY a JSON object in this exact format:
+{
+  "hasConflict": true or false,
+  "reason": "Brief explanation of the conflict (only if hasConflict is true)",
+  "suggestions": ["alternative 1", "alternative 2", "alternative 3"] (only if hasConflict is true)
+}`;
+
+    const result = await genAI.models.generateContent({
+      model: MODEL_NAME,
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: prompt }],
+        },
+      ],
+    });
+
+    const text = result.text || "";
+
+    // Clean up response
+    let cleanResponse = text
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+
+    const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      cleanResponse = jsonMatch[0];
+    }
+
+    const response = JSON.parse(cleanResponse);
+    return response;
+  } catch (error) {
+    console.error("[Search Validation] Error validating search query:", error);
+    // On error, assume no conflict to allow search to proceed
+    return { hasConflict: false };
+  }
 }
