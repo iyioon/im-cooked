@@ -19,3 +19,13 @@ export type { MatchIngredientParams } from "./match-ingredient";
 
 export { buildIntentDetectionPrompt } from "./intent-detection";
 export type { IntentDetectionParams, IntentDetectionResponse } from "./intent-detection";
+
+export { 
+  buildCookingSessionIntentPrompt, 
+  isObviouslyOffTopic,
+  generateRejectionMessage 
+} from "./cooking-session-intent";
+export type { 
+  CookingSessionIntentParams, 
+  CookingSessionIntentResponse 
+} from "./cooking-session-intent";

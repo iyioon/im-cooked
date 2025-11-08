@@ -1,6 +1,15 @@
 import { GoogleGenAI } from "@google/genai";
 import { SubstitutionResponse, RecipeDetail, RecipeStep, IngredientSubstitution } from "@/types/recipe";
-import { buildCookingAssistantPrompt, buildSubstitutionPrompt, buildApplySubstitutionPrompt, buildMatchIngredientPrompt, buildIntentDetectionPrompt, IntentDetectionResponse } from "@/lib/prompts";
+import { 
+  buildCookingAssistantPrompt, 
+  buildSubstitutionPrompt, 
+  buildApplySubstitutionPrompt, 
+  buildMatchIngredientPrompt, 
+  buildIntentDetectionPrompt, 
+  buildCookingSessionIntentPrompt,
+  IntentDetectionResponse,
+  CookingSessionIntentResponse
+} from "@/lib/prompts";
 
 // Initialize Gemini AI
 const genAI = new GoogleGenAI({
@@ -248,5 +257,45 @@ export async function detectIntent(userMessage: string): Promise<IntentDetection
   } catch (error) {
     console.error("Error detecting intent:", error);
     throw new Error("Failed to detect user intent");
+  }
+}
+
+/**
+ * Detect user intent during a cooking session
+ * Classifies into COOKING_QUESTION, SUBSTITUTION_REQUEST, GENERAL_COOKING, or REJECT
+ */
+export async function detectCookingSessionIntent(params: {
+  userMessage: string;
+  recipeTitle: string;
+  currentStep: number;
+  totalSteps: number;
+}): Promise<CookingSessionIntentResponse> {
+  try {
+    const prompt = buildCookingSessionIntentPrompt(params);
+
+    const result = await genAI.models.generateContent({
+      model: MODEL_NAME,
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: prompt }],
+        },
+      ],
+    });
+
+    const text = result.text || "";
+
+    // Clean up response - remove markdown code blocks if present
+    const cleanResponse = text
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+
+    // Parse the JSON response
+    const intentResponse = JSON.parse(cleanResponse) as CookingSessionIntentResponse;
+    return intentResponse;
+  } catch (error) {
+    console.error("Error detecting cooking session intent:", error);
+    throw new Error("Failed to detect cooking session intent");
   }
 }

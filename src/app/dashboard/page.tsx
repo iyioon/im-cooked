@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ChefHat, Send, User, Bot, Trash2, Settings } from "lucide-react";
 import { RecipeResults } from "@/components/features/recipe/recipe-results";
 import { ThinkingIndicator } from "@/components/ui/thinking-indicator";
@@ -612,6 +612,7 @@ export default function Dashboard() {
                     ) : (
                       <div className="flex gap-4 justify-start">
                         <Avatar className="h-10 w-10 border-2 border-blue-500/50">
+                          <AvatarImage src="/chef.jpg" alt="Chef Assistant" />
                           <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600">
                             <Bot className="h-5 w-5 text-white" strokeWidth={2} />
                           </AvatarFallback>
@@ -651,6 +652,7 @@ export default function Dashboard() {
                 {isLoading && (
                   <div className="flex gap-4 justify-start">
                     <Avatar className="h-10 w-10 border-2 border-blue-500/50">
+                      <AvatarImage src="/chef.jpg" alt="Chef Assistant" />
                       <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600">
                         <Bot className="h-5 w-5 text-white" strokeWidth={2} />
                       </AvatarFallback>
