@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ChefHat, Send, User, Bot, Trash2, Settings } from "lucide-react";
-import { RecipeResults, RecipeResultsLoading } from "@/components/features/recipe/recipe-results";
+import { RecipeResults } from "@/components/features/recipe/recipe-results";
+import { ThinkingIndicator } from "@/components/ui/thinking-indicator";
 import { RecipeSidebar } from "@/components/recipe-sidebar";
 import { ChatSubstitutionSuggestion } from "@/components/chat-substitution-suggestion";
 import { Recipe, UserPreferences, RecipeDetail, RecipeDetailWithContext } from "@/types/recipe";
@@ -654,9 +655,7 @@ export default function Dashboard() {
                         <Bot className="h-5 w-5 text-white" strokeWidth={2} />
                       </AvatarFallback>
                     </Avatar>
-                    <div className="flex-1">
-                      <RecipeResultsLoading />
-                    </div>
+                    <ThinkingIndicator />
                   </div>
                 )}
                 
