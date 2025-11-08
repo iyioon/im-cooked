@@ -36,6 +36,7 @@ export function VoiceOverlay({
   const [isInitializing, setIsInitializing] = useState(true);
   const initialStepRef = useRef(currentStepNumber);
   const initialStepTextRef = useRef(currentStep);
+  const isSettingTimerRef = useRef(false);
 
   // Initialize timer management
   const { timers, addTimer, removeTimer, onTimerComplete } = useTimer();
@@ -151,7 +152,7 @@ export function VoiceOverlay({
           sendToolResponse([{
             id: call.id,
             name: call.name,
-            response: { success: true, message: `Moved to step ${currentStepNumber + 1} of ${totalSteps}` }
+            response: { success: true, message: `Navigation complete. Context update will follow - wait for it before responding to user.` }
           }]);
         } else if (args.action === "previous") {
           // Check if we're already at the first step
@@ -171,7 +172,7 @@ export function VoiceOverlay({
           sendToolResponse([{
             id: call.id,
             name: call.name,
-            response: { success: true, message: `Moved to step ${currentStepNumber - 1} of ${totalSteps}` }
+            response: { success: true, message: `Navigation complete. Context update will follow - wait for it before responding to user.` }
           }]);
         } else if (args.action === "goto" && args.stepNumber) {
           // Validate step number is within bounds
@@ -191,7 +192,7 @@ export function VoiceOverlay({
           sendToolResponse([{
             id: call.id,
             name: call.name,
-            response: { success: true, message: `Moved to step ${args.stepNumber} of ${totalSteps}` }
+            response: { success: true, message: `Navigation complete. Context update will follow - wait for it before responding to user.` }
           }]);
         }
       } else if (call.name === "markStepComplete") {
@@ -212,10 +213,25 @@ export function VoiceOverlay({
         sendToolResponse([{
           id: call.id,
           name: call.name,
-          response: { success: true, message: `Step ${currentStepNumber} marked complete, moved to step ${currentStepNumber + 1} of ${totalSteps}` }
+          response: { success: true, message: `Step marked complete. Navigation complete. Context update will follow - wait for it before responding to user.` }
         }]);
       } else if (call.name === "setTimer") {
         console.log("setTimer function called!");
+        
+        // Prevent multiple timers from being set simultaneously
+        if (isSettingTimerRef.current) {
+          console.log("Timer already being set, rejecting duplicate request");
+          sendToolResponse([{
+            id: call.id,
+            name: call.name,
+            response: { 
+              success: false, 
+              message: "A timer is already being set. Please wait a moment before setting another timer." 
+            }
+          }]);
+          return;
+        }
+        
         const args = call.args as { minutes: number; seconds?: number; label?: string };
         console.log("Timer args - minutes:", args.minutes, "seconds:", args.seconds, "label:", args.label);
         
@@ -223,6 +239,9 @@ export function VoiceOverlay({
         const label = args.label || "Timer";
         
         console.log("Setting timer for", totalSeconds, "seconds with label:", label);
+        
+        // Set flag to prevent duplicate timer creation
+        isSettingTimerRef.current = true;
         
         // Add the timer
         addTimer(totalSeconds, label);
@@ -245,6 +264,11 @@ export function VoiceOverlay({
           response: { success: true, message: `Timer set for ${durationText}` }
         }]);
         
+        // Reset flag after a brief delay to allow the tool response to complete
+        setTimeout(() => {
+          isSettingTimerRef.current = false;
+        }, 1000);
+        
         console.log("Timer function completed");
       } else {
         console.log("Unknown function call:", call.name);
@@ -261,17 +285,19 @@ export function VoiceOverlay({
       playAlarmSound();
       
       if (isConnected) {
-        const timerMessage = `[TIMER COMPLETE] The "${timer.label}" timer (${Math.floor(timer.totalSeconds / 60)} minutes ${timer.totalSeconds % 60} seconds) has finished. Please notify the user clearly that their timer for "${timer.label}" is done.`;
-        console.log("Timer completed, sending context update:", timerMessage);
-        sendContextUpdate(timerMessage);
+        const minutes = Math.floor(timer.totalSeconds / 60);
+        const seconds = timer.totalSeconds % 60;
+        const timerMessage = `The "${timer.label}" timer has finished (${minutes > 0 ? `${minutes} minute${minutes !== 1 ? 's' : ''}` : ''}${minutes > 0 && seconds > 0 ? ' and ' : ''}${seconds > 0 ? `${seconds} second${seconds !== 1 ? 's' : ''}` : ''}). Please notify the user clearly and ask if they need anything else.`;
+        console.log("Timer completed, sending message:", timerMessage);
+        sendText(timerMessage);
       }
 
-      // Auto-remove timer after 3 seconds
+      // Auto-remove timer after 5 seconds (give AI time to respond)
       setTimeout(() => {
         removeTimer(timer.id);
-      }, 3000);
+      }, 5000);
     });
-  }, [onTimerComplete, isConnected, sendContextUpdate, removeTimer]);
+  }, [onTimerComplete, isConnected, sendText, removeTimer]);
 
   // Play alarm sound using Web Audio API
   const playAlarmSound = () => {

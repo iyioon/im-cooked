@@ -12,7 +12,7 @@ import type { FunctionDeclaration } from "@/lib/multimodal-live/types";
 export const navigateToStepTool: FunctionDeclaration = {
   name: "navigateToStep",
   description:
-    "Navigate to a different cooking step. Use this when the user says 'next step', 'previous step', 'go back', 'skip to step X', or similar navigation commands.",
+    "Navigate to a different cooking step. Use this when the user says 'next step', 'previous step', 'go back', 'skip to step X', or similar navigation commands. IMPORTANT: Do NOT respond to the user after calling this function. Wait for the context update message, then explain the new step.",
   parameters: {
     type: "object",
     properties: {
@@ -39,7 +39,7 @@ export const navigateToStepTool: FunctionDeclaration = {
 export const setTimerTool: FunctionDeclaration = {
   name: "setTimer",
   description:
-    "Set a cooking timer. Use this when the user asks to set a timer. Examples: 'set a timer for 10 minutes', 'remind me in 5 minutes', 'timer for 30 seconds'.",
+    "Set a cooking timer. Use this when the user asks to set a timer. Examples: 'set a timer for 10 minutes', 'remind me in 5 minutes', 'timer for 30 seconds'. IMPORTANT: Only call this function ONCE per user request. Do not call it multiple times in rapid succession.",
   parameters: {
     type: "object",
     properties: {
@@ -68,7 +68,7 @@ export const setTimerTool: FunctionDeclaration = {
 export const markStepCompleteTool: FunctionDeclaration = {
   name: "markStepComplete",
   description:
-    "Mark the current cooking step as complete and automatically move to the next step. Use when user says 'I'm done', 'finished with this step', 'what's next', or indicates completion.",
+    "Mark the current cooking step as complete and automatically move to the next step. Use when user says 'I'm done', 'finished with this step', 'what's next', or indicates completion. IMPORTANT: Do NOT respond to the user after calling this function. Wait for the context update message, then explain the new step.",
   parameters: {
     type: "object",
     properties: {},

@@ -261,9 +261,11 @@ export class GeminiLiveClient extends EventEmitter<GeminiLiveEvents> {
       } else if (isServerContentMessage(message)) {
         this.handleServerContent(message);
       } else if (isToolCallMessage(message)) {
+        // This is the correct format with proper IDs for tool responses
         const toolCallMsg = message as any;
         if (toolCallMsg.toolCall?.functionCalls) {
           toolCallMsg.toolCall.functionCalls.forEach((call: any) => {
+            logger.log("Tool call received with ID:", call.id);
             this.emit("functionCall", {
               id: call.id,
               name: call.name,
@@ -313,12 +315,9 @@ export class GeminiLiveClient extends EventEmitter<GeminiLiveEvents> {
             this.emit("audio", bytes.buffer);
           }
         } else if ("functionCall" in part && part.functionCall) {
-          logger.log("Function call:", part.functionCall);
-          this.emit("functionCall", {
-            id: Math.random().toString(36).substring(7), // Generate temp ID
-            name: part.functionCall.name,
-            args: part.functionCall.args,
-          });
+          // Function calls in modelTurn.parts don't have IDs
+          // These are handled separately via toolCall messages which include proper IDs
+          logger.log("Function call in modelTurn (ignoring, will be handled via toolCall message):", part.functionCall);
         }
       }
     }
