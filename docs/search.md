@@ -2,18 +2,14 @@
 
 ## Overview
 
-The recipe search system uses **Gemini AI with Google Search Grounding** to find recipes from trusted cooking websites, then scrapes recipe data using **cheerio** (no AI calls for scraping to avoid rate limits).
+The recipe search system scrapes recipes directly from **AllRecipes.com** using **cheerio** (no AI calls for search or scraping to avoid rate limits).
 
 ## Architecture
 
 ```
 User Query
     ↓
-Intent Detection (Gemini AI)
-    ↓
-Google Search Grounding (Gemini AI)
-    ↓
-URL Resolution & Filtering
+AllRecipes.com Search Page Scraping (Cheerio)
     ↓
 Recipe Scraping (Cheerio only)
     ↓
@@ -49,7 +45,7 @@ Recipe Results
 ### 2. Recipe Search
 **Endpoint**: `/api/recipes/search`  
 **Method**: `POST`  
-**Purpose**: Search for recipes using Google Search Grounding
+**Purpose**: Search for recipes by scraping AllRecipes.com search results
 
 **Request**:
 ```json
@@ -111,36 +107,14 @@ Recipe Results
 
 ## Search Flow (Detailed)
 
-### Step 1: Intent Detection
-- User sends message to `/api/intent`
-- Gemini AI analyzes if it's a recipe search
-- Returns `isRecipeSearch` boolean and `searchQuery` string
-- **API Calls**: 1 Gemini request
-
-### Step 2: Google Search Grounding
-- Query sent to Gemini with `googleSearch` tool enabled
-- Gemini searches whitelisted recipe sites:
-  - allrecipes.com
-  - foodnetwork.com
-  - simplyrecipes.com
-  - delish.com
-  - bonappetit.com
-  - epicurious.com
-  - seriouseats.com
-  - tasteofhome.com
-- Returns grounding metadata with redirect URLs
-- **API Calls**: 1 Gemini request
-
-### Step 3: URL Resolution
-- Extract URLs from `groundingMetadata.groundingChunks`
-- Resolve redirect URLs using `HEAD` requests
-- Filter URLs to:
-  - Only whitelisted domains
-  - Exclude collection/category pages (e.g., `/best-*`, `/gallery/`)
-- Limit to top 10 URLs
+### Step 1: AllRecipes.com Search
+- Fetch search results from `https://www.allrecipes.com/search?q={query}&offset={page_offset}`
+- Parse HTML with cheerio
+- Extract recipe URLs using CSS selector: `a.mntl-card-list-card--extendable`
+- Pagination support: 24 results per page
 - **API Calls**: 0 Gemini requests
 
-### Step 4: Recipe Scraping
+### Step 2: Recipe Scraping
 - Fetch HTML for each recipe URL
 - Parse with cheerio (CSS selectors)
 - Extract metadata:
@@ -151,7 +125,7 @@ Recipe Results
   - Difficulty: Auto-calculated from cook time
 - **API Calls**: 0 Gemini requests (cheerio only!)
 
-### Step 5: Recipe Details (On-Demand)
+### Step 3: Recipe Details (On-Demand)
 When user clicks a recipe, extract full details:
 
 **Priority 1: JSON-LD Extraction**
@@ -173,40 +147,23 @@ When user clicks a recipe, extract full details:
 
 | Phase | Gemini API Calls |
 |-------|------------------|
-| Intent Detection | 1 |
-| Google Search Grounding | 1 |
-| URL Resolution | 0 |
-| Recipe Scraping (×10) | 0 |
+| AllRecipes Search | 0 |
+| Recipe Scraping (×24) | 0 |
 | Recipe Details | 0 |
-| **TOTAL** | **2 calls** |
+| **TOTAL** | **0 calls** |
 
-**Rate Limit**: 10 requests/minute (free tier)  
-**Searches Allowed**: 5 per minute
+**No rate limits** - Direct web scraping only
 
 ## URL Filtering
 
-### Whitelisted Domains
-Only recipes from these 8 trusted sites:
+### Supported Domain
+Only recipes from:
 - allrecipes.com (~65K recipes)
-- foodnetwork.com (~50K recipes)
-- simplyrecipes.com (~15K recipes)
-- delish.com (~20K recipes)
-- bonappetit.com (~15K recipes)
-- epicurious.com (~10K recipes)
-- seriouseats.com (~5K recipes)
-- tasteofhome.com (~5K recipes)
 
-**Total Coverage**: ~185,000 recipes
+**Total Coverage**: ~65,000 recipes
 
-### Excluded URL Patterns
-Collection and category pages are filtered out:
-- `/best-*` (e.g., `/best-pasta-recipes-8737255`)
-- `/gallery/`
-- `/recipes/` (category landing pages)
-- `/collection/`
-- `/category/`
-- `/guide/`
-- URLs ending in 7+ digit IDs (often collections)
+### URL Extraction
+Recipe URLs are extracted directly from AllRecipes.com search results using the CSS selector `a.mntl-card-list-card--extendable`.
 
 ## Data Extraction Methods
 
@@ -252,12 +209,8 @@ Common class/element patterns:
 
 ## Error Handling
 
-### Rate Limiting
-- If Gemini returns 429 error: "Too many searches, please wait"
-- Client should retry after 1 minute
-
 ### No Results
-- If grounding returns no URLs: "No recipes found"
+- If AllRecipes search returns no URLs: "No recipes found"
 - If all scrapes fail: Return empty array
 - If recipe detail fails: Show basic info only
 
@@ -268,9 +221,9 @@ Common class/element patterns:
 
 ## Performance Optimizations
 
-### 1. No AI for Scraping
-- **Before**: 9-12 API calls per search (hit rate limit)
-- **After**: 2 API calls per search (5x more searches)
+### 1. No AI for Search or Scraping
+- **Before**: 2 API calls per search (Google Search Grounding + Intent)
+- **After**: 0 API calls per search (direct AllRecipes scraping)
 
 ### 2. JSON-LD Priority
 - Fastest extraction method
@@ -278,28 +231,16 @@ Common class/element patterns:
 - Works on 90%+ of recipe sites
 
 ### 3. Parallel Processing
-- URL resolution: Parallel with 5s timeout per URL
 - Recipe scraping: Parallel with 10s timeout per recipe
-- Typical search: 3-5 seconds total
+- Typical search: 2-4 seconds total
 
-### 4. URL Filtering
-- Eliminates collection pages (better quality results)
-- Reduces failed scrapes (only individual recipes)
-
-## Supported Recipe Sites
+## Supported Recipe Site
 
 | Site | Data Format | Ingredients | Instructions | Nutrition |
 |------|-------------|-------------|--------------|-----------|
-| Delish | JSON-LD (HowToStep) | ✅ | ✅ | ✅ |
 | AllRecipes | JSON-LD | ✅ | ✅ | ✅ |
-| Bon Appétit | JSON-LD | ✅ | ✅ | ✅ |
-| Epicurious | JSON-LD | ✅ | ✅ | ✅ |
-| Food Network | Schema.org + HTML | ✅ | ✅ | ⚠️ |
-| Serious Eats | HTML Selectors | ✅ | ✅ | ❌ |
-| Simply Recipes | JSON-LD | ✅ | ✅ | ✅ |
-| Taste of Home | JSON-LD | ✅ | ✅ | ✅ |
 
-**Legend**: ✅ Full support | ⚠️ Partial support | ❌ Not available
+**Legend**: ✅ Full support
 
 ## Future Improvements
 

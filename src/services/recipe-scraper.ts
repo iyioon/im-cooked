@@ -2,8 +2,6 @@ import * as cheerio from "cheerio";
 import { Recipe, RecipeDetail, UserPreferences } from "@/types/recipe";
 import { extractTime, extractServings } from "@/utils/html-parser";
 import { extractFromJsonLd, extractStepImages, extractFromHtml } from "@/utils/recipe-extractor";
-import { WHITELISTED_SITES, isCollectionUrl } from "@/constants/recipe-sites";
-import { getGenAI, getModelName } from "./ai";
 
 /**
  * Scrape recipe data from a URL using only cheerio (NO AI calls)
@@ -110,154 +108,88 @@ export async function scrapeRecipe(url: string): Promise<Recipe | null> {
 }
 
 /**
- * Follow a grounding redirect URL to get the actual destination URL
+ * Scrape recipe URLs from AllRecipes.com search results
  */
-async function resolveGroundingUrl(groundingUrl: string): Promise<string | null> {
+async function scrapeAllRecipesSearch(
+  query: string, 
+  maxResults: number = 10
+): Promise<string[]> {
   try {
-    const response = await fetch(groundingUrl, {
-      method: 'HEAD',
-      redirect: 'manual', // Don't auto-follow redirects
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      },
-    });
+    const allRecipeUrls: string[] = [];
+    const resultsPerPage = 24;
+    const pagesToFetch = Math.ceil(maxResults / resultsPerPage);
     
-    // Get the Location header which contains the actual URL
-    const actualUrl = response.headers.get('location');
-    return actualUrl;
+    for (let page = 0; page < pagesToFetch; page++) {
+      const offset = page * resultsPerPage;
+      const searchUrl = `https://www.allrecipes.com/search?q=${encodeURIComponent(query)}&offset=${offset}`;
+      
+      console.log(`Fetching AllRecipes search page ${page + 1} (offset: ${offset})...`);
+      
+      const response = await fetch(searchUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+      });
+      
+      if (!response.ok) {
+        console.warn(`Failed to fetch AllRecipes search page: ${response.status}`);
+        break;
+      }
+      
+      const html = await response.text();
+      const $ = cheerio.load(html);
+      
+      // Select recipe cards and extract URLs
+      const recipeCards = $('a.mntl-card-list-card--extendable');
+      
+      if (recipeCards.length === 0) {
+        console.log('No more recipe cards found, stopping pagination');
+        break;
+      }
+      
+      recipeCards.each((_, element) => {
+        const href = $(element).attr('href');
+        if (href) {
+          allRecipeUrls.push(href);
+        }
+      });
+      
+      console.log(`Found ${recipeCards.length} recipes on page ${page + 1}`);
+      
+      // If we've collected enough results, stop
+      if (allRecipeUrls.length >= maxResults) {
+        break;
+      }
+    }
+    
+    // Deduplicate URLs using Set and return up to maxResults
+    const uniqueUrls = Array.from(new Set(allRecipeUrls));
+    return uniqueUrls.slice(0, maxResults);
+    
   } catch (error) {
-    console.error(`Error resolving grounding URL ${groundingUrl}:`, error);
-    return null;
+    console.error('Error scraping AllRecipes search:', error);
+    return [];
   }
 }
 
 /**
- * Search for recipes based on query using Google Search Grounding
+ * Search for recipes from AllRecipes.com
  */
 export async function searchRecipes(query: string, preferences?: UserPreferences): Promise<Recipe[]> {
   try {
-    console.log(`Searching recipes with Google Search Grounding for: ${query}`);
-
-    // Build context-aware search query
-    let searchQuery = `Find ${query} recipes`;
-
-    // Add dietary restrictions
-    if (preferences?.dietaryRestrictions?.length) {
-      searchQuery += ` that are ${preferences.dietaryRestrictions.join(", ")}`;
-    }
-
-    // Add allergy considerations
-    if (preferences?.allergies?.length) {
-      searchQuery += ` without ${preferences.allergies.join(", ")}`;
-    }
-
-    // Add preferred cuisines
-    if (preferences?.preferredCuisines?.length) {
-      searchQuery += ` (prefer ${preferences.preferredCuisines.join(", ")} cuisine)`;
-    }
-
-    // Add location context for regional ingredients
-    if (preferences?.location?.country) {
-      searchQuery += ` suitable for ${preferences.location.country}`;
-      if (preferences.location.region) {
-        searchQuery += ` (${preferences.location.region})`;
-      }
-    }
-
-    // Add difficulty preference
-    if (preferences?.difficultyPreference && preferences.difficultyPreference !== "any") {
-      searchQuery += ` ${preferences.difficultyPreference} difficulty`;
-    }
-
-    // Add time constraints
-    if (preferences?.maxPrepTime || preferences?.maxCookTime) {
-      const timeConstraints = [];
-      if (preferences.maxPrepTime) {
-        timeConstraints.push(`prep time under ${preferences.maxPrepTime} minutes`);
-      }
-      if (preferences.maxCookTime) {
-        timeConstraints.push(`cook time under ${preferences.maxCookTime} minutes`);
-      }
-      searchQuery += ` with ${timeConstraints.join(" and ")}`;
-    }
-
-    searchQuery += ` from these cooking websites: allrecipes.com, foodnetwork.com, simplyrecipes.com, delish.com, bonappetit.com, epicurious.com, seriouseats.com, tasteofhome.com`;
-
-    console.log(`Enhanced search query: ${searchQuery}`);
-
-    const genAI = getGenAI();
-    const MODEL_NAME = getModelName();
-
-    // Use Gemini with Google Search grounding to find recipe URLs
-    const response = await genAI.models.generateContent({
-      model: MODEL_NAME,
-      contents: [{ role: "user", parts: [{ text: searchQuery }] }],
-      config: {
-        tools: [{ googleSearch: {} }],
-      },
-    });
+    console.log(`Searching AllRecipes.com for: ${query}`);
     
-    console.log('Gemini response received');
+    // Step 1: Get recipe URLs from AllRecipes search
+    const recipeUrls = await scrapeAllRecipesSearch(query, 10);
     
-    // Extract URLs from grounding metadata
-    const groundingData = response.candidates?.[0]?.groundingMetadata;
-    
-    if (!groundingData || !groundingData.groundingChunks) {
-      console.warn('No grounding metadata found');
-      return [];
-    }
-    
-    console.log(`Found ${groundingData.groundingChunks.length} grounding chunks`);
-    
-    // Extract grounding redirect URLs from chunks
-    const groundingUrls = groundingData.groundingChunks
-      .filter(chunk => chunk.web?.uri)
-      .map(chunk => chunk.web!.uri!)
-      .filter((url): url is string => !!url);
-    
-    console.log(`Extracted ${groundingUrls.length} grounding URLs`);
-    
-    if (groundingUrls.length === 0) {
-      console.warn('No grounding URLs found in chunks');
-      return [];
-    }
-    
-    // Resolve redirect URLs to get actual recipe URLs
-    console.log('Resolving grounding redirect URLs...');
-    const resolvePromises = groundingUrls.map(url => 
-      Promise.race([
-        resolveGroundingUrl(url),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000))
-      ])
-    );
-    
-    const resolvedUrls = await Promise.all(resolvePromises);
-    const actualUrls = resolvedUrls.filter((url): url is string => url !== null);
-    
-    console.log(`Resolved ${actualUrls.length} actual URLs`);
-    
-    // Filter by whitelisted domains AND exclude collection pages
-    const recipeUrls = actualUrls
-      .filter(url => {
-        const isWhitelisted = WHITELISTED_SITES.some(site => url.includes(site));
-        const isNotCollection = !isCollectionUrl(url);
-        
-        if (isWhitelisted && !isNotCollection) {
-          console.log(`Filtered out collection URL: ${url}`);
-        }
-        
-        return isWhitelisted && isNotCollection;
-      })
-      .slice(0, 10);
-    
-    console.log(`Filtered to ${recipeUrls.length} individual recipe URLs from whitelisted sites`);
+    console.log(`Found ${recipeUrls.length} recipe URLs from AllRecipes`);
     
     if (recipeUrls.length === 0) {
-      console.warn('No individual recipe URLs found. Sample resolved URLs:', actualUrls.slice(0, 5));
+      console.warn('No recipe URLs found from AllRecipes search');
       return [];
     }
     
-    // Scrape recipes with timeout protection (NO AI calls here!)
+    // Step 2: Scrape each recipe
     console.log('Scraping recipes with cheerio (no AI calls)...');
     const recipePromises = recipeUrls.map(url => 
       Promise.race([
@@ -271,11 +203,11 @@ export async function searchRecipes(query: string, preferences?: UserPreferences
     // Filter out null results
     const validRecipes = recipes.filter((r): r is Recipe => r !== null);
     
-    console.log(`Successfully scraped ${validRecipes.length} recipes (cheerio-only, no AI)`);
+    console.log(`Successfully scraped ${validRecipes.length} recipes`);
     
     return validRecipes;
   } catch (error) {
-    console.error("Error searching recipes with Google Search Grounding:", error);
+    console.error("Error searching recipes from AllRecipes:", error);
     return [];
   }
 }

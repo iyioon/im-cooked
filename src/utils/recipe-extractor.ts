@@ -121,15 +121,14 @@ export function extractFromJsonLd($: cheerio.CheerioAPI): {
 }
 
 /**
- * Extract step-by-step images from DOM (site-specific logic)
+ * Extract step-by-step images from AllRecipes.com DOM
  */
 export function extractStepImages($: cheerio.CheerioAPI, url: string, instructions: string[]): RecipeStep[] {
   const steps: RecipeStep[] = [];
   const hostname = new URL(url).hostname.toLowerCase();
   
-  // Site-specific extraction logic
+  // AllRecipes.com: Steps in <ol> under "Directions" with inline images
   if (hostname.includes('allrecipes.com')) {
-    // Allrecipes: Steps in <ol> under "Directions" with inline images
     // Structure: <h2>Directions</h2> <div> <ol> <li> <p>text</p> <figure><img/></figure> </li> </ol> </div>
     $('h2, h3, h4').each((_, el) => {
       const headingText = $(el).text().trim().toLowerCase();
@@ -185,182 +184,6 @@ export function extractStepImages($: cheerio.CheerioAPI, url: string, instructio
         }
         
         return false; // Break outer loop
-      }
-    });
-  }
-  
-  else if (hostname.includes('foodnetwork.com')) {
-    // Food Network: Look for step headings with nearby images
-    $('h2, h3, h4').each((idx, el) => {
-      const headingText = $(el).text().trim();
-      if (/^Step\s+\d+/i.test(headingText)) {
-        const parent = $(el).parent();
-        const text = parent.find('p').text().trim() || $(el).next('p').text().trim();
-        const img = parent.find('img').first();
-        const imgUrl = img.attr('src') || img.attr('data-src');
-        
-        if (text) {
-          steps.push({
-            stepNumber: idx + 1,
-            text: stripHtmlTags(text),
-            imageUrl: imgUrl && imgUrl.startsWith('http') ? imgUrl : undefined,
-            caption: img.attr('alt') || undefined,
-          });
-        }
-      }
-    });
-  }
-  
-  else if (hostname.includes('simplyrecipes.com')) {
-    // Simply Recipes: Steps under "Method" with figures
-    $('h2, h3, h4').each((_, el) => {
-      const headingText = $(el).text().trim().toLowerCase();
-      if (headingText === 'method' || headingText.startsWith('method') || headingText.includes('how to')) {
-        let nextEl = $(el).next();
-        let attempts = 0;
-        let stepNum = 1;
-        
-        while (nextEl.length > 0 && attempts < 15) {
-          const tagName = nextEl.prop('tagName')?.toLowerCase();
-          
-          // Check if it's a step heading or paragraph
-          if (tagName === 'h3' || tagName === 'h4' || tagName === 'p') {
-            const text = nextEl.text().trim();
-            if (text && text.length > 10) {
-              // Look for nearby image
-              const figure = nextEl.find('figure').first();
-              const img = figure.find('img').first();
-              let imgUrl = img.attr('src') || img.attr('data-src');
-              
-              // Also check next sibling for figure
-              if (!imgUrl) {
-                const nextFigure = nextEl.next('figure');
-                const nextImg = nextFigure.find('img').first();
-                imgUrl = nextImg.attr('src') || nextImg.attr('data-src');
-              }
-              
-              steps.push({
-                stepNumber: stepNum++,
-                text: stripHtmlTags(text.replace(/^Step\s+\d+:\s*/i, '').trim()),
-                imageUrl: imgUrl && imgUrl.startsWith('http') ? imgUrl : undefined,
-                caption: img.attr('alt') || figure.find('figcaption').text().trim() || undefined,
-              });
-            }
-          }
-          
-          if (tagName === 'h2') break; // Hit another major section
-          nextEl = nextEl.next();
-          attempts++;
-        }
-        return false;
-      }
-    });
-  }
-  
-  else if (hostname.includes('delish.com')) {
-    // Delish: "STEP-BY-STEP INSTRUCTIONS" section
-    $('h2, h3, h4').each((_, el) => {
-      const headingText = $(el).text().trim().toLowerCase();
-      if (headingText.includes('step-by-step')) {
-        let nextEl = $(el).next();
-        let attempts = 0;
-        let stepNum = 1;
-        
-        while (nextEl.length > 0 && attempts < 15) {
-          const tagName = nextEl.prop('tagName')?.toLowerCase();
-          const text = nextEl.text().trim();
-          
-          if ((tagName === 'div' || tagName === 'p' || tagName === 'h3') && text && /step\s+\d+/i.test(text)) {
-            const img = nextEl.find('img').first();
-            const imgUrl = img.attr('src') || img.attr('data-src');
-            
-            steps.push({
-              stepNumber: stepNum++,
-              text: stripHtmlTags(text.replace(/^Step\s+\d+:\s*/i, '').trim()),
-              imageUrl: imgUrl && imgUrl.startsWith('http') ? imgUrl : undefined,
-              caption: img.attr('alt') || undefined,
-            });
-          }
-          
-          if (tagName === 'h2') break;
-          nextEl = nextEl.next();
-          attempts++;
-        }
-        return false;
-      }
-    });
-  }
-  
-  else if (hostname.includes('tasteofhome.com')) {
-    // Taste of Home: "Step 1/Step 2" under "Directions"
-    $('h2, h3, h4').each((_, el) => {
-      const headingText = $(el).text().trim().toLowerCase();
-      if (headingText === 'directions' || headingText.startsWith('directions')) {
-        let nextEl = $(el).next();
-        let attempts = 0;
-        let stepNum = 1;
-        
-        while (nextEl.length > 0 && attempts < 15) {
-          const tagName = nextEl.prop('tagName')?.toLowerCase();
-          const text = nextEl.text().trim();
-          
-          if ((tagName === 'h3' || tagName === 'p') && text && /step\s+\d+/i.test(text)) {
-            // Find associated image (usually in next figure or sibling)
-            const figure = nextEl.next('figure');
-            const img = figure.find('img').first();
-            const imgUrl = img.attr('src') || img.attr('data-src');
-            const caption = figure.find('figcaption').text().trim();
-            
-            steps.push({
-              stepNumber: stepNum++,
-              text: stripHtmlTags(text.replace(/^Step\s+\d+:\s*/i, '').trim()),
-              imageUrl: imgUrl && imgUrl.startsWith('http') ? imgUrl : undefined,
-              caption: caption || img.attr('alt') || undefined,
-            });
-          }
-          
-          if (tagName === 'h2') break;
-          nextEl = nextEl.next();
-          attempts++;
-        }
-        return false;
-      }
-    });
-  }
-  
-  else if (hostname.includes('seriouseats.com')) {
-    // Serious Eats: Look for process shots in method
-    $('h2, h3, h4').each((_, el) => {
-      const headingText = $(el).text().trim().toLowerCase();
-      if (headingText === 'directions' || headingText === 'method' || headingText.startsWith('directions')) {
-        let nextEl = $(el).next();
-        let attempts = 0;
-        let stepNum = 1;
-        
-        while (nextEl.length > 0 && attempts < 15) {
-          const tagName = nextEl.prop('tagName')?.toLowerCase();
-          
-          if (tagName === 'p' || tagName === 'div') {
-            const text = nextEl.clone().find('figure').remove().end().text().trim();
-            if (text && text.length > 10) {
-              const figure = nextEl.find('figure').first();
-              const img = figure.find('img').first();
-              const imgUrl = img.attr('src') || img.attr('data-src');
-              
-              steps.push({
-                stepNumber: stepNum++,
-                text: stripHtmlTags(text.replace(/^Step\s+\d+:\s*/i, '').trim()),
-                imageUrl: imgUrl && imgUrl.startsWith('http') ? imgUrl : undefined,
-                caption: figure.find('figcaption').text().trim() || img.attr('alt') || undefined,
-              });
-            }
-          }
-          
-          if (tagName === 'h2') break;
-          nextEl = nextEl.next();
-          attempts++;
-        }
-        return false;
       }
     });
   }
