@@ -230,34 +230,72 @@ export async function matchIngredientFromMessage(params: {
  * Classifies into RECIPE_SEARCH, GENERAL_FOOD_QUESTION, or REJECT
  */
 export async function detectIntent(userMessage: string): Promise<IntentDetectionResponse> {
-  try {
-    const prompt = buildIntentDetectionPrompt(userMessage);
+  const MAX_RETRIES = 3;
+  let lastError: Error | null = null;
 
-    const result = await genAI.models.generateContent({
-      model: MODEL_NAME,
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: prompt }],
-        },
-      ],
-    });
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const prompt = buildIntentDetectionPrompt(userMessage);
 
-    const text = result.text || "";
+      const result = await genAI.models.generateContent({
+        model: MODEL_NAME,
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: prompt }],
+          },
+        ],
+      });
 
-    // Clean up response - remove markdown code blocks if present
-    const cleanResponse = text
-      .replace(/```json\n?/g, "")
-      .replace(/```\n?/g, "")
-      .trim();
+      const text = result.text || "";
+      console.log(`[Intent Detection Attempt ${attempt}] Raw response:`, text);
 
-    // Parse the JSON response
-    const intentResponse = JSON.parse(cleanResponse) as IntentDetectionResponse;
-    return intentResponse;
-  } catch (error) {
-    console.error("Error detecting intent:", error);
-    throw new Error("Failed to detect user intent");
+      // Clean up response - remove markdown code blocks if present
+      let cleanResponse = text
+        .replace(/```json\n?/g, "")
+        .replace(/```\n?/g, "")
+        .trim();
+
+      // Try to extract JSON if there's extra text
+      const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        cleanResponse = jsonMatch[0];
+      }
+
+      // Parse the JSON response
+      const intentResponse = JSON.parse(cleanResponse) as IntentDetectionResponse;
+      
+      // Validate the response has required fields
+      if (!intentResponse.intent || !['RECIPE_SEARCH', 'GENERAL_FOOD_QUESTION', 'REJECT'].includes(intentResponse.intent)) {
+        throw new Error('Invalid intent value in response');
+      }
+
+      console.log(`[Intent Detection] Success on attempt ${attempt}:`, intentResponse);
+      return intentResponse;
+    } catch (error) {
+      lastError = error as Error;
+      console.error(`[Intent Detection Attempt ${attempt}] Error:`, error);
+      
+      // If this isn't the last attempt, wait before retrying
+      if (attempt < MAX_RETRIES) {
+        const delayMs = attempt * 500; // Exponential backoff: 500ms, 1000ms
+        console.log(`[Intent Detection] Retrying in ${delayMs}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
   }
+
+  // If all retries failed, return a default RECIPE_SEARCH intent as fallback
+  // This ensures the app continues working even if intent detection fails
+  console.error(`[Intent Detection] All ${MAX_RETRIES} attempts failed. Using fallback RECIPE_SEARCH intent.`);
+  console.error('[Intent Detection] Last error:', lastError);
+  
+  return {
+    intent: "RECIPE_SEARCH",
+    confidence: "low",
+    reason: "Intent detection failed, defaulting to recipe search",
+    extractedRecipeQuery: userMessage,
+  };
 }
 
 /**
@@ -270,32 +308,67 @@ export async function detectCookingSessionIntent(params: {
   currentStep: number;
   totalSteps: number;
 }): Promise<CookingSessionIntentResponse> {
-  try {
-    const prompt = buildCookingSessionIntentPrompt(params);
+  const MAX_RETRIES = 3;
+  let lastError: Error | null = null;
 
-    const result = await genAI.models.generateContent({
-      model: MODEL_NAME,
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: prompt }],
-        },
-      ],
-    });
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const prompt = buildCookingSessionIntentPrompt(params);
 
-    const text = result.text || "";
+      const result = await genAI.models.generateContent({
+        model: MODEL_NAME,
+        contents: [
+          {
+            role: "user",
+            parts: [{ text: prompt }],
+          },
+        ],
+      });
 
-    // Clean up response - remove markdown code blocks if present
-    const cleanResponse = text
-      .replace(/```json\n?/g, "")
-      .replace(/```\n?/g, "")
-      .trim();
+      const text = result.text || "";
+      console.log(`[Cooking Session Intent Attempt ${attempt}] Raw response:`, text);
 
-    // Parse the JSON response
-    const intentResponse = JSON.parse(cleanResponse) as CookingSessionIntentResponse;
-    return intentResponse;
-  } catch (error) {
-    console.error("Error detecting cooking session intent:", error);
-    throw new Error("Failed to detect cooking session intent");
+      // Clean up response - remove markdown code blocks if present
+      let cleanResponse = text
+        .replace(/```json\n?/g, "")
+        .replace(/```\n?/g, "")
+        .trim();
+
+      // Try to extract JSON if there's extra text
+      const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        cleanResponse = jsonMatch[0];
+      }
+
+      // Parse the JSON response
+      const intentResponse = JSON.parse(cleanResponse) as CookingSessionIntentResponse;
+      
+      // Validate the response has required fields
+      if (!intentResponse.intent || !['COOKING_QUESTION', 'SUBSTITUTION_REQUEST', 'GENERAL_COOKING', 'REJECT'].includes(intentResponse.intent)) {
+        throw new Error('Invalid intent value in response');
+      }
+
+      console.log(`[Cooking Session Intent] Success on attempt ${attempt}:`, intentResponse);
+      return intentResponse;
+    } catch (error) {
+      lastError = error as Error;
+      console.error(`[Cooking Session Intent Attempt ${attempt}] Error:`, error);
+      
+      if (attempt < MAX_RETRIES) {
+        const delayMs = attempt * 500;
+        console.log(`[Cooking Session Intent] Retrying in ${delayMs}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
   }
+
+  // Fallback to COOKING_QUESTION as default
+  console.error(`[Cooking Session Intent] All ${MAX_RETRIES} attempts failed. Using fallback COOKING_QUESTION intent.`);
+  console.error('[Cooking Session Intent] Last error:', lastError);
+  
+  return {
+    intent: "COOKING_QUESTION",
+    confidence: "low",
+    reason: "Intent detection failed, defaulting to cooking question",
+  };
 }
