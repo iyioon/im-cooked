@@ -1,6 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { SubstitutionResponse, RecipeDetail, RecipeStep, IngredientSubstitution } from "@/types/recipe";
-import { buildCookingAssistantPrompt, buildSubstitutionPrompt, buildApplySubstitutionPrompt, buildMatchIngredientPrompt } from "@/lib/prompts";
+import { buildCookingAssistantPrompt, buildSubstitutionPrompt, buildApplySubstitutionPrompt, buildMatchIngredientPrompt, buildIntentDetectionPrompt, IntentDetectionResponse } from "@/lib/prompts";
 
 // Initialize Gemini AI
 const genAI = new GoogleGenAI({
@@ -213,5 +213,40 @@ export async function matchIngredientFromMessage(params: {
   } catch (error) {
     console.error("Error matching ingredient from message:", error);
     throw new Error("Failed to match ingredient from message");
+  }
+}
+
+/**
+ * Detect user intent from their message
+ * Classifies into RECIPE_SEARCH, GENERAL_FOOD_QUESTION, or REJECT
+ */
+export async function detectIntent(userMessage: string): Promise<IntentDetectionResponse> {
+  try {
+    const prompt = buildIntentDetectionPrompt(userMessage);
+
+    const result = await genAI.models.generateContent({
+      model: MODEL_NAME,
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: prompt }],
+        },
+      ],
+    });
+
+    const text = result.text || "";
+
+    // Clean up response - remove markdown code blocks if present
+    const cleanResponse = text
+      .replace(/```json\n?/g, "")
+      .replace(/```\n?/g, "")
+      .trim();
+
+    // Parse the JSON response
+    const intentResponse = JSON.parse(cleanResponse) as IntentDetectionResponse;
+    return intentResponse;
+  } catch (error) {
+    console.error("Error detecting intent:", error);
+    throw new Error("Failed to detect user intent");
   }
 }

@@ -174,7 +174,7 @@ export default function Dashboard() {
     setIsLoading(true);
 
     try {
-      // Check if this is a substitution query for the selected recipe
+      // Check if this is a substitution query for the selected recipe (BEFORE intent detection)
       if (selectedRecipe && isSubstitutionQuery(currentInput)) {
         try {
           // Use LLM to match the ingredient the user is asking about
@@ -210,14 +210,66 @@ export default function Dashboard() {
         }
       }
 
-      // Call recipe search API (default behavior)
+      // Detect user intent
+      const intentResponse = await fetch("/api/recipes/detect-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: currentInput }),
+      });
+
+      if (!intentResponse.ok) {
+        throw new Error("Failed to detect intent");
+      }
+
+      const intentData = await intentResponse.json();
+      console.log("Intent detected:", intentData);
+
+      // Route based on detected intent
+      if (intentData.intent === "REJECT") {
+        // Politely reject non-food/cooking queries
+        const rejectMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: "I'm a cooking assistant, so I can help you with recipes and cooking questions! Please ask me about food, recipes, or cooking techniques.",
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, rejectMessage]);
+        return;
+      }
+
+      if (intentData.intent === "GENERAL_FOOD_QUESTION") {
+        // Answer general cooking/food questions
+        const questionResponse = await fetch("/api/general-question", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: currentInput }),
+        });
+
+        if (!questionResponse.ok) {
+          throw new Error("Failed to answer question");
+        }
+
+        const questionData = await questionResponse.json();
+
+        const answerMessage: Message = {
+          id: (Date.now() + 1).toString(),
+          role: "assistant",
+          content: questionData.answer,
+          timestamp: new Date(),
+        };
+        setMessages((prev) => [...prev, answerMessage]);
+        return;
+      }
+
+      // RECIPE_SEARCH intent - use existing recipe search logic
+      const searchQuery = intentData.extractedRecipeQuery || currentInput;
       const response = await fetch("/api/recipes/search", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          query: currentInput,
+          query: searchQuery,
           preferences: preferences
         }),
       });
@@ -237,7 +289,7 @@ export default function Dashboard() {
           timestamp: new Date(),
           recipes: data.recipes,
           isRecipeSearch: true,
-          query: currentInput,
+          query: searchQuery,
         };
         setMessages((prev) => [...prev, recipeMessage]);
       } else {
@@ -245,19 +297,19 @@ export default function Dashboard() {
         const aiResponse: Message = {
           id: (Date.now() + 1).toString(),
           role: "assistant",
-          content: `I couldn't find any recipes for "${currentInput}". Try searching for specific dishes like "chocolate cake" or "chicken pasta"!`,
+          content: `I couldn't find any recipes for "${searchQuery}". Try searching for specific dishes like "chocolate cake" or "chicken pasta"!`,
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, aiResponse]);
       }
     } catch (error) {
-      console.error("Error searching recipes:", error);
+      console.error("Error processing message:", error);
 
       // Show error message
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: "I'm having trouble searching for recipes right now. Please try again in a moment!",
+        content: "I'm having trouble processing your request right now. Please try again in a moment!",
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);

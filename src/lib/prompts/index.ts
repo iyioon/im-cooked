@@ -16,3 +16,6 @@ export type { ApplySubstitutionParams } from "./apply-substitution";
 
 export { buildMatchIngredientPrompt } from "./match-ingredient";
 export type { MatchIngredientParams } from "./match-ingredient";
+
+export { buildIntentDetectionPrompt } from "./intent-detection";
+export type { IntentDetectionParams, IntentDetectionResponse } from "./intent-detection";
