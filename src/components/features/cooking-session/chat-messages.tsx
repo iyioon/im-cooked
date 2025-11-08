@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useEffect } from "react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { CookingSessionMessage } from "@/types/recipe";
 import { ChefHat, User, Loader2 } from "lucide-react";
 
@@ -71,6 +71,7 @@ export function ChatMessages({
         >
           {message.role === "assistant" && (
             <Avatar className="h-8 w-8 border-2 border-blue-500/50">
+              <AvatarImage src="/chef.jpg" alt="Chef Assistant" />
               <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600">
                 <ChefHat className="h-4 w-4 text-white" />
               </AvatarFallback>
@@ -102,6 +103,7 @@ export function ChatMessages({
       {loading && (
         <div className="flex gap-3 justify-start">
           <Avatar className="h-8 w-8 border-2 border-blue-500/50">
+            <AvatarImage src="/chef.jpg" alt="Chef Assistant" />
             <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600">
               <ChefHat className="h-4 w-4 text-white" />
             </AvatarFallback>
