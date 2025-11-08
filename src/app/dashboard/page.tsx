@@ -603,18 +603,18 @@ export default function Dashboard() {
                             {message.content}
                           </p>
                         </div>
-                        <Avatar className="h-10 w-10 border-2 border-purple-500/50">
+                        <Avatar className="h-12 w-12 border-2 border-purple-500/50">
                           <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-600">
-                            <User className="h-5 w-5 text-white" strokeWidth={2} />
+                            <User className="h-6 w-6 text-white" strokeWidth={2} />
                           </AvatarFallback>
                         </Avatar>
                       </div>
                     ) : (
                       <div className="flex gap-4 justify-start">
-                        <Avatar className="h-10 w-10 border-2 border-blue-500/50">
+                        <Avatar className="h-12 w-12 border-2 border-blue-500/50">
                           <AvatarImage src="/chef.jpg" alt="Chef Assistant" />
                           <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600">
-                            <Bot className="h-5 w-5 text-white" strokeWidth={2} />
+                            <Bot className="h-6 w-6 text-white" strokeWidth={2} />
                           </AvatarFallback>
                         </Avatar>
 
@@ -651,10 +651,10 @@ export default function Dashboard() {
                 {/* Loading State */}
                 {isLoading && (
                   <div className="flex gap-4 justify-start">
-                    <Avatar className="h-10 w-10 border-2 border-blue-500/50">
+                    <Avatar className="h-12 w-12 border-2 border-blue-500/50">
                       <AvatarImage src="/chef.jpg" alt="Chef Assistant" />
                       <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600">
-                        <Bot className="h-5 w-5 text-white" strokeWidth={2} />
+                        <Bot className="h-6 w-6 text-white" strokeWidth={2} />
                       </AvatarFallback>
                     </Avatar>
                     <ThinkingIndicator />
