@@ -134,33 +134,85 @@ export function VoiceOverlay({
         const args = call.args as { action: "next" | "previous" | "goto"; stepNumber?: number };
         
         if (args.action === "next") {
+          // Check if we're already at the last step
+          if (currentStepNumber >= totalSteps) {
+            sendToolResponse([{
+              id: call.id,
+              name: call.name,
+              response: { 
+                success: false, 
+                message: `Cannot move to next step. Already at the final step (${totalSteps} of ${totalSteps}).` 
+              }
+            }]);
+            return;
+          }
+          
           onNextStep();
           sendToolResponse([{
             id: call.id,
             name: call.name,
-            response: { success: true, message: "Moved to next step" }
+            response: { success: true, message: `Moved to step ${currentStepNumber + 1} of ${totalSteps}` }
           }]);
         } else if (args.action === "previous") {
+          // Check if we're already at the first step
+          if (currentStepNumber <= 1) {
+            sendToolResponse([{
+              id: call.id,
+              name: call.name,
+              response: { 
+                success: false, 
+                message: `Cannot move to previous step. Already at the first step (1 of ${totalSteps}).` 
+              }
+            }]);
+            return;
+          }
+          
           onPreviousStep();
           sendToolResponse([{
             id: call.id,
             name: call.name,
-            response: { success: true, message: "Moved to previous step" }
+            response: { success: true, message: `Moved to step ${currentStepNumber - 1} of ${totalSteps}` }
           }]);
         } else if (args.action === "goto" && args.stepNumber) {
+          // Validate step number is within bounds
+          if (args.stepNumber < 1 || args.stepNumber > totalSteps) {
+            sendToolResponse([{
+              id: call.id,
+              name: call.name,
+              response: { 
+                success: false, 
+                message: `Cannot go to step ${args.stepNumber}. Step must be between 1 and ${totalSteps}.` 
+              }
+            }]);
+            return;
+          }
+          
           onGoToStep(args.stepNumber);
           sendToolResponse([{
             id: call.id,
             name: call.name,
-            response: { success: true, message: `Moved to step ${args.stepNumber}` }
+            response: { success: true, message: `Moved to step ${args.stepNumber} of ${totalSteps}` }
           }]);
         }
       } else if (call.name === "markStepComplete") {
+        // Check if we're already at the last step
+        if (currentStepNumber >= totalSteps) {
+          sendToolResponse([{
+            id: call.id,
+            name: call.name,
+            response: { 
+              success: false, 
+              message: `Cannot mark step as complete. Already at the final step (${totalSteps} of ${totalSteps}). The recipe is complete!` 
+            }
+          }]);
+          return;
+        }
+        
         onNextStep();
         sendToolResponse([{
           id: call.id,
           name: call.name,
-          response: { success: true, message: "Step marked complete, moved to next step" }
+          response: { success: true, message: `Step ${currentStepNumber} marked complete, moved to step ${currentStepNumber + 1} of ${totalSteps}` }
         }]);
       } else if (call.name === "setTimer") {
         console.log("setTimer function called!");
@@ -280,166 +332,197 @@ export function VoiceOverlay({
 
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col">
-      {/* Header - Current Step */}
+      {/* Header */}
       <div className="shrink-0 p-6 border-b border-white/10">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/50">
-                  Step {currentStepNumber} of {totalSteps}
-                </Badge>
-                <h2 className="text-lg text-gray-400">{recipe.title}</h2>
-              </div>
-              <p className="text-2xl sm:text-3xl text-white font-medium leading-relaxed">
-                {currentStep?.text || "Loading..."}
-              </p>
-            </div>
-            <Button
-              onClick={handleClose}
-              variant="ghost"
-              size="icon"
-              className="shrink-0 text-gray-400 hover:text-white hover:bg-white/10"
-            >
-              <X className="h-6 w-6" />
-            </Button>
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/50">
+              Step {currentStepNumber} of {totalSteps}
+            </Badge>
+            <h2 className="text-lg text-gray-400">{recipe.title}</h2>
           </div>
+          <Button
+            onClick={handleClose}
+            variant="ghost"
+            size="icon"
+            className="shrink-0 text-gray-400 hover:text-white hover:bg-white/10"
+          >
+            <X className="h-6 w-6" />
+          </Button>
         </div>
       </div>
 
-      {/* Main Content - AI Response/Status */}
-      <div className="flex-1 flex items-center justify-center p-6 overflow-y-auto">
-        <div className="max-w-4xl w-full text-center space-y-8">
-          {/* Connection Status */}
-          {isInitializing && (
-            <div className="flex flex-col items-center gap-4">
-              <Loader2 className="h-16 w-16 text-blue-500 animate-spin" />
-              <p className="text-xl text-gray-400">Connecting to voice assistant...</p>
+      {/* Main Content - Split Layout */}
+      <div className="flex-1 flex items-stretch overflow-hidden">
+        {/* Left Side - Step Image */}
+        <div className="w-1/2 flex items-center justify-center p-8 bg-gradient-to-br from-white/5 to-transparent">
+          {currentStep?.imageUrl ? (
+            <div className="relative w-full h-full max-w-2xl max-h-[800px]">
+              <img
+                src={currentStep.imageUrl}
+                alt={currentStep.caption || `Step ${currentStepNumber}`}
+                className="w-full h-full object-contain rounded-2xl shadow-2xl"
+              />
+              {currentStep.caption && (
+                <div className="absolute bottom-0 left-0 right-0 bg-black/80 backdrop-blur-sm p-4 rounded-b-2xl">
+                  <p className="text-sm text-gray-300 text-center italic">
+                    {currentStep.caption}
+                  </p>
+                </div>
+              )}
             </div>
-          )}
-
-          {voiceError && (
-            <div className="flex flex-col items-center gap-4">
-              <div className="h-16 w-16 rounded-full bg-red-500/20 flex items-center justify-center">
-                <X className="h-8 w-8 text-red-500" />
+          ) : (
+            <div className="flex items-center justify-center w-full h-full">
+              <div className="text-center space-y-4">
+                <div className="h-32 w-32 mx-auto rounded-full bg-white/5 border-2 border-white/10 flex items-center justify-center">
+                  <span className="text-4xl font-bold text-white/30">
+                    {currentStepNumber}
+                  </span>
+                </div>
+                <p className="text-gray-400">No image for this step</p>
               </div>
-              <p className="text-xl text-red-400">{voiceError}</p>
-              <Button
-                onClick={handleClose}
-                variant="outline"
-                className="border-white/20 hover:bg-white/10 text-white"
-              >
-                Close
-              </Button>
             </div>
           )}
+        </div>
 
-          {/* AI Speaking Indicator */}
-          {!isInitializing && !voiceError && isAISpeaking && (
-            <div className="space-y-6">
-              <div className="flex flex-col items-center gap-4">
-                <div className="relative">
-                  <div className="h-24 w-24 rounded-full bg-gradient-to-br from-green-600 to-emerald-600 flex items-center justify-center animate-pulse">
-                    <Volume2 className="h-12 w-12 text-white" />
+        {/* Right Side - Instruction & AI Status */}
+        <div className="w-1/2 flex flex-col p-8 border-l border-white/10">
+          {/* AI Speaking Indicator - Top of Right Section */}
+          <div className="shrink-0 mb-8">
+            {isInitializing && (
+              <div className="flex items-center gap-4 p-6 bg-white/5 rounded-2xl border border-white/10">
+                <Loader2 className="h-8 w-8 text-blue-500 animate-spin" />
+                <div>
+                  <p className="text-lg font-medium text-white">Connecting...</p>
+                  <p className="text-sm text-gray-400">Setting up voice assistant</p>
+                </div>
+              </div>
+            )}
+
+            {voiceError && (
+              <div className="flex items-center gap-4 p-6 bg-red-500/10 rounded-2xl border border-red-500/30">
+                <div className="h-8 w-8 rounded-full bg-red-500/20 flex items-center justify-center shrink-0">
+                  <X className="h-5 w-5 text-red-500" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-lg font-medium text-red-400">Connection Error</p>
+                  <p className="text-sm text-gray-400">{voiceError}</p>
+                </div>
+              </div>
+            )}
+
+            {!isInitializing && !voiceError && isAISpeaking && (
+              <div className="flex items-center gap-4 p-6 bg-gradient-to-r from-green-600/20 to-emerald-600/20 rounded-2xl border border-green-500/30 animate-pulse">
+                <div className="relative shrink-0">
+                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-green-600 to-emerald-600 flex items-center justify-center">
+                    <Volume2 className="h-6 w-6 text-white" />
                   </div>
                   <div className="absolute inset-0 rounded-full bg-gradient-to-br from-green-600 to-emerald-600 animate-ping opacity-20" />
                 </div>
-                <Badge variant="outline" className="border-green-500/50 text-green-400 text-lg px-4 py-2">
-                  AI is speaking...
-                </Badge>
-              </div>
-
-              {/* Output Volume Meter */}
-              <div className="max-w-md mx-auto">
-                <div className="h-3 bg-white/10 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-100"
-                    style={{ width: `${outputVolume}%` }}
-                  />
+                <div className="flex-1">
+                  <p className="text-lg font-medium text-green-400">AI is speaking...</p>
+                  {/* Output Volume Meter */}
+                  <div className="mt-2 h-2 bg-white/10 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-100"
+                      style={{ width: `${outputVolume}%` }}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Ready State */}
-          {!isInitializing && !voiceError && !isAISpeaking && !isRecording && (
-            <div className="space-y-6">
-              <div className="flex flex-col items-center gap-4">
-                <div className="h-24 w-24 rounded-full bg-white/5 border-2 border-white/10 flex items-center justify-center">
-                  <Mic className="h-12 w-12 text-gray-400" />
+            {!isInitializing && !voiceError && !isAISpeaking && (
+              <div className="flex items-center gap-4 p-6 bg-white/5 rounded-2xl border border-white/10">
+                <div className="h-12 w-12 rounded-full bg-white/5 border-2 border-white/10 flex items-center justify-center shrink-0">
+                  <Mic className="h-6 w-6 text-gray-400" />
                 </div>
-                <p className="text-xl text-gray-400">
-                  Press the button below to ask a question
-                </p>
+                <div>
+                  <p className="text-lg font-medium text-white">Ready</p>
+                  <p className="text-sm text-gray-400">Press the button below to ask a question</p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* User Speaking */}
-          {!isInitializing && !voiceError && isRecording && !isAISpeaking && (
-            <div className="space-y-6">
-              <div className="flex flex-col items-center gap-4">
-                <div className="relative">
-                  <div className="h-24 w-24 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
-                    <Mic className="h-12 w-12 text-white" />
+          {/* Current Instruction - Center of Right Section */}
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center space-y-6 max-w-2xl">
+              <div className="flex items-center justify-center gap-4 mb-4">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-purple-600 text-2xl font-bold text-white shadow-lg">
+                  {currentStepNumber}
+                </div>
+              </div>
+              <p className="text-3xl sm:text-4xl text-white font-medium leading-relaxed">
+                {currentStep?.text || "Loading..."}
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Footer - Controls and Status */}
+      <div className="shrink-0 border-t border-white/10">
+        <div className="max-w-4xl mx-auto p-6 space-y-4">
+          {/* Connection Status */}
+          <div className="flex items-center justify-center gap-2">
+            {connectionState === "connecting" && (
+              <Badge variant="outline" className="border-yellow-500/50 text-yellow-400">
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                Connecting...
+              </Badge>
+            )}
+            {connectionState === "connected" && (
+              <Badge variant="outline" className="border-green-500/50 text-green-400">
+                Connected
+              </Badge>
+            )}
+            {connectionState === "disconnected" && (
+              <Badge variant="outline" className="border-gray-500/50 text-gray-400">
+                Disconnected
+              </Badge>
+            )}
+            {connectionState === "error" && (
+              <Badge variant="outline" className="border-red-500/50 text-red-400">
+                Connection Error
+              </Badge>
+            )}
+          </div>
+
+          {/* Control Bar - Listening Indicator & Button Side by Side */}
+          <div className="flex items-stretch gap-4">
+            {/* Listening Indicator */}
+            {!isInitializing && !voiceError && isRecording && (
+              <div className="flex-1 flex items-center gap-4 p-4 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-2xl border border-blue-500/30">
+                <div className="relative shrink-0">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+                    <Mic className="h-5 w-5 text-white" />
                   </div>
                   {isSpeaking && (
                     <div className="absolute inset-0 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 animate-ping opacity-20" />
                   )}
                 </div>
-                <Badge variant="outline" className="border-blue-500/50 text-blue-400 text-lg px-4 py-2">
-                  {isSpeaking ? "Listening..." : "Ready to listen"}
-                </Badge>
-              </div>
-
-              {/* Input Volume Meter */}
-              <div className="max-w-md mx-auto">
-                <div className="h-3 bg-white/10 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-100"
-                    style={{ width: `${inputVolume}%` }}
-                  />
+                <div className="flex-1 min-w-0">
+                  <p className="text-base font-medium text-blue-400">
+                    {isSpeaking ? "Listening..." : "Ready to listen"}
+                  </p>
+                  {/* Input Volume Meter */}
+                  <div className="mt-1.5 h-2 bg-white/10 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-100"
+                      style={{ width: `${inputVolume}%` }}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
-      </div>
+            )}
 
-      {/* Footer - Controls */}
-      <div className="shrink-0 p-6 border-t border-white/10">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex flex-col gap-4">
-            {/* Connection Status Badge */}
-            <div className="flex items-center justify-center gap-2">
-              {connectionState === "connecting" && (
-                <Badge variant="outline" className="border-yellow-500/50 text-yellow-400">
-                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                  Connecting...
-                </Badge>
-              )}
-              {connectionState === "connected" && (
-                <Badge variant="outline" className="border-green-500/50 text-green-400">
-                  Connected
-                </Badge>
-              )}
-              {connectionState === "disconnected" && (
-                <Badge variant="outline" className="border-gray-500/50 text-gray-400">
-                  Disconnected
-                </Badge>
-              )}
-              {connectionState === "error" && (
-                <Badge variant="outline" className="border-red-500/50 text-red-400">
-                  Connection Error
-                </Badge>
-              )}
-            </div>
-
-            {/* Main Control Button */}
+            {/* Control Button */}
             <Button
               onClick={handleToggleRecording}
               disabled={!isConnected || isInitializing}
-              className={`w-full py-8 text-lg ${
+              className={`${isRecording ? 'flex-none' : 'flex-1'} py-8 text-lg ${
                 isRecording 
                   ? "bg-red-600 hover:bg-red-700" 
                   : "bg-blue-600 hover:bg-blue-700"
