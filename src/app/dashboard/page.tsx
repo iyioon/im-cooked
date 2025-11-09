@@ -153,12 +153,6 @@ export default function Dashboard() {
     return null;
   };
 
-  // Check if message is asking for substitutions
-  const isSubstitutionQuery = (message: string): boolean => {
-    const substitutionKeywords = /substitute|alternative|replace|swap|instead of|without/i;
-    return substitutionKeywords.test(message);
-  };
-
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
 
@@ -175,42 +169,6 @@ export default function Dashboard() {
     setIsLoading(true);
 
     try {
-      // Check if this is a substitution query for the selected recipe (BEFORE intent detection)
-      if (selectedRecipe && isSubstitutionQuery(currentInput)) {
-        try {
-          // Use LLM to match the ingredient the user is asking about
-          const matchResponse = await fetch("/api/recipes/match-ingredient", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              recipeTitle: selectedRecipe.current.title,
-              recipeIngredients: selectedRecipe.current.ingredients,
-              userMessage: currentInput,
-            }),
-          });
-
-          if (matchResponse.ok) {
-            const matchResult = await matchResponse.json();
-
-            // If LLM successfully matched an ingredient, use it
-            if (matchResult.matched && matchResult.ingredient) {
-              console.log("LLM matched ingredient:", matchResult.ingredient);
-              await handleSubstitutionFromChat(matchResult.ingredient, currentInput);
-              return;
-            }
-          }
-        } catch (err) {
-          console.error("Error matching ingredient with LLM:", err);
-          // Fall back to regex-based matching if LLM matching fails
-          const ingredient = extractIngredientFromMessage(currentInput);
-          if (ingredient) {
-            console.log("Fallback: Regex matched ingredient:", ingredient);
-            await handleSubstitutionFromChat(ingredient, currentInput);
-            return;
-          }
-        }
-      }
-
       // Detect user intent
       const intentResponse = await fetch("/api/recipes/detect-intent", {
         method: "POST",
@@ -260,6 +218,72 @@ export default function Dashboard() {
         };
         setMessages((prev) => [...prev, answerMessage]);
         return;
+      }
+
+      if (intentData.intent === "INGREDIENT_SUBSTITUTION") {
+        // Handle ingredient substitution requests
+        if (!selectedRecipe) {
+          const errorMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            role: "assistant",
+            content: "Please select a recipe first to get substitution suggestions. Click on a recipe in the search results to get started!",
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, errorMessage]);
+          return;
+        }
+
+        try {
+          // Use LLM to match the ingredient the user is asking about
+          const matchResponse = await fetch("/api/recipes/match-ingredient", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              recipeTitle: selectedRecipe.current.title,
+              recipeIngredients: selectedRecipe.current.ingredients,
+              userMessage: currentInput,
+            }),
+          });
+
+          if (matchResponse.ok) {
+            const matchResult = await matchResponse.json();
+
+            // If LLM successfully matched an ingredient, use it
+            if (matchResult.matched && matchResult.ingredient) {
+              console.log("LLM matched ingredient:", matchResult.ingredient);
+              await handleSubstitutionFromChat(matchResult.ingredient, currentInput);
+              return;
+            }
+          }
+
+          // Fall back to regex-based matching if LLM matching fails
+          const ingredient = extractIngredientFromMessage(currentInput);
+          if (ingredient) {
+            console.log("Fallback: Regex matched ingredient:", ingredient);
+            await handleSubstitutionFromChat(ingredient, currentInput);
+            return;
+          }
+
+          // If no ingredient could be matched, show error
+          const errorMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            role: "assistant",
+            content: "I couldn't identify which ingredient you want to substitute. Could you be more specific about the ingredient?",
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, errorMessage]);
+          return;
+        } catch (err) {
+          console.error("Error handling ingredient substitution:", err);
+          const errorMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            role: "assistant",
+            content: "I'm having trouble processing your substitution request. Please try again in a moment!",
+            timestamp: new Date(),
+          };
+          setMessages((prev) => [...prev, errorMessage]);
+          return;
+        }
       }
 
       // RECIPE_SEARCH intent - use existing recipe search logic
