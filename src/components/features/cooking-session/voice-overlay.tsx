@@ -37,6 +37,7 @@ export function VoiceOverlay({
   const initialStepRef = useRef(currentStepNumber);
   const initialStepTextRef = useRef(currentStep);
   const isSettingTimerRef = useRef(false);
+  const isNavigatingRef = useRef(false);
 
   // Initialize timer management
   const { timers, addTimer, removeTimer, onTimerComplete } = useTimer();
@@ -132,7 +133,24 @@ export function VoiceOverlay({
       console.log("Function args:", JSON.stringify(call.args));
 
       if (call.name === "navigateToStep") {
+        // Prevent multiple navigation actions from being executed simultaneously
+        if (isNavigatingRef.current) {
+          console.log("Navigation already in progress, rejecting duplicate request");
+          sendToolResponse([{
+            id: call.id,
+            name: call.name,
+            response: { 
+              success: false, 
+              message: "Navigation is already in progress. Please wait a moment before navigating again." 
+            }
+          }]);
+          return;
+        }
+        
         const args = call.args as { action: "next" | "previous" | "goto"; stepNumber?: number };
+        
+        // Set flag to prevent duplicate navigation
+        isNavigatingRef.current = true;
         
         if (args.action === "next") {
           // Check if we're already at the last step
@@ -145,6 +163,8 @@ export function VoiceOverlay({
                 message: `Cannot move to next step. Already at the final step (${totalSteps} of ${totalSteps}).` 
               }
             }]);
+            // Reset flag after error response
+            isNavigatingRef.current = false;
             return;
           }
           
@@ -154,6 +174,11 @@ export function VoiceOverlay({
             name: call.name,
             response: { success: true, message: `Navigation complete. Context update will follow - wait for it before responding to user.` }
           }]);
+          
+          // Reset flag after a delay to allow the navigation to complete
+          setTimeout(() => {
+            isNavigatingRef.current = false;
+          }, 1500);
         } else if (args.action === "previous") {
           // Check if we're already at the first step
           if (currentStepNumber <= 1) {
@@ -165,6 +190,8 @@ export function VoiceOverlay({
                 message: `Cannot move to previous step. Already at the first step (1 of ${totalSteps}).` 
               }
             }]);
+            // Reset flag after error response
+            isNavigatingRef.current = false;
             return;
           }
           
@@ -174,6 +201,11 @@ export function VoiceOverlay({
             name: call.name,
             response: { success: true, message: `Navigation complete. Context update will follow - wait for it before responding to user.` }
           }]);
+          
+          // Reset flag after a delay to allow the navigation to complete
+          setTimeout(() => {
+            isNavigatingRef.current = false;
+          }, 1500);
         } else if (args.action === "goto" && args.stepNumber) {
           // Validate step number is within bounds
           if (args.stepNumber < 1 || args.stepNumber > totalSteps) {
@@ -185,6 +217,8 @@ export function VoiceOverlay({
                 message: `Cannot go to step ${args.stepNumber}. Step must be between 1 and ${totalSteps}.` 
               }
             }]);
+            // Reset flag after error response
+            isNavigatingRef.current = false;
             return;
           }
           
@@ -194,8 +228,30 @@ export function VoiceOverlay({
             name: call.name,
             response: { success: true, message: `Navigation complete. Context update will follow - wait for it before responding to user.` }
           }]);
+          
+          // Reset flag after a delay to allow the navigation to complete
+          setTimeout(() => {
+            isNavigatingRef.current = false;
+          }, 1500);
         }
       } else if (call.name === "markStepComplete") {
+        // Prevent multiple navigation actions from being executed simultaneously
+        if (isNavigatingRef.current) {
+          console.log("Navigation already in progress, rejecting duplicate request");
+          sendToolResponse([{
+            id: call.id,
+            name: call.name,
+            response: { 
+              success: false, 
+              message: "Navigation is already in progress. Please wait a moment before marking the step complete." 
+            }
+          }]);
+          return;
+        }
+        
+        // Set flag to prevent duplicate navigation
+        isNavigatingRef.current = true;
+        
         // Check if we're already at the last step
         if (currentStepNumber >= totalSteps) {
           sendToolResponse([{
@@ -206,6 +262,8 @@ export function VoiceOverlay({
               message: `Cannot mark step as complete. Already at the final step (${totalSteps} of ${totalSteps}). The recipe is complete!` 
             }
           }]);
+          // Reset flag after error response
+          isNavigatingRef.current = false;
           return;
         }
         
@@ -215,6 +273,11 @@ export function VoiceOverlay({
           name: call.name,
           response: { success: true, message: `Step marked complete. Navigation complete. Context update will follow - wait for it before responding to user.` }
         }]);
+        
+        // Reset flag after a delay to allow the navigation to complete
+        setTimeout(() => {
+          isNavigatingRef.current = false;
+        }, 1500);
       } else if (call.name === "setTimer") {
         console.log("setTimer function called!");
         

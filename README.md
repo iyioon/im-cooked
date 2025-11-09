@@ -1,424 +1,308 @@
 # I'm Cooked 🍳
 
-Your AI cooking coach that provides hands-free, step-by-step voice guidance while you cook. No more constantly checking your phone with messy hands.
+Your AI cooking assistant that provides hands-free, real-time voice guidance while you cook. No more constantly checking your phone with messy hands.
 
 ## What Makes I'm Cooked Different?
 
-**I'm Cooked** transforms cooking from following static recipes to an interactive coaching session. Find any recipe from 27+ cooking websites, customize it to your needs, then let the AI guide you through every step with voice commands—completely hands-free.
+**I'm Cooked** transforms cooking from following static recipes to an interactive, conversational experience. Search for any recipe, customize it to your needs, then let the AI guide you through every step with voice commands—completely hands-free.
 
-### The Experience
+## The Experience
 
-1. **🔍 Discover** - Natural language AI search across 27+ cooking sites
-2. **🎨 Customize** - Adjust for dietary needs, portions, and ingredient swaps
-3. **🎙️ Cook** - Start a voice-guided session with your AI cooking coach
-4. **💬 Interact** - Ask questions, get tips, track timers—all hands-free
-5. **📊 Track** - Save sessions, notes, and build your recipe collection
+### 🔍 **Discover Recipes**
+- Search using natural language: "quick healthy dinner for 4" or "easy chocolate dessert"
+- Browse recipes from trusted cooking website 
+- AI-powered search understands your intent and preferences
+- See recipe details, ingredients, cooking time, and source attribution
+
+### 🎨 **Customize to Your Needs**
+- Get ingredient substitution suggestions
+- Accommodate dietary restrictions and allergies
+- Modify recipes before you start cooking
+
+### 🎙️ **Cook Hands-Free with Voice**
+- Start a voice-guided cooking session
+- Navigate steps without touching your device
+- Ask questions while your hands are messy
+- Set timers using voice commands
+- Get real-time cooking tips and technique guidance
+
+### 💬 **Interactive AI Assistant**
+- Ask "How do I know when this is done?"
+- Request substitutions: "Can I use olive oil instead of butter?"
+- Get technique help: "How do I julienne an onion?"
+- Clarify instructions: "What temperature should the oven be?"
+- The AI maintains full recipe context throughout your session
 
 ## Key Features
 
-- 🎙️ **Voice-First Cooking Sessions** - Completely hands-free, step-by-step guidance
-- 🤖 **AI Cooking Coach** - Real-time help, not just static instructions
-- ⏱️ **Smart Timer Management** - AI tracks and reminds you automatically
-- 🔄 **Recipe Customization** - Dietary restrictions, portions, ingredient substitutions
-- 🔍 **Intelligent Search** - Find recipes using natural language across 27+ sites
-- 💬 **Ask Anything While Cooking** - "How do I julienne?" "Can I substitute butter?"
-- 🎯 **Technique Guidance** - Tips, troubleshooting, and progress checkups
-- 📚 **Session History** - Track what you've cooked, save favorites with notes
+### 🎙️ **True Hands-Free Cooking**
+- **Voice navigation**: "Next step", "Go back", "Repeat that"
+- **Voice-activated timers**: "Set a timer for 10 minutes"
+- **Ask questions anytime**: Get help without touching your device
+- **Real-time audio + visual feedback**: See and hear every instruction
+- **Interruption handling**: Can pause or interrupt the AI mid-response
 
-## Supported Recipe Sites
+### 🤖 **Intelligent AI Cooking Coach**
+- Conversational interface powered by Google Gemini live
+- Understands cooking context and maintains conversation flow
+- Provides technique explanations and troubleshooting
+- Offers cooking tips tailored to current recipe step
 
-We support 27 popular recipe websites:
+### ⏱️ **Smart Timer Management**
+- Set multiple timers by voice
+- AI automatically labels timers based on cooking context
+- Audio and visual notifications when timers complete
+- Track all active timers at a glance
 
-1. **AllRecipes** - allrecipes.com
-2. **The Kitchn** - thekitchn.com
-3. **Simply Recipes** - simplyrecipes.com
-4. **Bon Appétit** - bonappetit.com
-5. **Epicurious** - epicurious.com
-6. **Food Network** - foodnetwork.com
-7. **Taste of Home** - tasteofhome.com
-8. **King Arthur Baking** - kingarthurbaking.com
-9. **Sally's Baking Addiction** - sallysbakingaddiction.com
-10. **Minimalist Baker** - minimalistbaker.com
-11. **Pinch of Yum** - pinchofyum.com
-12. **Cookie and Kate** - cookieandkate.com
-13. **Budget Bytes** - budgetbytes.com
-14. **The Woks of Life** - thewoksoflife.com
-15. **Just One Cookbook** - justonecookbook.com
-16. **Maangchi** - maangchi.com
-17. **Rasa Malaysia** - rasamalaysia.com
-18. **Veg Recipes of India** - vegrecipesofindia.com
-19. **Immaculate Bites** - immaculatebites.com
-20. **Mexico in My Kitchen** - mexicoinmykitchen.com
-21. **Gimme Some Oven** - gimmesomeoven.com
-22. **Love and Lemons** - loveandlemons.com
-23. **Cafe Delites** - cafedelites.com
-24. **Natasha's Kitchen** - natashaskitchen.com
-25. **Tasty** - tasty.co
-26. **Joshua Weissman** - joshuaweissman.com
-27. **Sorted Food** - sortedfood.com
+### 🔄 **Recipe Intelligence**
+- AI extracts and normalizes recipes automatically
+- Ingredient substitution suggestions with reasoning
+- Automatic serving size calculations
+- Recipe modification tracking (original vs. modified)
 
-## Tech Stack
+### 🛡️ **Safe & Responsible AI**
+- Strict boundaries: Only cooking-related assistance
+- Privacy-first: All data stored locally on your device
+- Transparent AI decisions with explanations
+- No account required, no data collection
+- Source attribution for all recipes
 
-- **Next.js 16** - React framework with App Router
-- **React 19** - Server Components
-- **TypeScript** - Strict mode enabled
-- **Gemini AI 2.0** - Conversational AI and recipe understanding
-- **Web Speech API** - Voice interaction and synthesis
-- **Tailwind CSS v4** - Styling framework
-- **shadcn/ui** - Accessible UI components
-- **Cheerio** - Recipe scraping from 27+ sites
+## How It Works
 
-## Getting Started
+### 1. **Find Your Recipe**
+Start on the home page and either:
+- **Search**: Type what you want to cook (e.g., "vegetarian pasta")
+- **Browse**: Explore recipes from your saved collection
+- **Import**: Paste a URL from any of our 27+ supported recipe sites
 
-### Prerequisites
+### 2. **Review & Customize**
+- View complete recipe details with ingredients and instructions
+- Adjust servings to your needs
+- Request ingredient substitutions
+- Save the recipe to your collection
 
-- Node.js 18+ 
-- npm or yarn
-- Google Gemini API key ([Get one here](https://aistudio.google.com/app/apikey))
-- Modern browser with Web Speech API support (Chrome, Edge, Safari)
+### 3. **Start Cooking Session**
+- Click "Start Cooking" to begin voice-guided experience
+- Grant microphone permissions when prompted
+- Full-screen voice interface activates with step-by-step guidance
 
-### Installation
+### 4. **Cook Hands-Free**
+Use natural voice commands while cooking:
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd im-cooked
-   ```
+**Navigation**:
+- "Next step" - Move forward
+- "Previous step" or "Go back" - Return to previous instruction
+- "Go to step 5" - Jump to specific step
+- "Repeat that" - Hear current step again
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+**Timers**:
+- "Set a timer for 10 minutes"
+- "Set a 2 minute 30 second timer"
+- "Remind me in 5 minutes"
 
-3. **Set up environment variables**
-   ```bash
-   cp .env.example .env.local
-   ```
-   
-   
-   Edit `.env.local` and add your Gemini API key:
-   ```env
-   GEMINI_API_KEY=your_api_key_here
-   
-   # Optional: Specify Gemini model (defaults to 'models/gemini-1.5-flash')
-   GEMINI_MODEL=models/gemini-1.5-flash
-   ```
-   
-   **Note on Gemini Models:**
-   - Model names must include the `models/` prefix
-   - If you get a "model not found" error, try these in order:
-     1. `models/gemini-1.5-flash` (default, fastest)
-     2. `models/gemini-1.5-pro` (more capable)
-     3. `models/gemini-pro` (older, most compatible)
-   - Run the test script below to find which model works for your API key
-4. **Run the development server**
-   ```bash
-   npm run dev
-   ```
+**Questions** (cooking-related only):
+- "What if I don't have [ingredient]?"
+- "How do I [cooking technique]?"
+- "What temperature should this be?"
+- "How do I know when this is done?"
+- "What comes after this step?"
 
-5. **Open your browser**
-   
-   Navigate to [http://localhost:3000](http://localhost:3000)
+**Status**:
+- "What's the current step?"
+- "How many steps are left?"
 
-## Usage
+### 5. **Get Real-Time Help**
+- AI maintains full context of your recipe and progress
+- Answers are grounded in your specific recipe
+- Visual and audio feedback for every interaction
+- See transcript of conversation for reference
 
-### Start a Cooking Session
+### 6. **Complete & Save**
+- Sessions automatically save with your progress
+- Add notes about what worked or what you'd change
+- Resume sessions later if interrupted
+- Build your personal cooking history
 
-1. **Find a Recipe** - Search using natural language (e.g., "healthy chicken dinner for 4")
-2. **Customize** - Adjust servings, swap ingredients, note dietary restrictions
-3. **Start Session** - Click "Start Cooking" to begin voice-guided experience
-4. **Cook Hands-Free** - AI guides you step-by-step with voice commands:
-   - "Next step" - Move to next instruction
-   - "Repeat" - Hear current step again
-   - "Set timer for 10 minutes" - AI manages all timers
-   - "How do I dice an onion?" - Get instant technique help
-   - "Can I use olive oil instead?" - Ask about substitutions
-5. **Complete** - Session saved with your notes and any modifications
+## Multimodal Experience
 
-### Voice Commands During Cooking
+**I'm Cooked** provides information through multiple channels for the best cooking experience:
 
-- **Navigation**: "Next step", "Previous step", "Repeat"
-- **Timers**: "Set timer for X minutes", "How much time left?", "Cancel timer"
-- **Questions**: "How do I [technique]?", "Can I substitute X for Y?", "What temperature?"
-- **Status**: "What's next?", "How many steps left?", "Read ingredients"
+### 🎤 **Voice Output**
+- AI speaks instructions and responses
+- Natural conversational tone
+- Concise answers optimized for voice (15-30 seconds)
+- Audio notifications for timers
 
-### Search & Customize Recipes
+### 👁️ **Visual Display**
+- Large, readable text for current step
+- Step images and visual cues
+- Volume meters show when you're being heard
+- AI speaking indicators with animations
+- Active timer displays
+- Conversation transcript
 
-1. Use natural language to search: "quick vegetarian pasta", "gluten-free dessert"
-2. AI searches 27+ recipe sites and shows results with source attribution
-3. Click any recipe to view details and customize
-4. Adjust servings, note allergies, plan ingredient swaps
-5. Save to your collection or start cooking immediately
+### ⌨️ **Text Chat (Optional)**
+- Switch between voice and text input anytime
+- Full chat history displayed
+- Type questions if voice isn't available
+- All features accessible via text or voice
 
-## Tech Stack
+### 🔄 **Redundancy for Reliability**
+Every critical piece of information is presented multiple ways:
+- AI **speaks** the instruction
+- Text **displays** on screen simultaneously
+- Visual **images** show the expected result
+- **Status indicators** confirm the system is listening/responding
 
-- **Next.js 16** - React framework with App Router
-- **React 19** - Server Components
-- **TypeScript** - Strict mode enabled
-- **Gemini AI 2.0** - Conversational AI and recipe understanding
-- **Web Speech API** - Voice interaction and synthesis
-- **Tailwind CSS v4** - Styling framework
-- **shadcn/ui** - Accessible UI components
-- **Cheerio** - Recipe scraping from 27+ sites
+## Supported Recipe Sources
 
-## Project Structure
+We support recipe imports from 27 popular cooking websites:
 
-```
-im-cooked/
-├── src/
-│   ├── app/
-│   │   ├── api/
-│   │   │   ├── sessions/
-│   │   │   │   ├── [id]/route.ts          # Get/update/delete cooking session
-│   │   │   │   ├── route.ts               # Create session, get all sessions
-│   │   │   │   └── active/route.ts        # Get active session
-│   │   │   ├── recipes/
-│   │   │   │   ├── [id]/route.ts          # Get/delete single recipe
-│   │   │   │   ├── route.ts               # Get all recipes
-│   │   │   │   ├── scrape-and-save/route.ts  # Combined scrape + save
-│   │   │   │   ├── search/route.ts        # AI-powered recipe search
-│   │   │   │   └── customize/route.ts     # Customize recipe (servings, substitutions)
-│   │   │   ├── chat/route.ts              # Conversational AI during cooking
-│   │   │   ├── voice/route.ts             # Voice command processing
-│   │   │   ├── normalize/route.ts         # AI recipe normalization
-│   │   │   └── scrape/route.ts            # Web scraping
-│   │   ├── session/[id]/page.tsx          # Active cooking session page
-│   │   ├── recipe/[id]/page.tsx           # Recipe detail & customization
-│   │   ├── globals.css                    # Global styles
-│   │   ├── layout.tsx                     # Root layout
-│   │   └── page.tsx                       # Home page (search & browse)
-│   ├── components/
-│   │   ├── ui/                            # shadcn/ui components
-│   │   ├── cooking-session.tsx            # Voice-guided cooking interface
-│   │   ├── voice-controls.tsx             # Voice input/output controls
-│   │   ├── timer-manager.tsx              # Active timer tracking
-│   │   ├── recipe-customizer.tsx          # Customize servings, ingredients
-│   │   ├── chat-assistant.tsx             # In-session AI chat
-│   │   ├── recipe-card.tsx                # Recipe card component
-│   │   └── recipe-search.tsx              # AI-powered search interface
-│   ├── lib/
-│   │   ├── ai.ts                          # Gemini AI integration
-│   │   ├── voice.ts                       # Web Speech API wrapper
-│   │   ├── session-manager.ts             # Cooking session state
-│   │   ├── recipe-search.ts               # Multi-site search engine
-│   │   ├── recipe-store.ts                # Recipe storage
-│   │   ├── scraper.ts                     # Web scraping logic
-│   │   └── utils.ts                       # Utility functions
-│   └── types/
-│       ├── recipe.ts                      # Recipe interfaces
-│       └── session.ts                     # Cooking session interfaces
-├── .env.example                           # Environment template
-└── package.json                           # Dependencies and scripts
-```
+**General Cooking**:
+- AllRecipes, The Kitchn, Simply Recipes
+- Bon Appétit, Epicurious, Food Network
+- Taste of Home, Gimme Some Oven
 
-## API Routes
+**Baking Specialists**:
+- King Arthur Baking, Sally's Baking Addiction
 
-### Cooking Sessions
-```
-POST /api/sessions
-Body: { "recipeId": "123" }
-Creates a new cooking session
+**Lifestyle & Dietary**:
+- Minimalist Baker, Pinch of Yum
+- Cookie and Kate, Budget Bytes, Love and Lemons
 
-GET /api/sessions
-Returns all past cooking sessions
+**International Cuisine**:
+- The Woks of Life, Just One Cookbook, Maangchi
+- Rasa Malaysia, Veg Recipes of India
+- Immaculate Bites, Mexico in My Kitchen
 
-GET /api/sessions/active
-Returns current active session
+**Popular Creators**:
+- Cafe Delites, Natasha's Kitchen, Tasty
+- Joshua Weissman, Sorted Food
 
-GET /api/sessions/[id]
-Returns specific session details
+*All recipes properly attributed to their source with direct links.*
 
-PATCH /api/sessions/[id]
-Body: { "currentStep": 3, "notes": "Added extra garlic" }
-Updates session progress
+## System Requirements
 
-DELETE /api/sessions/[id]
-Deletes a session
-```
+### **Browser Compatibility**
+- **Chrome** (recommended) - Full voice support
+- **Microsoft Edge** - Full voice support
+- **Safari** (macOS/iOS) - Full voice support
+- **Firefox** - Limited voice support
 
-### Voice Interaction
-```
-POST /api/voice
-Body: { "command": "next step", "sessionId": "123" }
-Processes voice command during cooking session
-```
+### **Device Requirements**
+- Modern smartphone, tablet, or computer
+- Microphone for voice input
+- Speakers or headphones for audio output
+- Stable internet connection
 
-### AI Chat (During Cooking)
-```
-POST /api/chat
-Body: { 
-  "message": "How do I know when the sauce is ready?",
-  "sessionId": "123",
-  "conversationHistory": [...]
-}
-Conversational help during cooking
-```
+### **No Installation Required**
+- Web-based application
+- No app store downloads
+- Works across all devices with a browser
+- No account creation needed
 
-### Recipe Management
-```
-GET /api/recipes/search?q=healthy+dinner
-AI-powered recipe search across 27+ sites
+## Privacy & Safety
 
-POST /api/recipes/customize
-Body: { "recipeId": "123", "servings": 6, "substitutions": {...} }
-Customize recipe for your needs
+### **Your Data Stays Private**
+- ✅ No account required
+- ✅ No personal data collection
+- ✅ All cooking sessions stored locally on your device
+- ✅ No tracking or analytics
+- ✅ No cloud storage of your recipes or sessions
 
-POST /api/scrape
-Body: { "url": "https://www.allrecipes.com/..." }
-Scrape recipe from supported site
+### **Responsible AI**
+- ✅ Strict boundaries: Only answers cooking-related questions
+- ✅ Transparent reasoning: Explains why suggestions are made
+- ✅ Source attribution: All recipes credited to original creators
+- ✅ Safe defaults: Deflects food safety questions to authorities
+- ✅ User control: You make all decisions, AI only suggests
 
-POST /api/normalize
-Body: { "rawRecipe": { ... } }
-Normalize recipe with AI
+### **Voice Privacy**
+- Microphone access only when you activate voice mode
+- Visual indicators show when microphone is active
+- Voice data processed securely through Google Gemini API
+- No voice recordings stored permanently
 
-POST /api/recipes/scrape-and-save
-Body: { "url": "https://www.allrecipes.com/..." }
-Scrape and save to collection
+## Tips for Best Experience
 
-GET /api/recipes
-Get all saved recipes
+### 🎙️ **Voice Interaction Tips**
+- **Speak clearly** in a normal conversational tone
+- **Minimize background noise** when possible (turn off exhaust fans briefly)
+- **Use the large touch button** to start/stop listening (works with dirty hands)
+- **Watch volume meters** to confirm you're being heard
+- **Interrupt anytime** if you need to pause the AI
 
-GET /api/recipes/[id]
-Get single recipe
+### 🍳 **Cooking Session Tips**
+- **Review the recipe** before starting the session
+- **Prep ingredients** using the ingredient list
+- **Set up your device** at eye level for easy viewing
+- **Keep device screen on** (adjust your screen timeout settings)
+- **Use equivalence**: Switch between voice and touch as needed
 
-DELETE /api/recipes/[id]
-Delete recipe
-```
+### 📱 **Device Setup Tips**
+- **Landscape orientation** recommended for better visibility
+- **Increase text size** in settings if needed
+- **Mute notifications** to avoid interruptions
+- **Keep browser tab active** for timers to work properly
 
-## Available Scripts
+## Frequently Asked Questions
 
-- `npm run dev` - Start development server with Turbopack
-- `npm run build` - Build for production
-- `npm start` - Start production server
-- `npm run lint` - Run ESLint
+**Q: Do I need to create an account?**  
+A: No, the app works immediately without any sign-up.
 
-## Known Limitations
+**Q: Where is my data stored?**  
+A: All your recipes and cooking sessions are stored locally on your device using browser storage.
 
-- **Browser Compatibility** - Web Speech API requires Chrome, Edge, or Safari
-- **In-Memory Storage** - Data stored in memory, lost on server restart (database coming soon)
-- **No Authentication** - Single-user experience currently
-- **Voice Recognition** - Accuracy depends on browser and environment noise
-- **Timer Management** - Web-based, won't work if browser/tab closed
+**Q: Can I use this offline?**  
+A: Currently, an internet connection is required for AI features and recipe searching.
 
-## Future Enhancements
+**Q: What happens if I close the browser?**  
+A: Your cooking sessions are saved and can be resumed when you return. However, active timers will stop.
 
-- [ ] Persistent database storage (PostgreSQL/MongoDB)
-- [ ] User authentication and multi-user support
-- [ ] Mobile app with native voice integration
-- [ ] Offline cooking sessions
-- [ ] Video technique demonstrations
-- [ ] Meal planning and grocery lists
-- [ ] Nutritional information and dietary tracking
-- [ ] Social features (share recipes, cooking sessions)
-- [ ] Smart home integration (control timers on devices)
-- [ ] Recipe scaling and batch cooking optimization
+**Q: Can it answer any question?**  
+A: The AI is focused on cooking assistance. It politely redirects off-topic questions like weather, news, or homework help.
 
-## Contributing
+**Q: How accurate are substitution suggestions?**  
+A: Substitutions are AI-generated based on culinary knowledge but should be validated against your dietary needs and cooking experience.
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+**Q: Can I modify recipes?**  
+A: Yes! You can adjust servings, request substitutions, and save your modified version alongside the original.
 
-## License
+**Q: Does it work on mobile?**  
+A: Yes, it's fully responsive and works on smartphones, tablets, and computers.
 
-See [LICENSE](LICENSE) for more information.
+**Q: Is my microphone always listening?**  
+A: No. The microphone only activates when you press "Start Talking" in voice mode. Visual indicators show when it's active.
+
+**Q: Can I switch between voice and text?**  
+A: Yes, you can exit voice mode anytime and continue with text chat, or switch back to voice.
+
+## Support & Feedback
+
+### Found a Bug?
+If something isn't working correctly, please report it with:
+- What you were trying to do
+- What happened instead
+- Your browser and device type
+
+### Have a Suggestion?
+We'd love to hear your ideas for new features or improvements!
+
+### Need Help?
+Check our documentation in the `/docs` folder for detailed guides on:
+- Voice interaction features
+- Recipe customization
+- System architecture
+- Ethics and responsible AI usage
 
 ## Acknowledgments
 
-- Built with [shadcn/ui](https://ui.shadcn.com/)
-- Powered by [Google Gemini AI](https://ai.google.dev/)
-- Recipe data sourced from publicly available recipe websites
+- **AI Technology**: Powered by Google Gemini 2.0
+- **UI Framework**: Built with Next.js 16 and React 19
+- **Design System**: shadcn/ui for accessible components
+- **Voice Technology**: Web Speech API for browser-native voice
+- **Recipe Sources**: 27+ cooking websites (with proper attribution)
 
-## Ethics & Security
+---
 
-We take AI safety and responsible scraping seriously. Read our [Ethics & Responsible AI Usage](docs/ethics.md) documentation to learn about:
-
-- Prompt injection prevention
-- Web scraping ethics and rate limiting
-- SSRF protection measures
-- Data privacy and security practices
-- Responsible AI principles
-
-All recipe scraping respects source attribution and rate limits to protect both users and content creators.
-
-
-## Troubleshooting
-
-### "Model not found" Error
-
-If you see an error like `models/gemini-xxx is not found for API version v1beta`:
-
-**Quick Fix - Run the Model Tester:**
-
-1. Create a file `test-models.mjs` in your project root:
-   ```javascript
-   import { GoogleGenerativeAI } from '@google/generative-ai';
-
-   const apiKey = process.env.GEMINI_API_KEY;
-   if (!apiKey) {
-     console.log('❌ Set GEMINI_API_KEY first');
-     process.exit(1);
-   }
-
-   const genAI = new GoogleGenerativeAI(apiKey);
-   const modelsToTest = [
-     'models/gemini-1.5-flash',
-     'models/gemini-1.5-pro', 
-     'models/gemini-pro',
-     'gemini-1.5-flash',
-     'gemini-1.5-pro',
-     'gemini-pro',
-   ];
-
-   for (const modelName of modelsToTest) {
-     try {
-       console.log(`Testing: "${modelName}"`);
-       const model = genAI.getGenerativeModel({ model: modelName });
-       const result = await model.generateContent('Hello');
-       await result.response;
-       console.log(`  ✅ SUCCESS! Use: GEMINI_MODEL=${modelName}\n`);
-       process.exit(0);
-     } catch (error) {
-       console.log(`  ❌ Failed\n`);
-     }
-   }
-   console.log('❌ No models worked. Check your API key.');
-   ```
-
-2. Run it:
-   ```bash
-   GEMINI_API_KEY=your_key_here node test-models.mjs
-   ```
-
-3. Copy the working model name to your `.env.local`:
-   ```env
-   GEMINI_MODEL=models/gemini-1.5-flash  # or whatever worked
-   ```
-
-**Manual Fix:**
-
-Try these model names in your `.env.local` (restart server after each):
-```env
-GEMINI_MODEL=models/gemini-1.5-flash  # Try this first
-GEMINI_MODEL=models/gemini-1.5-pro    # Then this
-GEMINI_MODEL=models/gemini-pro        # Last resort
-```
-
-### API Key Issues
-
-- Get your API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
-- Ensure the key has access to the Gemini API
-- Check that there are no extra spaces or quotes in your `.env.local` file
-- The key should start with `AIza...`
-
-### Recipe Not Scraping
-
-- Ensure the recipe URL is from a supported site (see Supported Recipe Sites section)
-- Some sites may have changed their HTML structure
-- Try using the AI search feature to find alternative sources
-
-### Voice Commands Not Working
-
-- Check browser compatibility (Chrome, Edge, Safari recommended)
-- Grant microphone permissions when prompted
-- Ensure you're using HTTPS (required for Web Speech API)
-- Try refreshing the page to reinitialize voice recognition
-- Check for background noise that may interfere with recognition
+**Made with ❤️ for home cooks who want a helping hand in the kitchen.**
