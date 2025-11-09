@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { SubstitutionResponse, RecipeDetail, UserPreferences, IngredientSubstitution } from "@/types/recipe";
 import { loadPreferences } from "@/lib/preferences-manager";
-import { Loader2, Sparkles, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Loader2, Sparkles, AlertCircle, CheckCircle2, ShieldCheck, Info } from "lucide-react";
 
 interface SubstitutionDialogProps {
   open: boolean;
@@ -277,6 +277,43 @@ export function SubstitutionDialog({
           {/* Suggestions */}
           {suggestions && (
             <div className="space-y-4">
+              {/* Allergen Filtering Info */}
+              {suggestions.allergenFiltering && suggestions.allergenFiltering.blockedSuggestions > 0 && (
+                <Card className="bg-blue-500/10 border-blue-500/20">
+                  <CardContent className="pt-4">
+                    <div className="flex items-start gap-2">
+                      <Info className="h-4 w-4 text-blue-400 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm text-blue-300 mb-2">
+                          <strong>{suggestions.allergenFiltering.blockedSuggestions}</strong> suggestion(s) filtered due to allergens
+                        </p>
+                        {suggestions.allergenFiltering.blockedReasons.length > 0 && (
+                          <ul className="text-xs text-blue-400/80 space-y-1 ml-4 list-disc">
+                            {suggestions.allergenFiltering.blockedReasons.map((reason, idx) => (
+                              <li key={idx}>{reason}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* No suggestions available */}
+              {suggestions.suggestions.length === 0 && suggestions.allergenFiltering && suggestions.allergenFiltering.blockedSuggestions > 0 && (
+                <Card className="bg-yellow-500/10 border-yellow-500/20">
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-2 text-yellow-400">
+                      <AlertCircle className="h-4 w-4" />
+                      <p className="text-sm">
+                        All substitution suggestions were filtered due to your allergen preferences. Try a different ingredient or adjust your allergen settings.
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Dish Context */}
               <Card className="bg-white/5 border-white/10">
                 <CardContent className="pt-4">
@@ -310,7 +347,8 @@ export function SubstitutionDialog({
               </Card>
 
               {/* Substitution Suggestions */}
-              <div className="space-y-3">
+              {suggestions.suggestions.length > 0 && (
+                <div className="space-y-3">
                 <h3 className="text-sm font-semibold text-white">
                   Suggested Substitutions
                 </h3>
@@ -334,6 +372,13 @@ export function SubstitutionDialog({
                               {suggestion.substitute.preparation &&
                                 ` (${suggestion.substitute.preparation})`}
                             </span>
+                            {/* Allergen-Safe Badge */}
+                            {suggestion.allergenValidation?.safe && (
+                              <Badge className="bg-green-500/20 text-green-400 border-green-500/50 flex items-center gap-1">
+                                <ShieldCheck className="h-3 w-3" />
+                                Allergen-Free
+                              </Badge>
+                            )}
                           </div>
                           <p className="text-sm text-gray-300">
                             {suggestion.reason}
@@ -398,7 +443,8 @@ export function SubstitutionDialog({
                     </CardContent>
                   </Card>
                 ))}
-              </div>
+                </div>
+              )}
 
             </div>
           )}

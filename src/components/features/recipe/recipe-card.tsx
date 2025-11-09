@@ -4,7 +4,7 @@ import { Recipe } from "@/types/recipe";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, ChefHat, Users } from "lucide-react";
+import { Clock, ChefHat, Users, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface RecipeCardProps {
@@ -39,6 +39,17 @@ export function RecipeCard({ recipe, onViewRecipe, onSelectRecipe }: RecipeCardP
         >
           {recipe.sourceName}
         </Badge>
+
+        {/* Allergen-Free Badge */}
+        {recipe.allergenInfo && !recipe.allergenInfo.hasAllergens && (
+          <Badge
+            variant="secondary"
+            className="absolute top-3 left-3 bg-green-600/80 backdrop-blur-sm text-white border-green-400/30 flex items-center gap-1"
+          >
+            <ShieldCheck className="h-3 w-3" />
+            Allergen-Free
+          </Badge>
+        )}
       </div>
 
       {/* Content */}

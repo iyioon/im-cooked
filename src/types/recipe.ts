@@ -9,6 +9,13 @@ export interface Recipe {
   difficulty?: string;
   sourceUrl: string;
   sourceName: string;
+  allergenInfo?: {
+    hasAllergens: boolean;
+    allergens: string[]; // List of detected allergens
+    warnings: string[]; // Human-readable warnings
+    dataSource?: 'open-food-facts' | 'string-matching';
+    checkedAt?: string; // ISO timestamp
+  };
 }
 
 export interface RecipeStep {
@@ -58,6 +65,11 @@ export interface IngredientSubstitution {
     nutrition?: string;
     cookingTime?: string;
   };
+  allergenValidation?: {
+    safe: boolean;
+    warnings: string[];
+    confidence: number;
+  };
 }
 
 export interface DishContext {
@@ -86,6 +98,12 @@ export interface SubstitutionResponse {
       modified: string;
     }>;
     warnings?: string[];
+  };
+  allergenFiltering?: {
+    totalSuggestions: number;
+    safeSuggestions: number;
+    blockedSuggestions: number;
+    blockedReasons: string[];
   };
 }
 
