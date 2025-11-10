@@ -38,9 +38,9 @@ export function RecipeResults({ recipes, query, onRetry, onViewRecipe, onSelectR
   // Empty state
   if (recipes.length === 0) {
     return (
-      <Card className="p-8 bg-white/5 border-white/10 backdrop-blur-sm text-center">
+      <Card className="p-8 bg-white/5 border-white/10 backdrop-blur-sm text-center" role="status" aria-live="polite">
         <div className="flex flex-col items-center gap-4 max-w-md mx-auto">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-yellow-500/10 border border-yellow-500/20">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-yellow-500/10 border border-yellow-500/20" aria-hidden="true">
             <Search className="h-8 w-8 text-yellow-400" />
           </div>
           <h3 className="text-xl font-bold text-white">No recipes found</h3>
@@ -52,6 +52,7 @@ export function RecipeResults({ recipes, query, onRetry, onViewRecipe, onSelectR
               onClick={onRetry}
               variant="outline"
               className="border-white/20 hover:bg-white/10"
+              aria-label="Try searching again"
             >
               Try Again
             </Button>
@@ -62,21 +63,21 @@ export function RecipeResults({ recipes, query, onRetry, onViewRecipe, onSelectR
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" role="region" aria-label="Recipe search results">
       {/* Results Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-xl font-bold text-white">
+          <h3 className="text-xl font-bold text-white" role="status" aria-live="polite">
             Found {recipes.length} recipe{recipes.length !== 1 ? 's' : ''} for "{query}"
           </h3>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-sm text-gray-400 mt-1" aria-live="polite">
             Page {currentPage} of {totalPages}
           </p>
         </div>
       </div>
 
       {/* Recipe Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" role="list">
         {currentRecipes.map((recipe) => (
           <RecipeCard
             key={recipe.id}
@@ -138,11 +139,11 @@ export function RecipeResults({ recipes, query, onRetry, onViewRecipe, onSelectR
 // Loading skeleton component
 export function RecipeResultsLoading() {
   return (
-    <div className="space-y-6">
-      <div className="h-8 w-64 bg-white/10 rounded animate-pulse" />
+    <div className="space-y-6" role="status" aria-live="polite" aria-busy="true" aria-label="Loading recipe results">
+      <div className="h-8 w-64 bg-white/10 rounded animate-pulse" aria-hidden="true" />
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[1, 2, 3].map((i) => (
-          <Card key={i} className="h-[400px] bg-white/5 border-white/10 animate-pulse">
+          <Card key={i} className="h-[400px] bg-white/5 border-white/10 animate-pulse" aria-hidden="true">
             <div className="h-48 bg-white/10" />
             <div className="p-5 space-y-3">
               <div className="h-6 bg-white/10 rounded w-3/4" />
@@ -152,6 +153,7 @@ export function RecipeResultsLoading() {
           </Card>
         ))}
       </div>
+      <span className="sr-only">Loading recipes...</span>
     </div>
   );
 }
@@ -159,9 +161,9 @@ export function RecipeResultsLoading() {
 // Error state component
 export function RecipeResultsError({ error, retryAction }: { error: string; retryAction: () => void }) {
   return (
-    <Card className="p-8 bg-red-500/10 border-red-500/20 backdrop-blur-sm text-center">
+    <Card className="p-8 bg-red-500/10 border-red-500/20 backdrop-blur-sm text-center" role="alert" aria-live="assertive">
       <div className="flex flex-col items-center gap-4 max-w-md mx-auto">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 border border-red-500/20">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 border border-red-500/20" aria-hidden="true">
           <AlertCircle className="h-8 w-8 text-red-400" />
         </div>
         <h3 className="text-xl font-bold text-white">Something went wrong</h3>
@@ -170,6 +172,7 @@ export function RecipeResultsError({ error, retryAction }: { error: string; retr
           onClick={retryAction}
           variant="outline"
           className="border-red-500/50 hover:bg-red-500/10 text-red-400"
+          aria-label="Retry loading recipes"
         >
           Try Again
         </Button>

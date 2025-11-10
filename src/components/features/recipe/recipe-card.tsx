@@ -22,20 +22,23 @@ export function RecipeCard({ recipe, onViewRecipe, onSelectRecipe }: RecipeCardP
         "hover:scale-105 hover:shadow-2xl hover:shadow-blue-500/20",
         "backdrop-blur-sm"
       )}
+      role="article"
+      aria-label={`Recipe: ${recipe.title}`}
     >
       {/* Image */}
       <div className="relative h-48 w-full overflow-hidden">
         <img
           src={recipe.imageUrl}
-          alt={recipe.title}
+          alt={`${recipe.title} - recipe photo`}
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-        
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" aria-hidden="true" />
+
         {/* Source Badge */}
         <Badge
           variant="secondary"
           className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white border-white/20"
+          aria-label={`Source: ${recipe.sourceName}`}
         >
           {recipe.sourceName}
         </Badge>
@@ -45,8 +48,9 @@ export function RecipeCard({ recipe, onViewRecipe, onSelectRecipe }: RecipeCardP
           <Badge
             variant="secondary"
             className="absolute top-3 left-3 bg-green-600/80 backdrop-blur-sm text-white border-green-400/30 flex items-center gap-1"
+            aria-label="This recipe is allergen-free"
           >
-            <ShieldCheck className="h-3 w-3" />
+            <ShieldCheck className="h-3 w-3" aria-hidden="true" />
             Allergen-Free
           </Badge>
         )}
@@ -66,22 +70,22 @@ export function RecipeCard({ recipe, onViewRecipe, onSelectRecipe }: RecipeCardP
       {/* Footer with Metadata */}
       <CardFooter className="p-5 pt-0 flex items-center justify-between gap-2 flex-wrap mb-3">
         {recipe.prepTime && (
-          <div className="flex items-center gap-1.5 text-xs text-gray-400">
-            <Clock className="h-3.5 w-3.5" />
+          <div className="flex items-center gap-1.5 text-xs text-gray-400" aria-label={`Prep time: ${recipe.prepTime}`}>
+            <Clock className="h-3.5 w-3.5" aria-hidden="true" />
             <span>{recipe.prepTime}</span>
           </div>
         )}
 
         {recipe.cookTime && (
-          <div className="flex items-center gap-1.5 text-xs text-gray-400">
-            <ChefHat className="h-3.5 w-3.5" />
+          <div className="flex items-center gap-1.5 text-xs text-gray-400" aria-label={`Cook time: ${recipe.cookTime}`}>
+            <ChefHat className="h-3.5 w-3.5" aria-hidden="true" />
             <span>{recipe.cookTime}</span>
           </div>
         )}
 
         {recipe.servings && (
-          <div className="flex items-center gap-1.5 text-xs text-gray-400">
-            <Users className="h-3.5 w-3.5" />
+          <div className="flex items-center gap-1.5 text-xs text-gray-400" aria-label={`Servings: ${recipe.servings}`}>
+            <Users className="h-3.5 w-3.5" aria-hidden="true" />
             <span>{recipe.servings}</span>
           </div>
         )}
@@ -95,6 +99,7 @@ export function RecipeCard({ recipe, onViewRecipe, onSelectRecipe }: RecipeCardP
               recipe.difficulty === "Medium" && "border-yellow-500/50 text-yellow-400",
               recipe.difficulty === "Hard" && "border-red-500/50 text-red-400"
             )}
+            aria-label={`Difficulty: ${recipe.difficulty}`}
           >
             {recipe.difficulty}
           </Badge>
@@ -111,6 +116,7 @@ export function RecipeCard({ recipe, onViewRecipe, onSelectRecipe }: RecipeCardP
             onViewRecipe?.(recipe);
           }}
           className="flex-1 bg-white/10 hover:bg-white/20 text-white border-white/20"
+          aria-label={`View details for ${recipe.title}`}
         >
           View
         </Button>
@@ -122,6 +128,7 @@ export function RecipeCard({ recipe, onViewRecipe, onSelectRecipe }: RecipeCardP
             onSelectRecipe?.(recipe);
           }}
           className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+          aria-label={`Start cooking ${recipe.title}`}
         >
           Select
         </Button>

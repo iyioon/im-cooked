@@ -162,16 +162,24 @@ export function useVoiceChatControls({
     toggleButton: (
       <div className="flex items-center gap-2">
         {voiceMode && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" role="status" aria-live="polite">
             {isAISpeaking && (
-              <Badge variant="outline" className="border-green-500/50 text-green-400 animate-pulse">
-                <Volume2 className="h-3 w-3 mr-1" />
+              <Badge
+                variant="outline"
+                className="border-green-500/50 text-green-400 animate-pulse"
+                aria-label="AI is currently speaking"
+              >
+                <Volume2 className="h-3 w-3 mr-1" aria-hidden="true" />
                 AI Speaking
               </Badge>
             )}
             {isSpeaking && (
-              <Badge variant="outline" className="border-blue-500/50 text-blue-400 animate-pulse">
-                <Mic className="h-3 w-3 mr-1" />
+              <Badge
+                variant="outline"
+                className="border-blue-500/50 text-blue-400 animate-pulse"
+                aria-label="You are currently speaking"
+              >
+                <Mic className="h-3 w-3 mr-1" aria-hidden="true" />
                 You're Speaking
               </Badge>
             )}
@@ -183,15 +191,17 @@ export function useVoiceChatControls({
           size="sm"
           disabled={isActivating}
           className={voiceMode ? "bg-green-600 hover:bg-green-700" : "border-white/20 hover:bg-white/10"}
+          aria-label={voiceMode ? "Turn off voice mode" : "Turn on voice mode"}
+          aria-pressed={voiceMode}
         >
           {voiceMode ? (
             <>
-              <Volume2 className="h-4 w-4 mr-2" />
+              <Volume2 className="h-4 w-4 mr-2" aria-hidden="true" />
               Voice On
             </>
           ) : (
             <>
-              <VolumeX className="h-4 w-4 mr-2" />
+              <VolumeX className="h-4 w-4 mr-2" aria-hidden="true" />
               Voice Off
             </>
           )}
@@ -203,10 +213,17 @@ export function useVoiceChatControls({
         <div className="flex items-center gap-2">
           {/* Volume meters */}
           {isRecording && (
-            <div className="flex-1 flex items-center gap-2">
-              <Mic className="h-4 w-4 text-blue-400" />
-              <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
-                <div 
+            <div className="flex-1 flex items-center gap-2" aria-label={`Your microphone volume at ${inputVolume} percent`}>
+              <Mic className="h-4 w-4 text-blue-400" aria-hidden="true" />
+              <div
+                className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden"
+                role="progressbar"
+                aria-valuenow={inputVolume}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Microphone input volume"
+              >
+                <div
                   className="h-full bg-blue-500 transition-all duration-100"
                   style={{ width: `${inputVolume}%` }}
                 />
@@ -214,10 +231,17 @@ export function useVoiceChatControls({
             </div>
           )}
           {isAISpeaking && (
-            <div className="flex-1 flex items-center gap-2">
-              <Volume2 className="h-4 w-4 text-green-400" />
-              <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
-                <div 
+            <div className="flex-1 flex items-center gap-2" aria-label={`AI speech volume at ${outputVolume} percent`}>
+              <Volume2 className="h-4 w-4 text-green-400" aria-hidden="true" />
+              <div
+                className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden"
+                role="progressbar"
+                aria-valuenow={outputVolume}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="AI speech output volume"
+              >
+                <div
                   className="h-full bg-green-500 transition-all duration-100"
                   style={{ width: `${outputVolume}%` }}
                 />
@@ -225,32 +249,36 @@ export function useVoiceChatControls({
             </div>
           )}
         </div>
-        
+
         <Button
           onClick={handleToggleRecording}
           disabled={!isConnected}
           className={`w-full ${
-            isRecording 
-              ? "bg-red-600 hover:bg-red-700" 
+            isRecording
+              ? "bg-red-600 hover:bg-red-700"
               : "bg-blue-600 hover:bg-blue-700"
           }`}
           size="lg"
+          aria-label={isRecording ? "Stop talking to cooking assistant" : "Start talking to cooking assistant"}
+          aria-pressed={isRecording}
         >
           {isRecording ? (
             <>
-              <MicOff className="h-5 w-5 mr-2" />
+              <MicOff className="h-5 w-5 mr-2" aria-hidden="true" />
               Stop Talking
             </>
           ) : (
             <>
-              <Mic className="h-5 w-5 mr-2" />
+              <Mic className="h-5 w-5 mr-2" aria-hidden="true" />
               Start Talking
             </>
           )}
         </Button>
 
         {voiceError && (
-          <p className="text-xs text-red-400 text-center">{voiceError}</p>
+          <p className="text-xs text-red-400 text-center" role="alert" aria-live="assertive">
+            {voiceError}
+          </p>
         )}
       </div>
     ) : null,

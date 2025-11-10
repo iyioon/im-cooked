@@ -144,8 +144,9 @@ export function PreferencesDialog({
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-xs text-gray-400">Country</label>
+                  <label htmlFor="country-input" className="text-xs text-gray-400">Country</label>
                   <Input
+                    id="country-input"
                     placeholder="e.g., United States"
                     value={preferences.location?.country || ""}
                     onChange={(e) =>
@@ -158,14 +159,16 @@ export function PreferencesDialog({
                       })
                     }
                     className="bg-white/5 border-white/10 text-white"
+                    aria-label="Country"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs text-gray-400">
+                  <label htmlFor="region-input" className="text-xs text-gray-400">
                     Region/State
                   </label>
                   <Input
+                    id="region-input"
                     placeholder="e.g., California"
                     value={preferences.location?.region || ""}
                     onChange={(e) =>
@@ -178,6 +181,7 @@ export function PreferencesDialog({
                       })
                     }
                     className="bg-white/5 border-white/10 text-white"
+                    aria-label="Region or State"
                   />
                 </div>
               </div>
@@ -186,7 +190,7 @@ export function PreferencesDialog({
                 <label className="text-xs text-gray-400">
                   Measurement System
                 </label>
-                <div className="flex gap-2">
+                <div className="flex gap-2" role="group" aria-label="Measurement system selection">
                   <Button
                     type="button"
                     variant={
@@ -205,6 +209,8 @@ export function PreferencesDialog({
                         ? "bg-blue-600 hover:bg-blue-700"
                         : "border-white/20 hover:bg-white/10"
                     }
+                    aria-label="Use metric measurement system"
+                    aria-pressed={preferences.measurementSystem === "metric"}
                   >
                     Metric (g, ml)
                   </Button>
@@ -226,6 +232,8 @@ export function PreferencesDialog({
                         ? "bg-blue-600 hover:bg-blue-700"
                         : "border-white/20 hover:bg-white/10"
                     }
+                    aria-label="Use imperial measurement system"
+                    aria-pressed={preferences.measurementSystem === "imperial"}
                   >
                     Imperial (cups, oz)
                   </Button>
@@ -241,7 +249,7 @@ export function PreferencesDialog({
                 Dietary Restrictions
               </h3>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Dietary restrictions selection">
                 {COMMON_DIETARY_RESTRICTIONS.map((diet) => (
                   <Badge
                     key={diet}
@@ -253,6 +261,10 @@ export function PreferencesDialog({
                         ? "bg-green-500/20 text-green-400 border-green-500/50 cursor-pointer"
                         : "bg-white/5 text-gray-400 border-white/10 cursor-pointer hover:bg-white/10"
                     }
+                    role="button"
+                    aria-label={`${preferences.dietaryRestrictions?.includes(diet) ? 'Remove' : 'Add'} ${diet} dietary restriction`}
+                    aria-pressed={preferences.dietaryRestrictions?.includes(diet)}
+                    tabIndex={0}
                   >
                     {diet}
                   </Badge>
@@ -284,6 +296,7 @@ export function PreferencesDialog({
                     }
                   }}
                   className="bg-white/5 border-white/10 text-white text-sm"
+                  aria-label="Add custom dietary restriction"
                 />
                 <Button
                   type="button"
@@ -293,8 +306,9 @@ export function PreferencesDialog({
                     setCustomDietary("");
                   }}
                   className="bg-blue-600 hover:bg-blue-700"
+                  aria-label="Add custom dietary restriction"
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </div>
             </CardContent>
@@ -305,7 +319,7 @@ export function PreferencesDialog({
             <CardContent className="pt-6 space-y-4">
               <h3 className="text-sm font-semibold text-white">Allergies</h3>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2" role="group" aria-label="Allergy selection">
                 {COMMON_ALLERGIES.map((allergy) => (
                   <Badge
                     key={allergy}
@@ -315,6 +329,10 @@ export function PreferencesDialog({
                         ? "bg-red-500/20 text-red-400 border-red-500/50 cursor-pointer"
                         : "bg-white/5 text-gray-400 border-white/10 cursor-pointer hover:bg-white/10"
                     }
+                    role="button"
+                    aria-label={`${preferences.allergies?.includes(allergy) ? 'Remove' : 'Add'} ${allergy} allergy`}
+                    aria-pressed={preferences.allergies?.includes(allergy)}
+                    tabIndex={0}
                   >
                     {allergy}
                   </Badge>
@@ -434,7 +452,7 @@ export function PreferencesDialog({
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-xs text-gray-400">Skill Level</label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2" role="group" aria-label="Cooking skill level selection">
                     {["beginner", "intermediate", "advanced"].map((level) => (
                       <Button
                         key={level}
@@ -456,6 +474,8 @@ export function PreferencesDialog({
                             ? "bg-blue-600 hover:bg-blue-700 text-xs"
                             : "border-white/20 hover:bg-white/10 text-xs"
                         }
+                        aria-label={`Set skill level to ${level}`}
+                        aria-pressed={preferences.skillLevel === level}
                       >
                         {level}
                       </Button>
@@ -464,10 +484,11 @@ export function PreferencesDialog({
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs text-gray-400">
+                  <label htmlFor="servings-input" className="text-xs text-gray-400">
                     Default Servings
                   </label>
                   <Input
+                    id="servings-input"
                     type="number"
                     min="1"
                     max="20"
@@ -479,6 +500,7 @@ export function PreferencesDialog({
                       })
                     }
                     className="bg-white/5 border-white/10 text-white"
+                    aria-label="Default number of servings for recipes"
                   />
                 </div>
               </div>
@@ -541,12 +563,14 @@ export function PreferencesDialog({
             onClick={() => onOpenChange(false)}
             variant="outline"
             className="border-white/20 hover:bg-white/10 text-white"
+            aria-label="Cancel and close preferences"
           >
             Cancel
           </Button>
           <Button
             onClick={handleSave}
             className="bg-blue-600 hover:bg-blue-700 text-white"
+            aria-label="Save preferences and close"
           >
             Save Preferences
           </Button>

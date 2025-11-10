@@ -420,12 +420,12 @@ export function VoiceOverlay({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col">
+    <div className="fixed inset-0 z-50 bg-black flex flex-col" role="dialog" aria-modal="true" aria-label="Voice cooking mode">
       {/* Header */}
       <div className="shrink-0 p-6 border-b border-white/10">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/50">
+            <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/50" role="status" aria-live="polite">
               Step {currentStepNumber} of {totalSteps}
             </Badge>
             <h2 className="text-lg text-gray-400">{recipe.title}</h2>
@@ -435,8 +435,9 @@ export function VoiceOverlay({
             variant="ghost"
             size="icon"
             className="shrink-0 text-gray-400 hover:text-white hover:bg-white/10"
+            aria-label="Exit voice cooking mode"
           >
-            <X className="h-6 w-6" />
+            <X className="h-6 w-6" aria-hidden="true" />
           </Button>
         </div>
       </div>
@@ -479,8 +480,8 @@ export function VoiceOverlay({
           {/* AI Speaking Indicator - Top of Right Section */}
           <div className="shrink-0 mb-8">
             {isInitializing && (
-              <div className="flex items-center gap-4 p-6 bg-white/5 rounded-2xl border border-white/10">
-                <Loader2 className="h-8 w-8 text-blue-500 animate-spin" />
+              <div className="flex items-center gap-4 p-6 bg-white/5 rounded-2xl border border-white/10" role="status" aria-live="polite">
+                <Loader2 className="h-8 w-8 text-blue-500 animate-spin" aria-hidden="true" />
                 <div>
                   <p className="text-lg font-medium text-white">Connecting...</p>
                   <p className="text-sm text-gray-400">Setting up voice assistant</p>
@@ -489,8 +490,8 @@ export function VoiceOverlay({
             )}
 
             {voiceError && (
-              <div className="flex items-center gap-4 p-6 bg-red-500/10 rounded-2xl border border-red-500/30">
-                <div className="h-8 w-8 rounded-full bg-red-500/20 flex items-center justify-center shrink-0">
+              <div className="flex items-center gap-4 p-6 bg-red-500/10 rounded-2xl border border-red-500/30" role="alert" aria-live="assertive">
+                <div className="h-8 w-8 rounded-full bg-red-500/20 flex items-center justify-center shrink-0" aria-hidden="true">
                   <X className="h-5 w-5 text-red-500" />
                 </div>
                 <div className="flex-1">
@@ -501,8 +502,8 @@ export function VoiceOverlay({
             )}
 
             {!isInitializing && !voiceError && isAISpeaking && (
-              <div className="flex items-center gap-4 p-6 bg-gradient-to-r from-green-600/20 to-emerald-600/20 rounded-2xl border border-green-500/30 animate-pulse">
-                <div className="relative shrink-0">
+              <div className="flex items-center gap-4 p-6 bg-gradient-to-r from-green-600/20 to-emerald-600/20 rounded-2xl border border-green-500/30 animate-pulse" role="status" aria-live="polite">
+                <div className="relative shrink-0" aria-hidden="true">
                   <div className="h-12 w-12 rounded-full bg-gradient-to-br from-green-600 to-emerald-600 flex items-center justify-center">
                     <Volume2 className="h-6 w-6 text-white" />
                   </div>
@@ -511,8 +512,15 @@ export function VoiceOverlay({
                 <div className="flex-1">
                   <p className="text-lg font-medium text-green-400">AI is speaking...</p>
                   {/* Output Volume Meter */}
-                  <div className="mt-2 h-2 bg-white/10 rounded-full overflow-hidden">
-                    <div 
+                  <div
+                    className="mt-2 h-2 bg-white/10 rounded-full overflow-hidden"
+                    role="progressbar"
+                    aria-valuenow={outputVolume}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label="AI speech volume"
+                  >
+                    <div
                       className="h-full bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-100"
                       style={{ width: `${outputVolume}%` }}
                     />
@@ -522,8 +530,8 @@ export function VoiceOverlay({
             )}
 
             {!isInitializing && !voiceError && !isAISpeaking && (
-              <div className="flex items-center gap-4 p-6 bg-white/5 rounded-2xl border border-white/10">
-                <div className="h-12 w-12 rounded-full bg-white/5 border-2 border-white/10 flex items-center justify-center shrink-0">
+              <div className="flex items-center gap-4 p-6 bg-white/5 rounded-2xl border border-white/10" role="status" aria-live="polite">
+                <div className="h-12 w-12 rounded-full bg-white/5 border-2 border-white/10 flex items-center justify-center shrink-0" aria-hidden="true">
                   <Mic className="h-6 w-6 text-gray-400" />
                 </div>
                 <div>
@@ -535,14 +543,14 @@ export function VoiceOverlay({
           </div>
 
           {/* Current Instruction - Center of Right Section */}
-          <div className="flex-1 flex items-center justify-center">
+          <div className="flex-1 flex items-center justify-center" role="main" aria-label="Current cooking step">
             <div className="text-center space-y-6 max-w-2xl">
               <div className="flex items-center justify-center gap-4 mb-4">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-purple-600 text-2xl font-bold text-white shadow-lg">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-purple-600 text-2xl font-bold text-white shadow-lg" aria-hidden="true">
                   {currentStepNumber}
                 </div>
               </div>
-              <p className="text-3xl sm:text-4xl text-white font-medium leading-relaxed">
+              <p className="text-3xl sm:text-4xl text-white font-medium leading-relaxed" aria-live="assertive">
                 {currentStep?.text || "Loading..."}
               </p>
             </div>
@@ -555,10 +563,10 @@ export function VoiceOverlay({
       <div className="shrink-0 border-t border-white/10">
         <div className="max-w-4xl mx-auto p-6 space-y-4">
           {/* Connection Status */}
-          <div className="flex items-center justify-center gap-2">
+          <div className="flex items-center justify-center gap-2" role="status" aria-live="polite" aria-label={`Voice connection status: ${connectionState}`}>
             {connectionState === "connecting" && (
               <Badge variant="outline" className="border-yellow-500/50 text-yellow-400">
-                <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                <Loader2 className="h-3 w-3 mr-1 animate-spin" aria-hidden="true" />
                 Connecting...
               </Badge>
             )}
@@ -583,8 +591,8 @@ export function VoiceOverlay({
           <div className="flex items-stretch gap-4">
             {/* Listening Indicator */}
             {!isInitializing && !voiceError && isRecording && (
-              <div className="flex-1 flex items-center gap-4 p-4 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-2xl border border-blue-500/30">
-                <div className="relative shrink-0">
+              <div className="flex-1 flex items-center gap-4 p-4 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-2xl border border-blue-500/30" role="status" aria-live="polite">
+                <div className="relative shrink-0" aria-hidden="true">
                   <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
                     <Mic className="h-5 w-5 text-white" />
                   </div>
@@ -597,8 +605,15 @@ export function VoiceOverlay({
                     {isSpeaking ? "Listening..." : "Ready to listen"}
                   </p>
                   {/* Input Volume Meter */}
-                  <div className="mt-1.5 h-2 bg-white/10 rounded-full overflow-hidden">
-                    <div 
+                  <div
+                    className="mt-1.5 h-2 bg-white/10 rounded-full overflow-hidden"
+                    role="progressbar"
+                    aria-valuenow={inputVolume}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-label="Microphone input volume"
+                  >
+                    <div
                       className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-100"
                       style={{ width: `${inputVolume}%` }}
                     />
@@ -612,20 +627,22 @@ export function VoiceOverlay({
               onClick={handleToggleRecording}
               disabled={!isConnected || isInitializing}
               className={`${isRecording ? 'flex-none' : 'flex-1'} py-8 text-lg ${
-                isRecording 
-                  ? "bg-red-600 hover:bg-red-700" 
+                isRecording
+                  ? "bg-red-600 hover:bg-red-700"
                   : "bg-blue-600 hover:bg-blue-700"
               } disabled:opacity-50`}
               size="lg"
+              aria-label={isRecording ? "Stop talking to cooking assistant" : "Start talking to cooking assistant"}
+              aria-pressed={isRecording}
             >
               {isRecording ? (
                 <>
-                  <MicOff className="h-6 w-6 mr-3" />
+                  <MicOff className="h-6 w-6 mr-3" aria-hidden="true" />
                   Stop Talking
                 </>
               ) : (
                 <>
-                  <Mic className="h-6 w-6 mr-3" />
+                  <Mic className="h-6 w-6 mr-3" aria-hidden="true" />
                   Start Talking
                 </>
               )}

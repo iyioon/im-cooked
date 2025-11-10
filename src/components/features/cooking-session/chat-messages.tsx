@@ -30,26 +30,30 @@ export function ChatMessages({
   if (messages.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 border border-blue-500/20 mb-4">
+        <div
+          className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 border border-blue-500/20 mb-4"
+          aria-hidden="true"
+        >
           <ChefHat className="h-8 w-8 text-blue-400" />
         </div>
         <h3 className="text-lg font-semibold text-white mb-2">
           I'm here to help!
         </h3>
         <p className="text-sm text-gray-400 mb-4 max-w-xs">
-          {voiceMode 
+          {voiceMode
             ? "Voice mode is active! Click the microphone button below to start talking."
             : "Ask me questions about the current step, ingredients, or cooking techniques."
           }
         </p>
 
         {!voiceMode && suggestedQuestions.length > 0 && onSuggestedQuestionClick && (
-          <div className="space-y-2 w-full max-w-xs">
+          <div className="space-y-2 w-full max-w-xs" role="group" aria-label="Suggested questions">
             {suggestedQuestions.map((question, index) => (
               <button
                 key={index}
                 onClick={() => onSuggestedQuestionClick(question)}
                 className="w-full text-left px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm text-gray-300 hover:bg-white/10 hover:border-white/20 transition-all"
+                aria-label={`Ask: ${question}`}
               >
                 {question}
               </button>
@@ -61,17 +65,18 @@ export function ChatMessages({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" role="log" aria-live="polite" aria-label="Chat messages">
       {messages.map((message) => (
         <div
           key={message.id}
           className={`flex gap-3 ${
             message.role === "user" ? "justify-end" : "justify-start"
           }`}
+          aria-label={`${message.role === "user" ? "You" : "Assistant"} said: ${message.content}`}
         >
           {message.role === "assistant" && (
-            <Avatar className="h-8 w-8 border-2 border-blue-500/50">
-              <AvatarImage src="/chef.jpg" alt="Chef Assistant" />
+            <Avatar className="h-8 w-8 border-2 border-blue-500/50" aria-hidden="true">
+              <AvatarImage src="/chef.jpg" alt="" />
               <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600">
                 <ChefHat className="h-4 w-4 text-white" />
               </AvatarFallback>
@@ -91,7 +96,7 @@ export function ChatMessages({
           </div>
 
           {message.role === "user" && (
-            <Avatar className="h-8 w-8 border-2 border-purple-500/50">
+            <Avatar className="h-8 w-8 border-2 border-purple-500/50" aria-hidden="true">
               <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-600">
                 <User className="h-4 w-4 text-white" />
               </AvatarFallback>
@@ -101,15 +106,16 @@ export function ChatMessages({
       ))}
 
       {loading && (
-        <div className="flex gap-3 justify-start">
-          <Avatar className="h-8 w-8 border-2 border-blue-500/50">
-            <AvatarImage src="/chef.jpg" alt="Chef Assistant" />
+        <div className="flex gap-3 justify-start" role="status" aria-label="Assistant is typing">
+          <Avatar className="h-8 w-8 border-2 border-blue-500/50" aria-hidden="true">
+            <AvatarImage src="/chef.jpg" alt="" />
             <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600">
               <ChefHat className="h-4 w-4 text-white" />
             </AvatarFallback>
           </Avatar>
           <div className="max-w-[80%] rounded-2xl px-4 py-2 bg-white/5 border border-white/10">
-            <Loader2 className="h-4 w-4 text-blue-400 animate-spin" />
+            <Loader2 className="h-4 w-4 text-blue-400 animate-spin" aria-hidden="true" />
+            <span className="sr-only">Assistant is typing</span>
           </div>
         </div>
       )}

@@ -24,7 +24,7 @@ export function TimerDisplay({ timers, onRemove }: TimerDisplayProps) {
   if (timers.length === 0) return null;
 
   return (
-    <div className="fixed top-6 right-6 z-40 space-y-2 max-w-sm">
+    <div className="fixed top-6 right-6 z-40 space-y-2 max-w-sm" role="region" aria-label="Active timers">
       {timers.map((timer) => (
         <Card
           key={timer.id}
@@ -33,19 +33,23 @@ export function TimerDisplay({ timers, onRemove }: TimerDisplayProps) {
               ? "bg-red-500/20 border-red-500 animate-pulse"
               : "bg-black/60 border-white/20"
           }`}
+          role="timer"
+          aria-live={timer.isCompleted ? "assertive" : "polite"}
+          aria-atomic="true"
+          aria-label={`${timer.label}: ${formatTime(timer.remainingSeconds)} ${timer.isCompleted ? 'completed' : 'remaining'}`}
         >
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 flex-1">
               {timer.isCompleted ? (
-                <div className="h-10 w-10 rounded-full bg-red-500 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-full bg-red-500 flex items-center justify-center" aria-hidden="true">
                   <Bell className="h-5 w-5 text-white animate-bounce" />
                 </div>
               ) : (
-                <div className="h-10 w-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                <div className="h-10 w-10 rounded-full bg-blue-500/20 flex items-center justify-center" aria-hidden="true">
                   <TimerIcon className="h-5 w-5 text-blue-400" />
                 </div>
               )}
-              
+
               <div className="flex-1">
                 <p className="text-sm text-gray-300 font-medium">{timer.label}</p>
                 <div className="flex items-baseline gap-2">
@@ -57,11 +61,12 @@ export function TimerDisplay({ timers, onRemove }: TimerDisplayProps) {
                         ? "text-orange-400"
                         : "text-white"
                     }`}
+                    aria-hidden="true"
                   >
                     {formatTime(timer.remainingSeconds)}
                   </p>
                   {timer.isCompleted && (
-                    <Badge className="bg-red-500/20 text-red-400 border-red-500/50">
+                    <Badge className="bg-red-500/20 text-red-400 border-red-500/50" aria-hidden="true">
                       Done!
                     </Badge>
                   )}
@@ -74,8 +79,9 @@ export function TimerDisplay({ timers, onRemove }: TimerDisplayProps) {
               variant="ghost"
               size="icon"
               className="shrink-0 h-8 w-8 text-gray-400 hover:text-white hover:bg-white/10"
+              aria-label={`Remove ${timer.label} timer`}
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
         </Card>

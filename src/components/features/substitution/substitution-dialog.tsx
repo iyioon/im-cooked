@@ -228,46 +228,50 @@ export function SubstitutionDialog({
         <div className="space-y-4">
           {/* User Input */}
           <div className="space-y-2">
-            <label className="text-sm text-gray-300">
+            <label htmlFor="substitution-input" className="text-sm text-gray-300">
               What would you like to use instead? (optional)
             </label>
             <div className="flex gap-2">
               <Input
+                id="substitution-input"
                 placeholder="e.g., almond flour, coconut oil, plant-based milk"
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
                 className="bg-white/5 border-white/10 text-white placeholder:text-gray-500"
                 disabled={loading}
+                aria-label={`Preferred substitute for ${ingredient}`}
+                aria-describedby="substitution-hint"
               />
               <Button
                 onClick={handleGetSuggestions}
                 disabled={loading}
                 className="bg-blue-600 hover:bg-blue-700 text-white shrink-0"
+                aria-label={loading ? `Analyzing substitutions for ${ingredient}` : `Get substitution suggestions for ${ingredient}`}
               >
                 {loading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
                     Analyzing...
                   </>
                 ) : (
                   <>
-                    <Sparkles className="mr-2 h-4 w-4" />
+                    <Sparkles className="mr-2 h-4 w-4" aria-hidden="true" />
                     Get Suggestions
                   </>
                 )}
               </Button>
             </div>
-            <p className="text-xs text-gray-500">
+            <p id="substitution-hint" className="text-xs text-gray-500">
               Leave empty to get general substitution recommendations
             </p>
           </div>
 
           {/* Error */}
           {error && (
-            <Card className="bg-red-500/10 border-red-500/20">
+            <Card className="bg-red-500/10 border-red-500/20" role="alert" aria-live="assertive">
               <CardContent className="pt-4">
                 <div className="flex items-center gap-2 text-red-400">
-                  <AlertCircle className="h-4 w-4" />
+                  <AlertCircle className="h-4 w-4" aria-hidden="true" />
                   <p className="text-sm">{error}</p>
                 </div>
               </CardContent>
@@ -276,13 +280,13 @@ export function SubstitutionDialog({
 
           {/* Suggestions */}
           {suggestions && (
-            <div className="space-y-4">
+            <div className="space-y-4" role="region" aria-label="Substitution suggestions">
               {/* Allergen Filtering Info */}
               {suggestions.allergenFiltering && suggestions.allergenFiltering.blockedSuggestions > 0 && (
-                <Card className="bg-blue-500/10 border-blue-500/20">
+                <Card className="bg-blue-500/10 border-blue-500/20" role="status" aria-live="polite">
                   <CardContent className="pt-4">
                     <div className="flex items-start gap-2">
-                      <Info className="h-4 w-4 text-blue-400 mt-0.5" />
+                      <Info className="h-4 w-4 text-blue-400 mt-0.5" aria-hidden="true" />
                       <div className="flex-1">
                         <p className="text-sm text-blue-300 mb-2">
                           <strong>{suggestions.allergenFiltering.blockedSuggestions}</strong> suggestion(s) filtered due to allergens
@@ -302,10 +306,10 @@ export function SubstitutionDialog({
 
               {/* No suggestions available */}
               {suggestions.suggestions.length === 0 && suggestions.allergenFiltering && suggestions.allergenFiltering.blockedSuggestions > 0 && (
-                <Card className="bg-yellow-500/10 border-yellow-500/20">
+                <Card className="bg-yellow-500/10 border-yellow-500/20" role="status" aria-live="polite">
                   <CardContent className="pt-4">
                     <div className="flex items-center gap-2 text-yellow-400">
-                      <AlertCircle className="h-4 w-4" />
+                      <AlertCircle className="h-4 w-4" aria-hidden="true" />
                       <p className="text-sm">
                         All substitution suggestions were filtered due to your allergen preferences. Try a different ingredient or adjust your allergen settings.
                       </p>
@@ -356,13 +360,15 @@ export function SubstitutionDialog({
                   <Card
                     key={index}
                     className="bg-white/5 border-white/10 hover:border-blue-500/30 transition-colors"
+                    role="article"
+                    aria-label={`Suggestion ${index + 1}: Use ${suggestion.substitute.ingredient} instead of ${ingredient}`}
                   >
                     <CardContent className="pt-4 space-y-3">
                       {/* Substitution */}
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-2">
-                            <CheckCircle2 className="h-4 w-4 text-green-400" />
+                            <CheckCircle2 className="h-4 w-4 text-green-400" aria-hidden="true" />
                             <span className="font-medium text-white">
                               {suggestion.substitute.quantity &&
                                 `${suggestion.substitute.quantity} `}
@@ -374,8 +380,8 @@ export function SubstitutionDialog({
                             </span>
                             {/* Allergen-Safe Badge */}
                             {suggestion.allergenValidation?.safe && (
-                              <Badge className="bg-green-500/20 text-green-400 border-green-500/50 flex items-center gap-1">
-                                <ShieldCheck className="h-3 w-3" />
+                              <Badge className="bg-green-500/20 text-green-400 border-green-500/50 flex items-center gap-1" aria-label="Allergen-free">
+                                <ShieldCheck className="h-3 w-3" aria-hidden="true" />
                                 Allergen-Free
                               </Badge>
                             )}
@@ -430,10 +436,12 @@ export function SubstitutionDialog({
                         disabled={applyingSubstitution}
                         size="sm"
                         className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                        aria-label={`Apply ${suggestion.substitute.ingredient} as substitute for ${ingredient}`}
+                        aria-busy={applyingSubstitution}
                       >
                         {applyingSubstitution ? (
                           <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
                             Applying...
                           </>
                         ) : (
@@ -455,6 +463,7 @@ export function SubstitutionDialog({
             onClick={() => onOpenChange(false)}
             variant="outline"
             className="border-white/20 hover:bg-white/10 text-white"
+            aria-label="Close substitution dialog"
           >
             Cancel
           </Button>

@@ -46,22 +46,29 @@ export function CookingAssistantChat({
   };
 
   return (
-    <Card className="bg-white/5 border-white/10 backdrop-blur-sm flex flex-col h-full overflow-hidden">
+    <Card
+      className="bg-white/5 border-white/10 backdrop-blur-sm flex flex-col h-full overflow-hidden"
+      role="region"
+      aria-label="Cooking assistant chat"
+    >
       <CardHeader className="shrink-0 border-b border-white/10">
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="text-white flex items-center gap-2">
-              <ChefHat className="h-5 w-5 text-blue-400" />
+              <ChefHat className="h-5 w-5 text-blue-400" aria-hidden="true" />
               Cooking Assistant
             </CardTitle>
-            <p className="text-sm text-gray-400 mt-1">
+            <p className="text-sm text-gray-400 mt-1" role="status" aria-live="polite">
               Step {currentStepNumber} of {totalSteps}
             </p>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="flex-1 overflow-y-auto p-4">
+      <CardContent
+        className="flex-1 overflow-y-auto p-4"
+        aria-label="Chat conversation"
+      >
         <ChatMessages
           messages={messages}
           loading={false}

@@ -198,7 +198,7 @@ export function TextChatInput({
   };
 
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-2" role="search">
       <Input
         value={input}
         onChange={(e) => setInput(e.target.value)}
@@ -206,13 +206,19 @@ export function TextChatInput({
         placeholder="Ask me anything..."
         disabled={loading}
         className="bg-white/5 border-white/10 text-white placeholder:text-gray-500"
+        aria-label="Ask cooking assistant a question"
       />
       <Button
         onClick={handleSendMessage}
         disabled={!input.trim() || loading}
         className="bg-blue-600 hover:bg-blue-700 text-white shrink-0"
+        aria-label={loading ? "Sending message to cooking assistant" : "Send message to cooking assistant"}
       >
-        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+        {loading ? (
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+        ) : (
+          <Send className="h-4 w-4" aria-hidden="true" />
+        )}
       </Button>
     </div>
   );

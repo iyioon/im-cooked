@@ -39,25 +39,27 @@ export function ChatSubstitutionSuggestion({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" role="region" aria-label={`Substitution suggestions for ${originalIngredient}`}>
       {/* Explanation */}
       <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
         <p className="text-sm text-gray-300">{explanation}</p>
       </div>
 
       {/* Suggestions */}
-      <div className="space-y-3">
+      <div className="space-y-3" role="list">
         {suggestions.map((suggestion, index) => (
           <Card
             key={index}
             className="bg-white/5 border-white/10 hover:border-blue-500/30 transition-colors"
+            role="listitem"
+            aria-label={`Suggestion ${index + 1}: Use ${suggestion.substitute.ingredient} instead of ${originalIngredient}`}
           >
             <CardContent className="pt-4 space-y-3">
               {/* Substitution */}
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-2">
-                    <CheckCircle2 className="h-4 w-4 text-green-400" />
+                    <CheckCircle2 className="h-4 w-4 text-green-400" aria-hidden="true" />
                     <span className="font-medium text-white">
                       {suggestion.substitute.quantity &&
                         `${suggestion.substitute.quantity} `}
@@ -120,15 +122,17 @@ export function ChatSubstitutionSuggestion({
                     ? "bg-green-600 hover:bg-green-600"
                     : "bg-blue-600 hover:bg-blue-700"
                 }`}
+                aria-label={`Use ${suggestion.substitute.ingredient} as substitution for ${originalIngredient}`}
+                aria-busy={applyingId === index}
               >
                 {applyingId === index ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
                     Applying...
                   </>
                 ) : appliedId === index ? (
                   <>
-                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                    <CheckCircle2 className="mr-2 h-4 w-4" aria-hidden="true" />
                     Applied!
                   </>
                 ) : (
@@ -147,6 +151,7 @@ export function ChatSubstitutionSuggestion({
           variant="outline"
           size="sm"
           className="w-full border-white/20 hover:bg-white/10 text-gray-400"
+          aria-label="Dismiss substitution suggestions"
         >
           Dismiss
         </Button>
