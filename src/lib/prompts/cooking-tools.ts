@@ -45,11 +45,13 @@ export const setTimerTool: FunctionDeclaration = {
     properties: {
       minutes: {
         type: "number",
-        description: "Timer duration in minutes. Use 0 if the user only specifies seconds. Can be decimal (e.g., 0.5 for 30 seconds).",
+        description:
+          "Timer duration in minutes. Use 0 if the user only specifies seconds. Can be decimal (e.g., 0.5 for 30 seconds).",
       },
       seconds: {
         type: "number",
-        description: "Additional seconds to add to the timer (0-59). If user says 'X seconds', set minutes=0 and seconds=X.",
+        description:
+          "Additional seconds to add to the timer (0-59). If user says 'X seconds', set minutes=0 and seconds=X.",
       },
       label: {
         type: "string",
@@ -80,11 +82,7 @@ export const markStepCompleteTool: FunctionDeclaration = {
  */
 export const cookingTools = [
   {
-    functionDeclarations: [
-      navigateToStepTool,
-      setTimerTool,
-      markStepCompleteTool,
-    ],
+    functionDeclarations: [navigateToStepTool, setTimerTool, markStepCompleteTool],
   },
 ];
 
@@ -107,7 +105,4 @@ export interface MarkStepCompleteArgs {}
 /**
  * Union type for all tool call arguments
  */
-export type CookingToolArgs =
-  | NavigateToStepArgs
-  | SetTimerArgs
-  | MarkStepCompleteArgs;
+export type CookingToolArgs = NavigateToStepArgs | SetTimerArgs | MarkStepCompleteArgs;

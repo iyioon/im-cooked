@@ -6,6 +6,8 @@ import { useGeminiLive } from "@/hooks/useGeminiLive";
 import { useTimer } from "@/hooks/useTimer";
 import { buildVoiceCookingContext, buildStepChangeUpdate } from "@/lib/prompts/cooking-assistant";
 import { cookingTools } from "@/lib/prompts/cooking-tools";
+import { getPublicGeminiApiKey } from "@/lib/env-validation";
+import { UI_TIMINGS, AUDIO_SETTINGS } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TimerDisplay } from "./timer-display";
@@ -56,6 +58,9 @@ export function VoiceOverlay({
   }, [recipe.title, recipe.steps, recipe.ingredients, totalSteps]);
 
   // Initialize Gemini Live
+  // NOTE: This uses a client-side API key which is exposed in the browser bundle.
+  // This is required for Gemini Live's WebSocket connection architecture.
+  // Mitigation: Use Google Cloud Console to restrict the API key to your domain.
   const {
     isConnected,
     isRecording,
@@ -76,7 +81,7 @@ export function VoiceOverlay({
     error: voiceError,
     connectionState,
   } = useGeminiLive({
-    apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "",
+    apiKey: getPublicGeminiApiKey(),
     systemInstruction,
     tools: cookingTools,
   });
@@ -87,7 +92,7 @@ export function VoiceOverlay({
       try {
         await connect();
         setIsInitializing(false);
-        
+
         // Send initial context to have AI explain the current step
         const initialMessage = `The user just started voice mode. Please greet them and explain Step ${currentStepNumber} in 15-30 seconds.`;
         sendContextUpdate(initialMessage);
@@ -113,12 +118,8 @@ export function VoiceOverlay({
   // Handle step changes - send as user message so AI responds
   useEffect(() => {
     if (isConnected && previousStepRef.current !== currentStepNumber) {
-      const updateMessage = buildStepChangeUpdate(
-        currentStepNumber,
-        currentStep,
-        totalSteps
-      );
-      
+      const updateMessage = buildStepChangeUpdate(currentStepNumber, currentStep, totalSteps);
+
       console.log("Step changed in voice overlay, sending update:", updateMessage);
       sendText(updateMessage);
       previousStepRef.current = currentStepNumber;
@@ -127,7 +128,11 @@ export function VoiceOverlay({
 
   // Register function call handler
   useEffect(() => {
-    const handleFunctionCall = (call: { id: string; name: string; args: Record<string, unknown> }) => {
+    const handleFunctionCall = (call: {
+      id: string;
+      name: string;
+      args: Record<string, unknown>;
+    }) => {
       console.log("Function call received:", call);
       console.log("Function name:", call.name);
       console.log("Function args:", JSON.stringify(call.args));
@@ -136,202 +141,248 @@ export function VoiceOverlay({
         // Prevent multiple navigation actions from being executed simultaneously
         if (isNavigatingRef.current) {
           console.log("Navigation already in progress, rejecting duplicate request");
-          sendToolResponse([{
-            id: call.id,
-            name: call.name,
-            response: { 
-              success: false, 
-              message: "Navigation is already in progress. Please wait a moment before navigating again." 
-            }
-          }]);
+          sendToolResponse([
+            {
+              id: call.id,
+              name: call.name,
+              response: {
+                success: false,
+                message:
+                  "Navigation is already in progress. Please wait a moment before navigating again.",
+              },
+            },
+          ]);
           return;
         }
-        
+
         const args = call.args as { action: "next" | "previous" | "goto"; stepNumber?: number };
-        
+
         // Set flag to prevent duplicate navigation
         isNavigatingRef.current = true;
-        
+
         if (args.action === "next") {
           // Check if we're already at the last step
           if (currentStepNumber >= totalSteps) {
-            sendToolResponse([{
-              id: call.id,
-              name: call.name,
-              response: { 
-                success: false, 
-                message: `Cannot move to next step. Already at the final step (${totalSteps} of ${totalSteps}).` 
-              }
-            }]);
+            sendToolResponse([
+              {
+                id: call.id,
+                name: call.name,
+                response: {
+                  success: false,
+                  message: `Cannot move to next step. Already at the final step (${totalSteps} of ${totalSteps}).`,
+                },
+              },
+            ]);
             // Reset flag after error response
             isNavigatingRef.current = false;
             return;
           }
-          
+
           onNextStep();
-          sendToolResponse([{
-            id: call.id,
-            name: call.name,
-            response: { success: true, message: `Navigation complete. Context update will follow - wait for it before responding to user.` }
-          }]);
-          
+          sendToolResponse([
+            {
+              id: call.id,
+              name: call.name,
+              response: {
+                success: true,
+                message: `Navigation complete. Context update will follow - wait for it before responding to user.`,
+              },
+            },
+          ]);
+
           // Reset flag after a delay to allow the navigation to complete
           setTimeout(() => {
             isNavigatingRef.current = false;
-          }, 1500);
+          }, UI_TIMINGS.VOICE_NAVIGATION_DELAY);
         } else if (args.action === "previous") {
           // Check if we're already at the first step
           if (currentStepNumber <= 1) {
-            sendToolResponse([{
-              id: call.id,
-              name: call.name,
-              response: { 
-                success: false, 
-                message: `Cannot move to previous step. Already at the first step (1 of ${totalSteps}).` 
-              }
-            }]);
+            sendToolResponse([
+              {
+                id: call.id,
+                name: call.name,
+                response: {
+                  success: false,
+                  message: `Cannot move to previous step. Already at the first step (1 of ${totalSteps}).`,
+                },
+              },
+            ]);
             // Reset flag after error response
             isNavigatingRef.current = false;
             return;
           }
-          
+
           onPreviousStep();
-          sendToolResponse([{
-            id: call.id,
-            name: call.name,
-            response: { success: true, message: `Navigation complete. Context update will follow - wait for it before responding to user.` }
-          }]);
-          
+          sendToolResponse([
+            {
+              id: call.id,
+              name: call.name,
+              response: {
+                success: true,
+                message: `Navigation complete. Context update will follow - wait for it before responding to user.`,
+              },
+            },
+          ]);
+
           // Reset flag after a delay to allow the navigation to complete
           setTimeout(() => {
             isNavigatingRef.current = false;
-          }, 1500);
+          }, UI_TIMINGS.VOICE_NAVIGATION_DELAY);
         } else if (args.action === "goto" && args.stepNumber) {
           // Validate step number is within bounds
           if (args.stepNumber < 1 || args.stepNumber > totalSteps) {
-            sendToolResponse([{
-              id: call.id,
-              name: call.name,
-              response: { 
-                success: false, 
-                message: `Cannot go to step ${args.stepNumber}. Step must be between 1 and ${totalSteps}.` 
-              }
-            }]);
+            sendToolResponse([
+              {
+                id: call.id,
+                name: call.name,
+                response: {
+                  success: false,
+                  message: `Cannot go to step ${args.stepNumber}. Step must be between 1 and ${totalSteps}.`,
+                },
+              },
+            ]);
             // Reset flag after error response
             isNavigatingRef.current = false;
             return;
           }
-          
+
           onGoToStep(args.stepNumber);
-          sendToolResponse([{
-            id: call.id,
-            name: call.name,
-            response: { success: true, message: `Navigation complete. Context update will follow - wait for it before responding to user.` }
-          }]);
-          
+          sendToolResponse([
+            {
+              id: call.id,
+              name: call.name,
+              response: {
+                success: true,
+                message: `Navigation complete. Context update will follow - wait for it before responding to user.`,
+              },
+            },
+          ]);
+
           // Reset flag after a delay to allow the navigation to complete
           setTimeout(() => {
             isNavigatingRef.current = false;
-          }, 1500);
+          }, UI_TIMINGS.VOICE_NAVIGATION_DELAY);
         }
       } else if (call.name === "markStepComplete") {
         // Prevent multiple navigation actions from being executed simultaneously
         if (isNavigatingRef.current) {
           console.log("Navigation already in progress, rejecting duplicate request");
-          sendToolResponse([{
-            id: call.id,
-            name: call.name,
-            response: { 
-              success: false, 
-              message: "Navigation is already in progress. Please wait a moment before marking the step complete." 
-            }
-          }]);
+          sendToolResponse([
+            {
+              id: call.id,
+              name: call.name,
+              response: {
+                success: false,
+                message:
+                  "Navigation is already in progress. Please wait a moment before marking the step complete.",
+              },
+            },
+          ]);
           return;
         }
-        
+
         // Set flag to prevent duplicate navigation
         isNavigatingRef.current = true;
-        
+
         // Check if we're already at the last step
         if (currentStepNumber >= totalSteps) {
-          sendToolResponse([{
-            id: call.id,
-            name: call.name,
-            response: { 
-              success: false, 
-              message: `Cannot mark step as complete. Already at the final step (${totalSteps} of ${totalSteps}). The recipe is complete!` 
-            }
-          }]);
+          sendToolResponse([
+            {
+              id: call.id,
+              name: call.name,
+              response: {
+                success: false,
+                message: `Cannot mark step as complete. Already at the final step (${totalSteps} of ${totalSteps}). The recipe is complete!`,
+              },
+            },
+          ]);
           // Reset flag after error response
           isNavigatingRef.current = false;
           return;
         }
-        
+
         onNextStep();
-        sendToolResponse([{
-          id: call.id,
-          name: call.name,
-          response: { success: true, message: `Step marked complete. Navigation complete. Context update will follow - wait for it before responding to user.` }
-        }]);
-        
+        sendToolResponse([
+          {
+            id: call.id,
+            name: call.name,
+            response: {
+              success: true,
+              message: `Step marked complete. Navigation complete. Context update will follow - wait for it before responding to user.`,
+            },
+          },
+        ]);
+
         // Reset flag after a delay to allow the navigation to complete
         setTimeout(() => {
           isNavigatingRef.current = false;
         }, 1500);
       } else if (call.name === "setTimer") {
         console.log("setTimer function called!");
-        
+
         // Prevent multiple timers from being set simultaneously
         if (isSettingTimerRef.current) {
           console.log("Timer already being set, rejecting duplicate request");
-          sendToolResponse([{
-            id: call.id,
-            name: call.name,
-            response: { 
-              success: false, 
-              message: "A timer is already being set. Please wait a moment before setting another timer." 
-            }
-          }]);
+          sendToolResponse([
+            {
+              id: call.id,
+              name: call.name,
+              response: {
+                success: false,
+                message:
+                  "A timer is already being set. Please wait a moment before setting another timer.",
+              },
+            },
+          ]);
           return;
         }
-        
+
         const args = call.args as { minutes: number; seconds?: number; label?: string };
-        console.log("Timer args - minutes:", args.minutes, "seconds:", args.seconds, "label:", args.label);
-        
+        console.log(
+          "Timer args - minutes:",
+          args.minutes,
+          "seconds:",
+          args.seconds,
+          "label:",
+          args.label
+        );
+
         const totalSeconds = Math.floor(args.minutes * 60) + (args.seconds || 0);
         const label = args.label || "Timer";
-        
+
         console.log("Setting timer for", totalSeconds, "seconds with label:", label);
-        
+
         // Set flag to prevent duplicate timer creation
         isSettingTimerRef.current = true;
-        
+
         // Add the timer
         addTimer(totalSeconds, label);
-        
+
         // Build response message with proper duration formatting
         let durationText = "";
         if (args.minutes > 0 && args.seconds && args.seconds > 0) {
-          durationText = `${args.minutes} minute${args.minutes !== 1 ? 's' : ''} and ${args.seconds} second${args.seconds !== 1 ? 's' : ''}`;
+          durationText = `${args.minutes} minute${args.minutes !== 1 ? "s" : ""} and ${args.seconds} second${args.seconds !== 1 ? "s" : ""}`;
         } else if (args.minutes > 0) {
-          durationText = `${args.minutes} minute${args.minutes !== 1 ? 's' : ''}`;
+          durationText = `${args.minutes} minute${args.minutes !== 1 ? "s" : ""}`;
         } else if (args.seconds && args.seconds > 0) {
-          durationText = `${args.seconds} second${args.seconds !== 1 ? 's' : ''}`;
+          durationText = `${args.seconds} second${args.seconds !== 1 ? "s" : ""}`;
         }
-        
+
         console.log("Sending timer response:", durationText);
-        
-        sendToolResponse([{
-          id: call.id,
-          name: call.name,
-          response: { success: true, message: `Timer set for ${durationText}` }
-        }]);
-        
+
+        sendToolResponse([
+          {
+            id: call.id,
+            name: call.name,
+            response: { success: true, message: `Timer set for ${durationText}` },
+          },
+        ]);
+
         // Reset flag after a brief delay to allow the tool response to complete
         setTimeout(() => {
           isSettingTimerRef.current = false;
-        }, 1000);
-        
+        }, UI_TIMINGS.VOICE_TIMER_SETTING_DELAY);
+
         console.log("Timer function completed");
       } else {
         console.log("Unknown function call:", call.name);
@@ -346,11 +397,11 @@ export function VoiceOverlay({
     onTimerComplete((timer) => {
       // Play alarm sound
       playAlarmSound();
-      
+
       if (isConnected) {
         const minutes = Math.floor(timer.totalSeconds / 60);
         const seconds = timer.totalSeconds % 60;
-        const timerMessage = `The "${timer.label}" timer has finished (${minutes > 0 ? `${minutes} minute${minutes !== 1 ? 's' : ''}` : ''}${minutes > 0 && seconds > 0 ? ' and ' : ''}${seconds > 0 ? `${seconds} second${seconds !== 1 ? 's' : ''}` : ''}). Please notify the user clearly and ask if they need anything else.`;
+        const timerMessage = `The "${timer.label}" timer has finished (${minutes > 0 ? `${minutes} minute${minutes !== 1 ? "s" : ""}` : ""}${minutes > 0 && seconds > 0 ? " and " : ""}${seconds > 0 ? `${seconds} second${seconds !== 1 ? "s" : ""}` : ""}). Please notify the user clearly and ask if they need anything else.`;
         console.log("Timer completed, sending message:", timerMessage);
         sendText(timerMessage);
       }
@@ -358,7 +409,7 @@ export function VoiceOverlay({
       // Auto-remove timer after 5 seconds (give AI time to respond)
       setTimeout(() => {
         removeTimer(timer.id);
-      }, 5000);
+      }, UI_TIMINGS.VOICE_TIMER_REMOVAL_DELAY);
     });
   }, [onTimerComplete, isConnected, sendText, removeTimer]);
 
@@ -366,28 +417,34 @@ export function VoiceOverlay({
   const playAlarmSound = () => {
     try {
       const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      
-      // Create three beeps
-      for (let i = 0; i < 3; i++) {
+
+      // Create alarm beeps
+      for (let i = 0; i < AUDIO_SETTINGS.ALARM_BEEP_COUNT; i++) {
         const oscillator = audioContext.createOscillator();
         const gainNode = audioContext.createGain();
-        
+
         oscillator.connect(gainNode);
         gainNode.connect(audioContext.destination);
-        
-        // Set frequency (800 Hz for a pleasant beep)
-        oscillator.frequency.value = 800;
-        oscillator.type = 'sine';
-        
+
+        // Set frequency
+        oscillator.frequency.value = AUDIO_SETTINGS.ALARM_FREQUENCY;
+        oscillator.type = "sine";
+
         // Set volume envelope
-        const startTime = audioContext.currentTime + (i * 0.3);
+        const startTime = audioContext.currentTime + i * AUDIO_SETTINGS.ALARM_BEEP_INTERVAL;
         gainNode.gain.setValueAtTime(0, startTime);
-        gainNode.gain.linearRampToValueAtTime(0.3, startTime + 0.01);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + 0.2);
-        
+        gainNode.gain.linearRampToValueAtTime(
+          AUDIO_SETTINGS.ALARM_VOLUME,
+          startTime + AUDIO_SETTINGS.ALARM_ATTACK_TIME
+        );
+        gainNode.gain.exponentialRampToValueAtTime(
+          0.01,
+          startTime + AUDIO_SETTINGS.ALARM_DECAY_TIME
+        );
+
         // Play beep
         oscillator.start(startTime);
-        oscillator.stop(startTime + 0.2);
+        oscillator.stop(startTime + AUDIO_SETTINGS.ALARM_DECAY_TIME);
       }
     } catch (error) {
       console.error("Failed to play alarm sound:", error);
@@ -454,9 +511,7 @@ export function VoiceOverlay({
               />
               {currentStep.caption && (
                 <div className="absolute bottom-0 left-0 right-0 bg-black/80 backdrop-blur-sm p-4 rounded-b-2xl">
-                  <p className="text-sm text-gray-300 text-center italic">
-                    {currentStep.caption}
-                  </p>
+                  <p className="text-sm text-gray-300 text-center italic">{currentStep.caption}</p>
                 </div>
               )}
             </div>
@@ -464,9 +519,7 @@ export function VoiceOverlay({
             <div className="flex items-center justify-center w-full h-full">
               <div className="text-center space-y-4">
                 <div className="h-32 w-32 mx-auto rounded-full bg-white/5 border-2 border-white/10 flex items-center justify-center">
-                  <span className="text-4xl font-bold text-white/30">
-                    {currentStepNumber}
-                  </span>
+                  <span className="text-4xl font-bold text-white/30">{currentStepNumber}</span>
                 </div>
                 <p className="text-gray-400">No image for this step</p>
               </div>
@@ -512,7 +565,7 @@ export function VoiceOverlay({
                   <p className="text-lg font-medium text-green-400">AI is speaking...</p>
                   {/* Output Volume Meter */}
                   <div className="mt-2 h-2 bg-white/10 rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className="h-full bg-gradient-to-r from-green-500 to-emerald-500 transition-all duration-100"
                       style={{ width: `${outputVolume}%` }}
                     />
@@ -547,7 +600,6 @@ export function VoiceOverlay({
               </p>
             </div>
           </div>
-
         </div>
       </div>
 
@@ -598,7 +650,7 @@ export function VoiceOverlay({
                   </p>
                   {/* Input Volume Meter */}
                   <div className="mt-1.5 h-2 bg-white/10 rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-100"
                       style={{ width: `${inputVolume}%` }}
                     />
@@ -611,10 +663,8 @@ export function VoiceOverlay({
             <Button
               onClick={handleToggleRecording}
               disabled={!isConnected || isInitializing}
-              className={`${isRecording ? 'flex-none' : 'flex-1'} py-8 text-lg ${
-                isRecording 
-                  ? "bg-red-600 hover:bg-red-700" 
-                  : "bg-blue-600 hover:bg-blue-700"
+              className={`${isRecording ? "flex-none" : "flex-1"} py-8 text-lg ${
+                isRecording ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"
               } disabled:opacity-50`}
               size="lg"
             >

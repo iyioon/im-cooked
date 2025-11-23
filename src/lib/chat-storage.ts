@@ -4,6 +4,7 @@
  */
 
 import { Recipe, IngredientSubstitution } from "@/types/recipe";
+import { STORAGE_LIMITS } from "./constants";
 
 export interface Message {
   id: string;
@@ -22,7 +23,6 @@ export interface Message {
 }
 
 const STORAGE_KEY = "im-cooked-chat-history"; // Legacy key for backward compatibility
-const MAX_MESSAGES = 100; // Limit to prevent storage bloat
 
 /**
  * Save messages to localStorage (legacy function for backward compatibility)
@@ -31,10 +31,10 @@ const MAX_MESSAGES = 100; // Limit to prevent storage bloat
 export function saveChatHistory(messages: Message[]): void {
   try {
     // Limit number of messages to store
-    const messagesToStore = messages.slice(-MAX_MESSAGES);
+    const messagesToStore = messages.slice(-STORAGE_LIMITS.MAX_MESSAGES);
 
     // Convert Date objects to ISO strings for storage
-    const serialized = messagesToStore.map(msg => ({
+    const serialized = messagesToStore.map((msg) => ({
       ...msg,
       timestamp: msg.timestamp.toISOString(),
     }));

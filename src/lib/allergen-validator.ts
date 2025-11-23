@@ -14,7 +14,7 @@ import {
   AllergenInfo,
   AllergenSeverity,
   ProductAllergenData,
-} from '@/services/open-food-facts';
+} from "@/services/open-food-facts";
 
 /**
  * Allergen validation result for a single ingredient
@@ -31,12 +31,12 @@ export interface AllergenValidationResult {
  * Details about an allergen match
  */
 export interface AllergenMatch {
-  userAllergen: string;      // The allergen from user's preferences
-  detectedAllergen: string;  // The allergen detected in the ingredient
+  userAllergen: string; // The allergen from user's preferences
+  detectedAllergen: string; // The allergen detected in the ingredient
   severity: AllergenSeverity;
   confidence: number;
-  matchType: 'exact' | 'hierarchical' | 'derivative';
-  source: string;            // Where the allergen was detected
+  matchType: "exact" | "hierarchical" | "derivative";
+  source: string; // Where the allergen was detected
 }
 
 /**
@@ -57,31 +57,57 @@ export function normalizeIngredientName(ingredient: string): string {
   let normalized = ingredient.toLowerCase().trim();
 
   // Remove quantity and measurement units
-  normalized = normalized.replace(/^\d+(\.\d+)?\s*(\/\s*\d+)?\s*(cups?|tbsp|tsp|oz|g|kg|ml|l|pounds?|lbs?|pinch|dash|to taste)?\s*/gi, '');
+  normalized = normalized.replace(
+    /^\d+(\.\d+)?\s*(\/\s*\d+)?\s*(cups?|tbsp|tsp|oz|g|kg|ml|l|pounds?|lbs?|pinch|dash|to taste)?\s*/gi,
+    ""
+  );
 
   // Remove common preparation terms
   const preparationTerms = [
-    'fresh', 'frozen', 'canned', 'dried', 'chopped', 'diced', 'sliced', 'minced',
-    'grated', 'shredded', 'crushed', 'whole', 'halved', 'quartered',
-    'cooked', 'raw', 'roasted', 'toasted', 'blanched',
-    'optional', 'divided', 'plus more',
-    'for serving', 'for garnish', 'to taste',
-    'organic', 'kosher', 'sea', 'iodized',
+    "fresh",
+    "frozen",
+    "canned",
+    "dried",
+    "chopped",
+    "diced",
+    "sliced",
+    "minced",
+    "grated",
+    "shredded",
+    "crushed",
+    "whole",
+    "halved",
+    "quartered",
+    "cooked",
+    "raw",
+    "roasted",
+    "toasted",
+    "blanched",
+    "optional",
+    "divided",
+    "plus more",
+    "for serving",
+    "for garnish",
+    "to taste",
+    "organic",
+    "kosher",
+    "sea",
+    "iodized",
   ];
 
   for (const term of preparationTerms) {
-    const regex = new RegExp(`\\b${term}\\b`, 'gi');
-    normalized = normalized.replace(regex, '');
+    const regex = new RegExp(`\\b${term}\\b`, "gi");
+    normalized = normalized.replace(regex, "");
   }
 
   // Remove parenthetical notes
-  normalized = normalized.replace(/\([^)]*\)/g, '');
+  normalized = normalized.replace(/\([^)]*\)/g, "");
 
   // Remove extra whitespace
-  normalized = normalized.replace(/\s+/g, ' ').trim();
+  normalized = normalized.replace(/\s+/g, " ").trim();
 
   // Remove trailing commas or dashes
-  normalized = normalized.replace(/[,\-]+$/, '').trim();
+  normalized = normalized.replace(/[,\-]+$/, "").trim();
 
   return normalized;
 }
@@ -93,13 +119,13 @@ export function normalizeIngredientName(ingredient: string): string {
 async function checkHierarchicalMatch(
   detectedAllergen: string,
   userAllergens: string[]
-): Promise<{ matched: string; matchType: 'exact' | 'hierarchical' | 'derivative' } | null> {
+): Promise<{ matched: string; matchType: "exact" | "hierarchical" | "derivative" } | null> {
   const detectedLower = detectedAllergen.toLowerCase();
 
   // First check for exact matches
   for (const userAllergen of userAllergens) {
     if (detectedLower === userAllergen.toLowerCase()) {
-      return { matched: userAllergen, matchType: 'exact' };
+      return { matched: userAllergen, matchType: "exact" };
     }
   }
 
@@ -111,19 +137,19 @@ async function checkHierarchicalMatch(
 
     // Check if detected allergen is a child of user allergen
     const children = taxonomy.get(userLower) || [];
-    if (children.some(child => child.toLowerCase() === detectedLower)) {
-      return { matched: userAllergen, matchType: 'hierarchical' };
+    if (children.some((child) => child.toLowerCase() === detectedLower)) {
+      return { matched: userAllergen, matchType: "hierarchical" };
     }
 
     // Check if user allergen is a child of detected allergen
     const detectedChildren = taxonomy.get(detectedLower) || [];
-    if (detectedChildren.some(child => child.toLowerCase() === userLower)) {
-      return { matched: userAllergen, matchType: 'hierarchical' };
+    if (detectedChildren.some((child) => child.toLowerCase() === userLower)) {
+      return { matched: userAllergen, matchType: "hierarchical" };
     }
 
     // Check for partial word matches (e.g., "soy" in "soybean")
     if (detectedLower.includes(userLower) || userLower.includes(detectedLower)) {
-      return { matched: userAllergen, matchType: 'derivative' };
+      return { matched: userAllergen, matchType: "derivative" };
     }
   }
 
@@ -168,10 +194,7 @@ export async function validateIngredient(
   const matches: AllergenMatch[] = [];
 
   for (const allergenInfo of allAllergens) {
-    const hierarchicalMatch = await checkHierarchicalMatch(
-      allergenInfo.allergen,
-      userAllergens
-    );
+    const hierarchicalMatch = await checkHierarchicalMatch(allergenInfo.allergen, userAllergens);
 
     if (hierarchicalMatch) {
       matches.push({
@@ -186,9 +209,7 @@ export async function validateIngredient(
   }
 
   // Calculate overall confidence
-  const confidence = matches.length > 0
-    ? Math.max(...matches.map(m => m.confidence))
-    : 0.9; // High confidence when no allergens found in Open Food Facts
+  const confidence = matches.length > 0 ? Math.max(...matches.map((m) => m.confidence)) : 0.9; // High confidence when no allergens found in Open Food Facts
 
   return {
     ingredient,
@@ -221,8 +242,8 @@ async function fallbackValidation(
         detectedAllergen: normalizedIngredient,
         severity: AllergenSeverity.DIRECT,
         confidence: 0.7, // Lower confidence for string matching
-        matchType: 'exact',
-        source: 'string-matching',
+        matchType: "exact",
+        source: "string-matching",
       });
     }
   }
@@ -236,14 +257,14 @@ async function fallbackValidation(
     for (const child of children) {
       if (normalizedIngredient.toLowerCase().includes(child.toLowerCase())) {
         // Only add if not already matched
-        if (!matches.some(m => m.userAllergen === userAllergen)) {
+        if (!matches.some((m) => m.userAllergen === userAllergen)) {
           matches.push({
             userAllergen,
             detectedAllergen: child,
             severity: AllergenSeverity.HIERARCHY,
             confidence: 0.6,
-            matchType: 'hierarchical',
-            source: 'taxonomy-matching',
+            matchType: "hierarchical",
+            source: "taxonomy-matching",
           });
         }
       }
@@ -280,7 +301,7 @@ export async function validateRecipe(
   const warnings: string[] = [];
 
   // Validate each ingredient
-  const validationPromises = ingredients.map(ingredient =>
+  const validationPromises = ingredients.map((ingredient) =>
     validateIngredient(ingredient, userAllergens)
   );
 
@@ -295,19 +316,19 @@ export async function validateRecipe(
     if (result.hasAllergen) {
       // Filter to only direct and hierarchical allergens (not just traces)
       const directMatches = result.matches.filter(
-        m => m.severity === AllergenSeverity.DIRECT || m.severity === AllergenSeverity.HIERARCHY
+        (m) => m.severity === AllergenSeverity.DIRECT || m.severity === AllergenSeverity.HIERARCHY
       );
 
       if (directMatches.length > 0) {
         blockedIngredients.push(ingredient);
-        const allergenList = [...new Set(directMatches.map(m => m.userAllergen))].join(', ');
+        const allergenList = [...new Set(directMatches.map((m) => m.userAllergen))].join(", ");
         warnings.push(`${ingredient} contains: ${allergenList}`);
       }
 
       // Add warning for trace allergens
-      const traceMatches = result.matches.filter(m => m.severity === AllergenSeverity.TRACE);
+      const traceMatches = result.matches.filter((m) => m.severity === AllergenSeverity.TRACE);
       if (traceMatches.length > 0) {
-        const allergenList = [...new Set(traceMatches.map(m => m.userAllergen))].join(', ');
+        const allergenList = [...new Set(traceMatches.map((m) => m.userAllergen))].join(", ");
         warnings.push(`${ingredient} may contain traces of: ${allergenList}`);
       }
     }
@@ -350,7 +371,7 @@ export async function validateSubstitutions<T extends { substitute: { ingredient
 
     // Block if it has direct or hierarchical allergen matches
     const hasDirectAllergen = result.matches.some(
-      m => m.severity === AllergenSeverity.DIRECT || m.severity === AllergenSeverity.HIERARCHY
+      (m) => m.severity === AllergenSeverity.DIRECT || m.severity === AllergenSeverity.HIERARCHY
     );
 
     if (hasDirectAllergen) {
@@ -368,26 +389,26 @@ export async function validateSubstitutions<T extends { substitute: { ingredient
  */
 export function formatAllergenWarning(result: AllergenValidationResult): string {
   if (!result.hasAllergen) {
-    return '';
+    return "";
   }
 
   const directMatches = result.matches.filter(
-    m => m.severity === AllergenSeverity.DIRECT || m.severity === AllergenSeverity.HIERARCHY
+    (m) => m.severity === AllergenSeverity.DIRECT || m.severity === AllergenSeverity.HIERARCHY
   );
 
-  const traceMatches = result.matches.filter(m => m.severity === AllergenSeverity.TRACE);
+  const traceMatches = result.matches.filter((m) => m.severity === AllergenSeverity.TRACE);
 
   const warnings: string[] = [];
 
   if (directMatches.length > 0) {
-    const allergens = [...new Set(directMatches.map(m => m.userAllergen))].join(', ');
+    const allergens = [...new Set(directMatches.map((m) => m.userAllergen))].join(", ");
     warnings.push(`Contains: ${allergens}`);
   }
 
   if (traceMatches.length > 0) {
-    const allergens = [...new Set(traceMatches.map(m => m.userAllergen))].join(', ');
+    const allergens = [...new Set(traceMatches.map((m) => m.userAllergen))].join(", ");
     warnings.push(`May contain traces: ${allergens}`);
   }
 
-  return warnings.join('. ');
+  return warnings.join(". ");
 }

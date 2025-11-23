@@ -1,6 +1,6 @@
 /**
  * Cooking Assistant Chat Prompt Template
- * 
+ *
  * Provides context-aware assistance during cooking sessions
  */
 
@@ -25,33 +25,26 @@ export interface VoiceCookingContextParams {
 }
 
 export function buildCookingAssistantPrompt(params: CookingAssistantParams): string {
-  const {
-    recipeTitle,
-    currentStep,
-    currentStepNumber,
-    allSteps,
-    ingredients,
-    userMessage,
-  } = params;
+  const { recipeTitle, currentStep, currentStepNumber, allSteps, ingredients, userMessage } =
+    params;
 
   const totalSteps = allSteps?.length || 0;
-  const stepsContext = allSteps && allSteps.length > 0
-    ? allSteps.map((step, index) => 
-        `${index + 1}. ${step.text}`
-      ).join('\n')
-    : 'No steps available';
+  const stepsContext =
+    allSteps && allSteps.length > 0
+      ? allSteps.map((step, index) => `${index + 1}. ${step.text}`).join("\n")
+      : "No steps available";
 
   return `You are an expert cooking assistant helping someone prepare "${recipeTitle}".
 
 CURRENT CONTEXT:
 - The user is currently on Step ${currentStepNumber} of ${totalSteps}
-- Current step: "${currentStep?.text || 'Unknown'}"
+- Current step: "${currentStep?.text || "Unknown"}"
 
 ALL RECIPE STEPS:
 ${stepsContext}
 
 INGREDIENTS:
-${ingredients.join('\n')}
+${ingredients.join("\n")}
 
 USER QUESTION:
 "${userMessage}"
@@ -88,32 +81,24 @@ IMPORTANT:
  * This provides the full cooking context at connection time
  */
 export function buildVoiceCookingContext(params: VoiceCookingContextParams): string {
-  const {
-    recipeTitle,
-    currentStep,
-    currentStepNumber,
-    allSteps,
-    ingredients,
-    totalSteps,
-  } = params;
+  const { recipeTitle, currentStep, currentStepNumber, allSteps, ingredients, totalSteps } = params;
 
-  const stepsContext = allSteps && allSteps.length > 0
-    ? allSteps.map((step, index) => 
-        `${index + 1}. ${step.text}`
-      ).join('\n')
-    : 'No steps available';
+  const stepsContext =
+    allSteps && allSteps.length > 0
+      ? allSteps.map((step, index) => `${index + 1}. ${step.text}`).join("\n")
+      : "No steps available";
 
   return `You are an expert cooking assistant helping someone prepare "${recipeTitle}" using voice interaction.
 
 CURRENT CONTEXT:
 - User is currently on Step ${currentStepNumber} of ${totalSteps}
-- Current step: "${currentStep?.text || 'Not started yet'}"
+- Current step: "${currentStep?.text || "Not started yet"}"
 
 ALL RECIPE STEPS:
 ${stepsContext}
 
 INGREDIENTS NEEDED:
-${ingredients.join('\n')}
+${ingredients.join("\n")}
 
 === CRITICAL BOUNDARIES - READ CAREFULLY ===
 
@@ -208,5 +193,5 @@ export function buildStepChangeUpdate(
   newStep: RecipeStep | undefined,
   totalSteps: number
 ): string {
-  return `[CONTEXT UPDATE] The user has moved to Step ${newStepNumber} of ${totalSteps}. Current step: "${newStep?.text || 'Unknown'}". Please explain this step to the user in 15-30 seconds.`;
+  return `[CONTEXT UPDATE] The user has moved to Step ${newStepNumber} of ${totalSteps}. Current step: "${newStep?.text || "Unknown"}". Please explain this step to the user in 15-30 seconds.`;
 }

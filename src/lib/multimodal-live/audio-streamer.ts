@@ -3,17 +3,8 @@
  * Handles playback of PCM16 audio received from Gemini
  */
 
-import {
-  OUTPUT_AUDIO_CONFIG,
-  type VolumeMeterData,
-} from "./types";
-import {
-  int16ToFloat32,
-  calculateRMS,
-  rmsToPercent,
-  isSpeaking,
-  createLogger,
-} from "./utils";
+import { OUTPUT_AUDIO_CONFIG, type VolumeMeterData } from "./types";
+import { int16ToFloat32, calculateRMS, rmsToPercent, isSpeaking, createLogger } from "./utils";
 
 const logger = createLogger("AudioStreamer", true);
 

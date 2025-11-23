@@ -13,10 +13,7 @@ export interface ModifiedRecipeContextType {
 
   // Actions
   setRecipe: (recipe: RecipeDetail) => void;
-  applySubstitution: (
-    updatedRecipe: RecipeDetail,
-    substitution: SubstitutionRecord
-  ) => void;
+  applySubstitution: (updatedRecipe: RecipeDetail, substitution: SubstitutionRecord) => void;
   undoSubstitution: (substitutionId: string) => void;
   revertToOriginal: () => void;
   updateRecipeField: (field: keyof RecipeDetail, value: any) => void;
@@ -35,18 +32,10 @@ export interface ModifiedRecipeProviderProps {
  * Provider for tracking recipe modifications across the application
  * Allows modifications made in View page or sidebar to persist to cooking session
  */
-export function ModifiedRecipeProvider({
-  children,
-}: ModifiedRecipeProviderProps) {
-  const [originalRecipe, setOriginalRecipe] = useState<RecipeDetail | null>(
-    null
-  );
-  const [modifiedRecipe, setModifiedRecipe] = useState<RecipeDetail | null>(
-    null
-  );
-  const [appliedSubstitutions, setAppliedSubstitutions] = useState<
-    SubstitutionRecord[]
-  >([]);
+export function ModifiedRecipeProvider({ children }: ModifiedRecipeProviderProps) {
+  const [originalRecipe, setOriginalRecipe] = useState<RecipeDetail | null>(null);
+  const [modifiedRecipe, setModifiedRecipe] = useState<RecipeDetail | null>(null);
+  const [appliedSubstitutions, setAppliedSubstitutions] = useState<SubstitutionRecord[]>([]);
 
   const isDirty =
     modifiedRecipe !== null && originalRecipe !== null
@@ -68,21 +57,22 @@ export function ModifiedRecipeProvider({
       const normalizedRecipe = {
         ...updatedRecipe,
         // Sync steps with updated instructions
-        ...(updatedRecipe.steps && updatedRecipe.instructions && {
-          steps: updatedRecipe.steps.map((step) => {
-            // Try to get the instruction at this step number
-            const correspondingInstruction = updatedRecipe.instructions[step.stepNumber - 1];
+        ...(updatedRecipe.steps &&
+          updatedRecipe.instructions && {
+            steps: updatedRecipe.steps.map((step) => {
+              // Try to get the instruction at this step number
+              const correspondingInstruction = updatedRecipe.instructions[step.stepNumber - 1];
 
-            if (correspondingInstruction) {
-              return {
-                ...step,
-                text: correspondingInstruction,
-              };
-            }
+              if (correspondingInstruction) {
+                return {
+                  ...step,
+                  text: correspondingInstruction,
+                };
+              }
 
-            return step;
+              return step;
+            }),
           }),
-        }),
       };
       setModifiedRecipe(normalizedRecipe);
       setAppliedSubstitutions((prev) => [...prev, substitution]);
@@ -93,17 +83,13 @@ export function ModifiedRecipeProvider({
   // Undo a specific substitution
   const handleUndoSubstitution = useCallback(
     (substitutionId: string) => {
-      setAppliedSubstitutions((prev) =>
-        prev.filter((sub) => sub.id !== substitutionId)
-      );
+      setAppliedSubstitutions((prev) => prev.filter((sub) => sub.id !== substitutionId));
 
       // Rebuild modified recipe by removing the undone substitution
       // In practice, you'd want to regenerate the recipe without that substitution
       // For now, we just remove it from the tracking
       if (originalRecipe && modifiedRecipe) {
-        const remainingSubs = appliedSubstitutions.filter(
-          (sub) => sub.id !== substitutionId
-        );
+        const remainingSubs = appliedSubstitutions.filter((sub) => sub.id !== substitutionId);
         // If no more substitutions, revert to original
         if (remainingSubs.length === 0) {
           setModifiedRecipe({ ...originalRecipe });
@@ -122,15 +108,12 @@ export function ModifiedRecipeProvider({
   }, [originalRecipe]);
 
   // Update a specific field in the modified recipe
-  const handleUpdateRecipeField = useCallback(
-    (field: keyof RecipeDetail, value: any) => {
-      setModifiedRecipe((prev) => {
-        if (!prev) return prev;
-        return { ...prev, [field]: value };
-      });
-    },
-    []
-  );
+  const handleUpdateRecipeField = useCallback((field: keyof RecipeDetail, value: any) => {
+    setModifiedRecipe((prev) => {
+      if (!prev) return prev;
+      return { ...prev, [field]: value };
+    });
+  }, []);
 
   // Clear all modifications (useful when starting a new session)
   const handleClearModifications = useCallback(() => {
@@ -153,9 +136,5 @@ export function ModifiedRecipeProvider({
     clearModifications: handleClearModifications,
   };
 
-  return (
-    <ModifiedRecipeContext.Provider value={value}>
-      {children}
-    </ModifiedRecipeContext.Provider>
-  );
+  return <ModifiedRecipeContext.Provider value={value}>{children}</ModifiedRecipeContext.Provider>;
 }

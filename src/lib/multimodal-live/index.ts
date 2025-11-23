@@ -1,6 +1,6 @@
 /**
  * Gemini Live API - Multimodal Live Client Library
- * 
+ *
  * This library provides a complete implementation of Google's Gemini Live API
  * for bidirectional voice conversations with AI.
  */

@@ -7,7 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { CookingAssistantChat } from "@/components/features/cooking-session/cooking-assistant-chat";
 import { VoiceOverlay } from "@/components/features/cooking-session/voice-overlay";
 import { useCookingSession } from "@/hooks/useCookingSession";
@@ -26,10 +32,7 @@ interface CookingSessionClientProps {
   sessionId: string | null;
 }
 
-export function CookingSessionClient({
-  recipeId,
-  sessionId,
-}: CookingSessionClientProps) {
+export function CookingSessionClient({ recipeId, sessionId }: CookingSessionClientProps) {
   const router = useRouter();
   const [recipe, setRecipe] = useState<RecipeDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -168,7 +171,7 @@ export function CookingSessionClient({
                   {recipe.servings}
                 </Badge>
               )}
-              
+
               <Button
                 onClick={() => setShowVoiceOverlay(true)}
                 variant="default"
@@ -178,7 +181,7 @@ export function CookingSessionClient({
                 <Mic className="mr-2 h-4 w-4" />
                 Voice Mode
               </Button>
-              
+
               <Dialog>
                 <DialogTrigger asChild>
                   <Button
@@ -224,7 +227,7 @@ export function CookingSessionClient({
                     </Badge>
                   </div>
                 </CardHeader>
-                
+
                 <CardContent className="flex-1 overflow-y-auto p-6">
                   {currentStep && (
                     <div className="space-y-4">
@@ -233,9 +236,7 @@ export function CookingSessionClient({
                           {currentStep.stepNumber}
                         </div>
                         <div className="flex-1">
-                          <p className="text-lg text-white leading-relaxed">
-                            {currentStep.text}
-                          </p>
+                          <p className="text-lg text-white leading-relaxed">{currentStep.text}</p>
                         </div>
                       </div>
 
@@ -256,7 +257,7 @@ export function CookingSessionClient({
                     </div>
                   )}
                 </CardContent>
-                
+
                 <div className="shrink-0 p-4 border-t border-white/10">
                   <div className="flex gap-2">
                     <Button
@@ -297,7 +298,7 @@ export function CookingSessionClient({
           </div>
         </div>
       </div>
-      
+
       {/* Voice Overlay */}
       {showVoiceOverlay && (
         <VoiceOverlay

@@ -1,6 +1,6 @@
 /**
  * Ingredient Substitution Prompt Template
- * 
+ *
  * Generates intelligent ingredient substitution suggestions
  */
 
@@ -46,8 +46,12 @@ export function buildSubstitutionPrompt(params: SubstitutionParams): string {
     dietaryContext.push(`User avoids: ${avoidedIngredients.join(", ")}`);
   }
   if (location?.country) {
-    const locationStr = location.region ? `${location.region}, ${location.country}` : location.country;
-    dietaryContext.push(`User location: ${locationStr} (consider regional ingredient availability)`);
+    const locationStr = location.region
+      ? `${location.region}, ${location.country}`
+      : location.country;
+    dietaryContext.push(
+      `User location: ${locationStr} (consider regional ingredient availability)`
+    );
   }
 
   return `You are a culinary expert AI assistant. Analyze the following recipe and provide intelligent ingredient substitution suggestions.

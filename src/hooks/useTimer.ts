@@ -88,7 +88,7 @@ export function useTimer(): UseTimerReturn {
           // Check if timer just completed
           if (remaining === 0 && !timer.isCompleted) {
             const completedTimer = { ...timer, remainingSeconds: 0, isCompleted: true };
-            
+
             // Call the completion callback
             if (timerCallbackRef.current) {
               timerCallbackRef.current(completedTimer);

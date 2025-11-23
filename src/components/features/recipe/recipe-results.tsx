@@ -26,7 +26,13 @@ interface RecipeResultsProps {
 
 const RECIPES_PER_PAGE = 3;
 
-export function RecipeResults({ recipes, query, onRetry, onViewRecipe, onSelectRecipe }: RecipeResultsProps) {
+export function RecipeResults({
+  recipes,
+  query,
+  onRetry,
+  onViewRecipe,
+  onSelectRecipe,
+}: RecipeResultsProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const router = useRouter();
 
@@ -45,7 +51,8 @@ export function RecipeResults({ recipes, query, onRetry, onViewRecipe, onSelectR
           </div>
           <h3 className="text-xl font-bold text-white">No recipes found</h3>
           <p className="text-gray-400">
-            We couldn't find any recipes for "{query}". Try a different search term or check your spelling.
+            We couldn't find any recipes for "{query}". Try a different search term or check your
+            spelling.
           </p>
           {onRetry && (
             <Button
@@ -67,7 +74,7 @@ export function RecipeResults({ recipes, query, onRetry, onViewRecipe, onSelectR
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-xl font-bold text-white">
-            Found {recipes.length} recipe{recipes.length !== 1 ? 's' : ''} for "{query}"
+            Found {recipes.length} recipe{recipes.length !== 1 ? "s" : ""} for "{query}"
           </h3>
           <p className="text-sm text-gray-400 mt-1">
             Page {currentPage} of {totalPages}
@@ -157,7 +164,13 @@ export function RecipeResultsLoading() {
 }
 
 // Error state component
-export function RecipeResultsError({ error, retryAction }: { error: string; retryAction: () => void }) {
+export function RecipeResultsError({
+  error,
+  retryAction,
+}: {
+  error: string;
+  retryAction: () => void;
+}) {
   return (
     <Card className="p-8 bg-red-500/10 border-red-500/20 backdrop-blur-sm text-center">
       <div className="flex flex-col items-center gap-4 max-w-md mx-auto">

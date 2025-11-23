@@ -33,14 +33,11 @@ export function ChatMessages({
         <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 border border-blue-500/20 mb-4">
           <ChefHat className="h-8 w-8 text-blue-400" />
         </div>
-        <h3 className="text-lg font-semibold text-white mb-2">
-          I'm here to help!
-        </h3>
+        <h3 className="text-lg font-semibold text-white mb-2">I'm here to help!</h3>
         <p className="text-sm text-gray-400 mb-4 max-w-xs">
-          {voiceMode 
+          {voiceMode
             ? "Voice mode is active! Click the microphone button below to start talking."
-            : "Ask me questions about the current step, ingredients, or cooking techniques."
-          }
+            : "Ask me questions about the current step, ingredients, or cooking techniques."}
         </p>
 
         {!voiceMode && suggestedQuestions.length > 0 && onSuggestedQuestionClick && (
@@ -65,9 +62,7 @@ export function ChatMessages({
       {messages.map((message) => (
         <div
           key={message.id}
-          className={`flex gap-3 ${
-            message.role === "user" ? "justify-end" : "justify-start"
-          }`}
+          className={`flex gap-3 ${message.role === "user" ? "justify-end" : "justify-start"}`}
         >
           {message.role === "assistant" && (
             <Avatar className="h-8 w-8 border-2 border-blue-500/50">
@@ -85,9 +80,7 @@ export function ChatMessages({
                 : "bg-white/5 border border-white/10 text-gray-300"
             }`}
           >
-            <p className="text-sm leading-relaxed whitespace-pre-wrap">
-              {message.content}
-            </p>
+            <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
           </div>
 
           {message.role === "user" && (

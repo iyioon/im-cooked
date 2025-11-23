@@ -1,15 +1,23 @@
 import { GoogleGenAI } from "@google/genai";
-import { SubstitutionResponse, RecipeDetail, RecipeStep, IngredientSubstitution } from "@/types/recipe";
-import { 
-  buildCookingAssistantPrompt, 
-  buildSubstitutionPrompt, 
-  buildApplySubstitutionPrompt, 
-  buildMatchIngredientPrompt, 
-  buildIntentDetectionPrompt, 
+import {
+  SubstitutionResponse,
+  RecipeDetail,
+  RecipeStep,
+  IngredientSubstitution,
+} from "@/types/recipe";
+import {
+  buildCookingAssistantPrompt,
+  buildSubstitutionPrompt,
+  buildApplySubstitutionPrompt,
+  buildMatchIngredientPrompt,
+  buildIntentDetectionPrompt,
   buildCookingSessionIntentPrompt,
   IntentDetectionResponse,
-  CookingSessionIntentResponse
+  CookingSessionIntentResponse,
 } from "@/lib/prompts";
+import { getGeminiApiKey } from "@/lib/env-validation";
+import { llmLogger } from "@/lib/logger";
+import { RETRY_SETTINGS } from "@/lib/constants";
 
 /**
  * Custom error classes for API errors
@@ -81,68 +89,17 @@ function checkApiError(error: unknown): void {
 }
 
 /**
- * Logging utilities for LLM requests and responses
- */
-const LLMLogger = {
-  request(functionName: string, model: string, promptPreview: string) {
-    const timestamp = new Date().toISOString();
-    console.log("\n" + "=".repeat(80));
-    console.log(`🤖 LLM REQUEST | ${timestamp}`);
-    console.log("=".repeat(80));
-    console.log(`Function: ${functionName}`);
-    console.log(`Model: ${model}`);
-    console.log(`Prompt Preview (first 200 chars):`);
-    console.log(promptPreview.substring(0, 200).replace(/\n/g, " ") + "...");
-    console.log("=".repeat(80) + "\n");
-  },
-
-  response(functionName: string, model: string, responsePreview: string, success: boolean = true) {
-    const timestamp = new Date().toISOString();
-    const icon = success ? "✅" : "❌";
-    console.log("\n" + "=".repeat(80));
-    console.log(`${icon} LLM RESPONSE | ${timestamp}`);
-    console.log("=".repeat(80));
-    console.log(`Function: ${functionName}`);
-    console.log(`Model: ${model}`);
-    console.log(`Status: ${success ? "SUCCESS" : "FAILED"}`);
-    console.log(`Response Preview (first 300 chars):`);
-    console.log(responsePreview.substring(0, 300).replace(/\n/g, " ") + (responsePreview.length > 300 ? "..." : ""));
-    console.log("=".repeat(80) + "\n");
-  },
-
-  error(functionName: string, model: string, error: unknown) {
-    const timestamp = new Date().toISOString();
-    console.log("\n" + "=".repeat(80));
-    console.log(`❌ LLM ERROR | ${timestamp}`);
-    console.log("=".repeat(80));
-    console.log(`Function: ${functionName}`);
-    console.log(`Model: ${model}`);
-    console.log(`Error:`, error instanceof Error ? error.message : String(error));
-    console.log("=".repeat(80) + "\n");
-  },
-
-  retryAttempt(functionName: string, attempt: number, maxRetries: number, reason: string) {
-    console.log(`\n🔄 RETRY ${attempt}/${maxRetries} | ${functionName} | ${reason}\n`);
-  },
-
-  modelFallback(fromModel: string, toModel: string, functionName: string) {
-    console.log(`\n⚠️  MODEL FALLBACK | ${functionName}`);
-    console.log(`   From: ${fromModel} → To: ${toModel}\n`);
-  }
-};
-
-/**
  * Retry wrapper for JSON parsing with LLM calls
- * Retries up to 5 times if JSON parsing fails
+ * Retries up to MAX_LLM_RETRIES times if JSON parsing fails
  *
  * @param llmCallFn - Function that calls the LLM and returns the text response
- * @param maxRetries - Maximum number of retry attempts (default: 5)
+ * @param maxRetries - Maximum number of retry attempts
  * @param functionName - Name of calling function for logging
  * @returns Parsed JSON object
  */
 async function parseJSONWithRetry<T>(
   llmCallFn: () => Promise<string>,
-  maxRetries: number = 5,
+  maxRetries: number = RETRY_SETTINGS.MAX_LLM_RETRIES,
   functionName: string = "parseJSONWithRetry"
 ): Promise<T> {
   let lastError: Error | null = null;
@@ -161,11 +118,6 @@ async function parseJSONWithRetry<T>(
       // Try to parse JSON
       const parsed = JSON.parse(cleanResponse);
 
-      // Log successful parse if this was a retry
-      if (attempt > 1) {
-        console.log(`✅ JSON parsing succeeded on attempt ${attempt}/${maxRetries}`);
-      }
-
       return parsed as T;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
@@ -175,17 +127,13 @@ async function parseJSONWithRetry<T>(
 
       // If we've exhausted retries, throw
       if (attempt >= maxRetries) {
-        console.error(
-          `Failed to parse JSON after ${maxRetries} attempts. Last error:`,
-          lastError
-        );
         throw new Error(
           `Failed to parse LLM response as valid JSON after ${maxRetries} attempts. Last error: ${lastError.message}`
         );
       }
 
       // Log retry attempt
-      LLMLogger.retryAttempt(functionName, attempt, maxRetries, "JSON parsing failed");
+      llmLogger.retryAttempt(functionName, attempt, maxRetries, "JSON parsing failed");
     }
   }
 
@@ -195,7 +143,7 @@ async function parseJSONWithRetry<T>(
 
 // Initialize Gemini AI
 const genAI = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY || "",
+  apiKey: getGeminiApiKey(),
 });
 
 /**
@@ -258,7 +206,7 @@ export async function getCookingAssistance(params: {
 
   try {
     // Log request
-    LLMLogger.request(functionName, MODEL_NAME, prompt);
+    llmLogger.request(functionName, MODEL_NAME, prompt);
 
     // Try with primary model first
     const result = await genAI.models.generateContent({
@@ -274,19 +222,19 @@ export async function getCookingAssistance(params: {
     const responseText = result.text || "";
 
     // Log response
-    LLMLogger.response(functionName, MODEL_NAME, responseText, true);
+    llmLogger.response(functionName, MODEL_NAME, responseText, true);
 
     return responseText.trim();
   } catch (error) {
-    LLMLogger.error(functionName, MODEL_NAME, error);
+    llmLogger.error(functionName, MODEL_NAME, error);
     checkApiError(error);
 
     // If rate limited, try with fallback model
     if (error instanceof RateLimitError) {
-      LLMLogger.modelFallback(MODEL_NAME, FALLBACK_MODEL_NAME, functionName);
+      llmLogger.modelFallback(MODEL_NAME, FALLBACK_MODEL_NAME, functionName);
       try {
         // Log fallback request
-        LLMLogger.request(functionName, FALLBACK_MODEL_NAME, prompt);
+        llmLogger.request(functionName, FALLBACK_MODEL_NAME, prompt);
 
         const fallbackResult = await genAI.models.generateContent({
           model: FALLBACK_MODEL_NAME,
@@ -301,11 +249,11 @@ export async function getCookingAssistance(params: {
         const responseText = fallbackResult.text || "";
 
         // Log fallback response
-        LLMLogger.response(functionName, FALLBACK_MODEL_NAME, responseText, true);
+        llmLogger.response(functionName, FALLBACK_MODEL_NAME, responseText, true);
 
         return responseText.trim();
       } catch (fallbackError) {
-        LLMLogger.error(functionName, FALLBACK_MODEL_NAME, fallbackError);
+        llmLogger.error(functionName, FALLBACK_MODEL_NAME, fallbackError);
         // Check if fallback also hit rate limit or quota - fail immediately
         checkApiError(fallbackError);
         throw new Error("Failed to get cooking assistance with both primary and fallback models");
@@ -345,48 +293,65 @@ export async function getSubstitutionSuggestions(params: {
 
   try {
     // Log request
-    LLMLogger.request(functionName, MODEL_NAME, JSON.stringify(prompt).substring(0, 200));
+    llmLogger.request(functionName, MODEL_NAME, JSON.stringify(prompt).substring(0, 200));
 
     // Try with primary model first
-    const substitutionResponse = await parseJSONWithRetry<SubstitutionResponse>(async () => {
-      const result = await genAI.models.generateContent({
-        model: MODEL_NAME,
-        contents: prompt,
-      });
-      const text = result.text || "";
-      // Log response inside retry wrapper
-      LLMLogger.response(functionName, MODEL_NAME, text, true);
-      return text;
-    }, 5, functionName);
+    const substitutionResponse = await parseJSONWithRetry<SubstitutionResponse>(
+      async () => {
+        const result = await genAI.models.generateContent({
+          model: MODEL_NAME,
+          contents: prompt,
+        });
+        const text = result.text || "";
+        // Log response inside retry wrapper
+        llmLogger.response(functionName, MODEL_NAME, text, true);
+        return text;
+      },
+      RETRY_SETTINGS.MAX_LLM_RETRIES,
+      functionName
+    );
 
     return substitutionResponse;
   } catch (error) {
-    LLMLogger.error(functionName, MODEL_NAME, error);
+    llmLogger.error(functionName, MODEL_NAME, error);
 
     // If rate limited, try with fallback model
     if (error instanceof RateLimitError) {
-      LLMLogger.modelFallback(MODEL_NAME, FALLBACK_MODEL_NAME, functionName);
+      llmLogger.modelFallback(MODEL_NAME, FALLBACK_MODEL_NAME, functionName);
       try {
-        LLMLogger.request(functionName, FALLBACK_MODEL_NAME, JSON.stringify(prompt).substring(0, 200));
+        llmLogger.request(
+          functionName,
+          FALLBACK_MODEL_NAME,
+          JSON.stringify(prompt).substring(0, 200)
+        );
 
-        const fallbackResponse = await parseJSONWithRetry<SubstitutionResponse>(async () => {
-          const result = await genAI.models.generateContent({
-            model: FALLBACK_MODEL_NAME,
-            contents: prompt,
-          });
-          const text = result.text || "";
-          LLMLogger.response(functionName, FALLBACK_MODEL_NAME, text, true);
-          return text;
-        }, 5, functionName);
+        const fallbackResponse = await parseJSONWithRetry<SubstitutionResponse>(
+          async () => {
+            const result = await genAI.models.generateContent({
+              model: FALLBACK_MODEL_NAME,
+              contents: prompt,
+            });
+            const text = result.text || "";
+            llmLogger.response(functionName, FALLBACK_MODEL_NAME, text, true);
+            return text;
+          },
+          RETRY_SETTINGS.MAX_LLM_RETRIES,
+          functionName
+        );
 
         return fallbackResponse;
       } catch (fallbackError) {
-        LLMLogger.error(functionName, FALLBACK_MODEL_NAME, fallbackError);
+        llmLogger.error(functionName, FALLBACK_MODEL_NAME, fallbackError);
         // Re-throw custom errors (RateLimitError, QuotaExhaustedError) as-is
-        if (fallbackError instanceof RateLimitError || fallbackError instanceof QuotaExhaustedError) {
+        if (
+          fallbackError instanceof RateLimitError ||
+          fallbackError instanceof QuotaExhaustedError
+        ) {
           throw fallbackError;
         }
-        throw new Error("Failed to generate substitution suggestions with both primary and fallback models");
+        throw new Error(
+          "Failed to generate substitution suggestions with both primary and fallback models"
+        );
       }
     }
 
@@ -442,44 +407,61 @@ export async function applySubstitutionToRecipe(params: {
   };
 
   try {
-    LLMLogger.request(functionName, MODEL_NAME, JSON.stringify(prompt).substring(0, 200));
+    llmLogger.request(functionName, MODEL_NAME, JSON.stringify(prompt).substring(0, 200));
 
-    const appliedRecipe = await parseJSONWithRetry<AppliedRecipeType>(async () => {
-      const result = await genAI.models.generateContent({
-        model: MODEL_NAME,
-        contents: prompt,
-      });
-      const text = result.text || "";
-      LLMLogger.response(functionName, MODEL_NAME, text, true);
-      return text;
-    }, 5, functionName);
+    const appliedRecipe = await parseJSONWithRetry<AppliedRecipeType>(
+      async () => {
+        const result = await genAI.models.generateContent({
+          model: MODEL_NAME,
+          contents: prompt,
+        });
+        const text = result.text || "";
+        llmLogger.response(functionName, MODEL_NAME, text, true);
+        return text;
+      },
+      RETRY_SETTINGS.MAX_LLM_RETRIES,
+      functionName
+    );
 
     return appliedRecipe;
   } catch (error) {
-    LLMLogger.error(functionName, MODEL_NAME, error);
+    llmLogger.error(functionName, MODEL_NAME, error);
 
     if (error instanceof RateLimitError) {
-      LLMLogger.modelFallback(MODEL_NAME, FALLBACK_MODEL_NAME, functionName);
+      llmLogger.modelFallback(MODEL_NAME, FALLBACK_MODEL_NAME, functionName);
       try {
-        LLMLogger.request(functionName, FALLBACK_MODEL_NAME, JSON.stringify(prompt).substring(0, 200));
+        llmLogger.request(
+          functionName,
+          FALLBACK_MODEL_NAME,
+          JSON.stringify(prompt).substring(0, 200)
+        );
 
-        const fallbackRecipe = await parseJSONWithRetry<AppliedRecipeType>(async () => {
-          const result = await genAI.models.generateContent({
-            model: FALLBACK_MODEL_NAME,
-            contents: prompt,
-          });
-          const text = result.text || "";
-          LLMLogger.response(functionName, FALLBACK_MODEL_NAME, text, true);
-          return text;
-        }, 5, functionName);
+        const fallbackRecipe = await parseJSONWithRetry<AppliedRecipeType>(
+          async () => {
+            const result = await genAI.models.generateContent({
+              model: FALLBACK_MODEL_NAME,
+              contents: prompt,
+            });
+            const text = result.text || "";
+            llmLogger.response(functionName, FALLBACK_MODEL_NAME, text, true);
+            return text;
+          },
+          RETRY_SETTINGS.MAX_LLM_RETRIES,
+          functionName
+        );
 
         return fallbackRecipe;
       } catch (fallbackError) {
-        LLMLogger.error(functionName, FALLBACK_MODEL_NAME, fallbackError);
-        if (fallbackError instanceof RateLimitError || fallbackError instanceof QuotaExhaustedError) {
+        llmLogger.error(functionName, FALLBACK_MODEL_NAME, fallbackError);
+        if (
+          fallbackError instanceof RateLimitError ||
+          fallbackError instanceof QuotaExhaustedError
+        ) {
           throw fallbackError;
         }
-        throw new Error("Failed to apply substitution to recipe with both primary and fallback models");
+        throw new Error(
+          "Failed to apply substitution to recipe with both primary and fallback models"
+        );
       }
     }
 
@@ -519,54 +501,67 @@ export async function matchIngredientFromMessage(params: {
   };
 
   try {
-    LLMLogger.request(functionName, MODEL_NAME, prompt);
+    llmLogger.request(functionName, MODEL_NAME, prompt);
 
-    const matchResult = await parseJSONWithRetry<MatchResultType>(async () => {
-      const result = await genAI.models.generateContent({
-        model: MODEL_NAME,
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: prompt }],
-          },
-        ],
-      });
-      const text = result.text || "";
-      LLMLogger.response(functionName, MODEL_NAME, text, true);
-      return text;
-    }, 5, functionName);
+    const matchResult = await parseJSONWithRetry<MatchResultType>(
+      async () => {
+        const result = await genAI.models.generateContent({
+          model: MODEL_NAME,
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: prompt }],
+            },
+          ],
+        });
+        const text = result.text || "";
+        llmLogger.response(functionName, MODEL_NAME, text, true);
+        return text;
+      },
+      RETRY_SETTINGS.MAX_LLM_RETRIES,
+      functionName
+    );
 
     return matchResult;
   } catch (error) {
-    LLMLogger.error(functionName, MODEL_NAME, error);
+    llmLogger.error(functionName, MODEL_NAME, error);
 
     if (error instanceof RateLimitError) {
-      LLMLogger.modelFallback(MODEL_NAME, FALLBACK_MODEL_NAME, functionName);
+      llmLogger.modelFallback(MODEL_NAME, FALLBACK_MODEL_NAME, functionName);
       try {
-        LLMLogger.request(functionName, FALLBACK_MODEL_NAME, prompt);
+        llmLogger.request(functionName, FALLBACK_MODEL_NAME, prompt);
 
-        const fallbackResult = await parseJSONWithRetry<MatchResultType>(async () => {
-          const result = await genAI.models.generateContent({
-            model: FALLBACK_MODEL_NAME,
-            contents: [
-              {
-                role: "user",
-                parts: [{ text: prompt }],
-              },
-            ],
-          });
-          const text = result.text || "";
-          LLMLogger.response(functionName, FALLBACK_MODEL_NAME, text, true);
-          return text;
-        }, 5, functionName);
+        const fallbackResult = await parseJSONWithRetry<MatchResultType>(
+          async () => {
+            const result = await genAI.models.generateContent({
+              model: FALLBACK_MODEL_NAME,
+              contents: [
+                {
+                  role: "user",
+                  parts: [{ text: prompt }],
+                },
+              ],
+            });
+            const text = result.text || "";
+            llmLogger.response(functionName, FALLBACK_MODEL_NAME, text, true);
+            return text;
+          },
+          RETRY_SETTINGS.MAX_LLM_RETRIES,
+          functionName
+        );
 
         return fallbackResult;
       } catch (fallbackError) {
-        LLMLogger.error(functionName, FALLBACK_MODEL_NAME, fallbackError);
-        if (fallbackError instanceof RateLimitError || fallbackError instanceof QuotaExhaustedError) {
+        llmLogger.error(functionName, FALLBACK_MODEL_NAME, fallbackError);
+        if (
+          fallbackError instanceof RateLimitError ||
+          fallbackError instanceof QuotaExhaustedError
+        ) {
           throw fallbackError;
         }
-        throw new Error("Failed to match ingredient from message with both primary and fallback models");
+        throw new Error(
+          "Failed to match ingredient from message with both primary and fallback models"
+        );
       }
     }
 
@@ -586,51 +581,62 @@ export async function detectIntent(userMessage: string): Promise<IntentDetection
   const prompt = buildIntentDetectionPrompt(userMessage);
 
   try {
-    LLMLogger.request(functionName, MODEL_NAME, prompt);
+    llmLogger.request(functionName, MODEL_NAME, prompt);
 
-    const intentResponse = await parseJSONWithRetry<IntentDetectionResponse>(async () => {
-      const result = await genAI.models.generateContent({
-        model: MODEL_NAME,
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: prompt }],
-          },
-        ],
-      });
-      const text = result.text || "";
-      LLMLogger.response(functionName, MODEL_NAME, text, true);
-      return text;
-    }, 5, functionName);
+    const intentResponse = await parseJSONWithRetry<IntentDetectionResponse>(
+      async () => {
+        const result = await genAI.models.generateContent({
+          model: MODEL_NAME,
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: prompt }],
+            },
+          ],
+        });
+        const text = result.text || "";
+        llmLogger.response(functionName, MODEL_NAME, text, true);
+        return text;
+      },
+      RETRY_SETTINGS.MAX_LLM_RETRIES,
+      functionName
+    );
 
     return intentResponse;
   } catch (error) {
-    LLMLogger.error(functionName, MODEL_NAME, error);
+    llmLogger.error(functionName, MODEL_NAME, error);
 
     if (error instanceof RateLimitError) {
-      LLMLogger.modelFallback(MODEL_NAME, FALLBACK_MODEL_NAME, functionName);
+      llmLogger.modelFallback(MODEL_NAME, FALLBACK_MODEL_NAME, functionName);
       try {
-        LLMLogger.request(functionName, FALLBACK_MODEL_NAME, prompt);
+        llmLogger.request(functionName, FALLBACK_MODEL_NAME, prompt);
 
-        const fallbackResponse = await parseJSONWithRetry<IntentDetectionResponse>(async () => {
-          const result = await genAI.models.generateContent({
-            model: FALLBACK_MODEL_NAME,
-            contents: [
-              {
-                role: "user",
-                parts: [{ text: prompt }],
-              },
-            ],
-          });
-          const text = result.text || "";
-          LLMLogger.response(functionName, FALLBACK_MODEL_NAME, text, true);
-          return text;
-        }, 5, functionName);
+        const fallbackResponse = await parseJSONWithRetry<IntentDetectionResponse>(
+          async () => {
+            const result = await genAI.models.generateContent({
+              model: FALLBACK_MODEL_NAME,
+              contents: [
+                {
+                  role: "user",
+                  parts: [{ text: prompt }],
+                },
+              ],
+            });
+            const text = result.text || "";
+            llmLogger.response(functionName, FALLBACK_MODEL_NAME, text, true);
+            return text;
+          },
+          RETRY_SETTINGS.MAX_LLM_RETRIES,
+          functionName
+        );
 
         return fallbackResponse;
       } catch (fallbackError) {
-        LLMLogger.error(functionName, FALLBACK_MODEL_NAME, fallbackError);
-        if (fallbackError instanceof RateLimitError || fallbackError instanceof QuotaExhaustedError) {
+        llmLogger.error(functionName, FALLBACK_MODEL_NAME, fallbackError);
+        if (
+          fallbackError instanceof RateLimitError ||
+          fallbackError instanceof QuotaExhaustedError
+        ) {
           throw fallbackError;
         }
         throw new Error("Failed to detect user intent with both primary and fallback models");
@@ -658,54 +664,67 @@ export async function detectCookingSessionIntent(params: {
   const prompt = buildCookingSessionIntentPrompt(params);
 
   try {
-    LLMLogger.request(functionName, MODEL_NAME, prompt);
+    llmLogger.request(functionName, MODEL_NAME, prompt);
 
-    const intentResponse = await parseJSONWithRetry<CookingSessionIntentResponse>(async () => {
-      const result = await genAI.models.generateContent({
-        model: MODEL_NAME,
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: prompt }],
-          },
-        ],
-      });
-      const text = result.text || "";
-      LLMLogger.response(functionName, MODEL_NAME, text, true);
-      return text;
-    }, 5, functionName);
+    const intentResponse = await parseJSONWithRetry<CookingSessionIntentResponse>(
+      async () => {
+        const result = await genAI.models.generateContent({
+          model: MODEL_NAME,
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: prompt }],
+            },
+          ],
+        });
+        const text = result.text || "";
+        llmLogger.response(functionName, MODEL_NAME, text, true);
+        return text;
+      },
+      RETRY_SETTINGS.MAX_LLM_RETRIES,
+      functionName
+    );
 
     return intentResponse;
   } catch (error) {
-    LLMLogger.error(functionName, MODEL_NAME, error);
+    llmLogger.error(functionName, MODEL_NAME, error);
 
     if (error instanceof RateLimitError) {
-      LLMLogger.modelFallback(MODEL_NAME, FALLBACK_MODEL_NAME, functionName);
+      llmLogger.modelFallback(MODEL_NAME, FALLBACK_MODEL_NAME, functionName);
       try {
-        LLMLogger.request(functionName, FALLBACK_MODEL_NAME, prompt);
+        llmLogger.request(functionName, FALLBACK_MODEL_NAME, prompt);
 
-        const fallbackResponse = await parseJSONWithRetry<CookingSessionIntentResponse>(async () => {
-          const result = await genAI.models.generateContent({
-            model: FALLBACK_MODEL_NAME,
-            contents: [
-              {
-                role: "user",
-                parts: [{ text: prompt }],
-              },
-            ],
-          });
-          const text = result.text || "";
-          LLMLogger.response(functionName, FALLBACK_MODEL_NAME, text, true);
-          return text;
-        }, 5, functionName);
+        const fallbackResponse = await parseJSONWithRetry<CookingSessionIntentResponse>(
+          async () => {
+            const result = await genAI.models.generateContent({
+              model: FALLBACK_MODEL_NAME,
+              contents: [
+                {
+                  role: "user",
+                  parts: [{ text: prompt }],
+                },
+              ],
+            });
+            const text = result.text || "";
+            llmLogger.response(functionName, FALLBACK_MODEL_NAME, text, true);
+            return text;
+          },
+          RETRY_SETTINGS.MAX_LLM_RETRIES,
+          functionName
+        );
 
         return fallbackResponse;
       } catch (fallbackError) {
-        LLMLogger.error(functionName, FALLBACK_MODEL_NAME, fallbackError);
-        if (fallbackError instanceof RateLimitError || fallbackError instanceof QuotaExhaustedError) {
+        llmLogger.error(functionName, FALLBACK_MODEL_NAME, fallbackError);
+        if (
+          fallbackError instanceof RateLimitError ||
+          fallbackError instanceof QuotaExhaustedError
+        ) {
           throw fallbackError;
         }
-        throw new Error("Failed to detect cooking session intent with both primary and fallback models");
+        throw new Error(
+          "Failed to detect cooking session intent with both primary and fallback models"
+        );
       }
     }
 
@@ -733,8 +752,10 @@ export async function validateSearchQuery(params: {
 
   try {
     // If no restrictions, no conflict possible
-    if ((!params.dietaryRestrictions || params.dietaryRestrictions.length === 0) &&
-        (!params.allergies || params.allergies.length === 0)) {
+    if (
+      (!params.dietaryRestrictions || params.dietaryRestrictions.length === 0) &&
+      (!params.allergies || params.allergies.length === 0)
+    ) {
       return { hasConflict: false };
     }
 
@@ -764,7 +785,7 @@ Respond with ONLY a JSON object in this exact format:
   "suggestions": ["alternative 1", "alternative 2", "alternative 3"] (only if hasConflict is true)
 }`;
 
-    LLMLogger.request(functionName, MODEL_NAME, prompt);
+    llmLogger.request(functionName, MODEL_NAME, prompt);
 
     const result = await genAI.models.generateContent({
       model: MODEL_NAME,
@@ -778,7 +799,7 @@ Respond with ONLY a JSON object in this exact format:
 
     const text = result.text || "";
 
-    LLMLogger.response(functionName, MODEL_NAME, text, true);
+    llmLogger.response(functionName, MODEL_NAME, text, true);
 
     // Clean up response
     let cleanResponse = text
@@ -794,7 +815,7 @@ Respond with ONLY a JSON object in this exact format:
     const response = JSON.parse(cleanResponse);
     return response;
   } catch (error) {
-    LLMLogger.error(functionName, MODEL_NAME, error);
+    llmLogger.error(functionName, MODEL_NAME, error);
     // On error, assume no conflict to allow search to proceed
     return { hasConflict: false };
   }

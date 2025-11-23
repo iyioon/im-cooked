@@ -20,7 +20,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${outfit.variable} antialiased`} style={{ fontFamily: 'var(--font-outfit)' }}>
+      <body
+        className={`${outfit.variable} antialiased`}
+        style={{ fontFamily: "var(--font-outfit)" }}
+      >
         {children}
       </body>
     </html>

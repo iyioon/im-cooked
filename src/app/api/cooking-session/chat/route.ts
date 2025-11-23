@@ -6,21 +6,15 @@ import { isObviouslyOffTopic, generateRejectionMessage } from "@/lib/prompts";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const {
-      recipeTitle,
-      currentStep,
-      currentStepNumber,
-      allSteps,
-      ingredients,
-      userMessage,
-    } = body as {
-      recipeTitle: string;
-      currentStep?: RecipeStep;
-      currentStepNumber: number;
-      allSteps: RecipeStep[];
-      ingredients: string[];
-      userMessage: string;
-    };
+    const { recipeTitle, currentStep, currentStepNumber, allSteps, ingredients, userMessage } =
+      body as {
+        recipeTitle: string;
+        currentStep?: RecipeStep;
+        currentStepNumber: number;
+        allSteps: RecipeStep[];
+        ingredients: string[];
+        userMessage: string;
+      };
 
     if (!recipeTitle || !userMessage) {
       return NextResponse.json(

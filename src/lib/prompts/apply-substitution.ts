@@ -30,11 +30,12 @@ export function buildApplySubstitutionPrompt(params: ApplySubstitutionParams): s
 
   // Format the original ingredient for matching
   const originalIngredientName = original.ingredient.toLowerCase();
-  const originalQuantityStr = original.quantity && original.unit
-    ? `${original.quantity} ${original.unit}`
-    : original.quantity
-    ? `${original.quantity}`
-    : "";
+  const originalQuantityStr =
+    original.quantity && original.unit
+      ? `${original.quantity} ${original.unit}`
+      : original.quantity
+        ? `${original.quantity}`
+        : "";
 
   return `You are a culinary expert AI assistant. Your task is to regenerate a complete recipe with a specific ingredient substitution applied.
 

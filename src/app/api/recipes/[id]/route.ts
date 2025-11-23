@@ -3,18 +3,12 @@ import { getRecipeDetail } from "@/services/recipe-scraper";
 import { UserPreferences } from "@/types/recipe";
 import { getGenAI, getModelName } from "@/services/ai";
 
-export async function GET(
-  _request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
 
     if (!id) {
-      return NextResponse.json(
-        { error: "Recipe ID is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Recipe ID is required" }, { status: 400 });
     }
 
     const recipeDetail = await getRecipeDetail(id);
@@ -36,20 +30,14 @@ export async function GET(
   }
 }
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const body = await request.json();
     const { preferences } = body as { preferences?: UserPreferences };
 
     if (!id) {
-      return NextResponse.json(
-        { error: "Recipe ID is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Recipe ID is required" }, { status: 400 });
     }
 
     const recipeDetail = await getRecipeDetail(id);
@@ -62,19 +50,18 @@ export async function POST(
     }
 
     // If no preferences, return recipe as-is
-    if (!preferences ||
-        (!preferences.dietaryRestrictions || preferences.dietaryRestrictions.length === 0) &&
+    if (
+      !preferences ||
+      ((!preferences.dietaryRestrictions || preferences.dietaryRestrictions.length === 0) &&
         (!preferences.allergies || preferences.allergies.length === 0) &&
-        (!preferences.avoidedIngredients || preferences.avoidedIngredients.length === 0)) {
+        (!preferences.avoidedIngredients || preferences.avoidedIngredients.length === 0))
+    ) {
       return NextResponse.json({ recipe: recipeDetail });
     }
 
     // Auto-detect and apply substitutions for conflicting ingredients
     try {
-      const autoSubstitutions = await detectAndApplySubstitutions(
-        recipeDetail,
-        preferences
-      );
+      const autoSubstitutions = await detectAndApplySubstitutions(recipeDetail, preferences);
 
       return NextResponse.json({
         recipe: recipeDetail,
@@ -97,10 +84,7 @@ export async function POST(
 /**
  * Detect ingredients that conflict with preferences and auto-apply substitutions
  */
-async function detectAndApplySubstitutions(
-  recipe: any,
-  preferences: UserPreferences
-) {
+async function detectAndApplySubstitutions(recipe: any, preferences: UserPreferences) {
   const genAI = getGenAI();
   const modelName = getModelName();
 
@@ -120,7 +104,7 @@ async function detectAndApplySubstitutions(
 Recipe: ${recipe.title}
 
 Ingredients:
-${recipe.ingredients.map((ing: string, i: number) => `${i + 1}. ${ing}`).join('\n')}
+${recipe.ingredients.map((ing: string, i: number) => `${i + 1}. ${ing}`).join("\n")}
 
 User's Dietary Preferences:
 ${restrictionsText}
@@ -165,7 +149,9 @@ If no substitutions are needed, set hasSubstitutions to false and return the ori
   }
 
   const response = JSON.parse(cleanResponse);
-  console.log(`[Auto-Substitution] ${response.hasSubstitutions ? 'Applied' : 'No'} substitutions for "${recipe.title}"`);
+  console.log(
+    `[Auto-Substitution] ${response.hasSubstitutions ? "Applied" : "No"} substitutions for "${recipe.title}"`
+  );
 
   return response;
 }

@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { CookingSessionMessage, RecipeStep } from "@/types/recipe";
 import { useGeminiLive } from "@/hooks/useGeminiLive";
 import { buildVoiceCookingContext, buildStepChangeUpdate } from "@/lib/prompts/cooking-assistant";
+import { getPublicGeminiApiKey } from "@/lib/env-validation";
+import { UI_TIMINGS } from "@/lib/constants";
 import { Mic, MicOff, Volume2, VolumeX } from "lucide-react";
 
 interface VoiceChatControlsProps {
@@ -36,19 +38,23 @@ export function useVoiceChatControls({
   const [isActivating, setIsActivating] = useState(false);
 
   // Build voice cooking context (only once - step updates sent via sendContextUpdate)
-  const systemInstruction = useMemo(() => 
-    buildVoiceCookingContext({
-      recipeTitle,
-      currentStep: allSteps[0], // Start with first step
-      currentStepNumber: 1,
-      allSteps,
-      ingredients,
-      totalSteps,
-    }),
+  const systemInstruction = useMemo(
+    () =>
+      buildVoiceCookingContext({
+        recipeTitle,
+        currentStep: allSteps[0], // Start with first step
+        currentStepNumber: 1,
+        allSteps,
+        ingredients,
+        totalSteps,
+      }),
     [recipeTitle, allSteps, ingredients, totalSteps]
   );
 
   // Initialize Gemini Live for voice
+  // NOTE: This uses a client-side API key which is exposed in the browser bundle.
+  // This is required for Gemini Live's WebSocket connection architecture.
+  // Mitigation: Use Google Cloud Console to restrict the API key to your domain.
   const {
     isConnected,
     isRecording,
@@ -64,7 +70,7 @@ export function useVoiceChatControls({
     sendContextUpdate,
     error: voiceError,
   } = useGeminiLive({
-    apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "",
+    apiKey: getPublicGeminiApiKey(),
     systemInstruction,
   });
 
@@ -74,7 +80,7 @@ export function useVoiceChatControls({
       // Only add AI transcript as a message when it's substantial
       if (aiTranscript.length > 10) {
         lastAiTranscriptRef.current = aiTranscript;
-        
+
         const assistantMessage: CookingSessionMessage = {
           id: `msg-voice-${Date.now()}`,
           role: "assistant",
@@ -89,12 +95,8 @@ export function useVoiceChatControls({
   // Handle step changes - send context update to AI
   useEffect(() => {
     if (voiceMode && isConnected && previousStepRef.current !== currentStepNumber) {
-      const updateMessage = buildStepChangeUpdate(
-        currentStepNumber,
-        currentStep,
-        totalSteps
-      );
-      
+      const updateMessage = buildStepChangeUpdate(currentStepNumber, currentStep, totalSteps);
+
       // Send silent context update to Gemini Live
       console.log("Step changed, sending update to AI:", updateMessage);
       sendContextUpdate(updateMessage);
@@ -110,18 +112,14 @@ export function useVoiceChatControls({
       try {
         await connect();
         onToggleVoiceMode();
-        
+
         // Send initial step context if not on step 1
         if (currentStepNumber !== 1) {
-          const initialUpdate = buildStepChangeUpdate(
-            currentStepNumber,
-            currentStep,
-            totalSteps
-          );
+          const initialUpdate = buildStepChangeUpdate(currentStepNumber, currentStep, totalSteps);
           // Wait a bit for connection to stabilize
           setTimeout(() => {
             sendContextUpdate(initialUpdate);
-          }, 500);
+          }, UI_TIMINGS.VOICE_CONTEXT_UPDATE_DELAY);
         }
       } catch (error) {
         console.error("Failed to connect to voice:", error);
@@ -182,7 +180,9 @@ export function useVoiceChatControls({
           variant={voiceMode ? "default" : "outline"}
           size="sm"
           disabled={isActivating}
-          className={voiceMode ? "bg-green-600 hover:bg-green-700" : "border-white/20 hover:bg-white/10"}
+          className={
+            voiceMode ? "bg-green-600 hover:bg-green-700" : "border-white/20 hover:bg-white/10"
+          }
         >
           {voiceMode ? (
             <>
@@ -206,7 +206,7 @@ export function useVoiceChatControls({
             <div className="flex-1 flex items-center gap-2">
               <Mic className="h-4 w-4 text-blue-400" />
               <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
-                <div 
+                <div
                   className="h-full bg-blue-500 transition-all duration-100"
                   style={{ width: `${inputVolume}%` }}
                 />
@@ -217,7 +217,7 @@ export function useVoiceChatControls({
             <div className="flex-1 flex items-center gap-2">
               <Volume2 className="h-4 w-4 text-green-400" />
               <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
-                <div 
+                <div
                   className="h-full bg-green-500 transition-all duration-100"
                   style={{ width: `${outputVolume}%` }}
                 />
@@ -225,14 +225,12 @@ export function useVoiceChatControls({
             </div>
           )}
         </div>
-        
+
         <Button
           onClick={handleToggleRecording}
           disabled={!isConnected}
           className={`w-full ${
-            isRecording 
-              ? "bg-red-600 hover:bg-red-700" 
-              : "bg-blue-600 hover:bg-blue-700"
+            isRecording ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"
           }`}
           size="lg"
         >
@@ -249,9 +247,7 @@ export function useVoiceChatControls({
           )}
         </Button>
 
-        {voiceError && (
-          <p className="text-xs text-red-400 text-center">{voiceError}</p>
-        )}
+        {voiceError && <p className="text-xs text-red-400 text-center">{voiceError}</p>}
       </div>
     ) : null,
   };

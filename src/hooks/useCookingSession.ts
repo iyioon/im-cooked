@@ -36,23 +36,26 @@ export function useCookingSession(sessionId: string | null) {
   }, []);
 
   // Update current step
-  const goToStep = useCallback((stepNumber: number) => {
-    if (!session) return;
-    const updated = updateStep(session.id, stepNumber);
-    if (updated) setSession(updated);
-  }, [session]);
+  const goToStep = useCallback(
+    (stepNumber: number) => {
+      if (!session) return;
+      const updated = updateStep(session.id, stepNumber);
+      if (updated) setSession(updated);
+    },
+    [session]
+  );
 
   // Navigate to next step (auto-marks current step as complete)
   const goToNextStep = useCallback(() => {
     if (!session) return;
-    
+
     // Mark current step as complete before moving forward
     let updatedSession = session;
     if (!session.completedSteps.includes(session.currentStep)) {
       const withComplete = markComplete(session.id, session.currentStep);
       if (withComplete) updatedSession = withComplete;
     }
-    
+
     // Move to next step
     const updated = updateStep(updatedSession.id, updatedSession.currentStep + 1);
     if (updated) setSession(updated);
@@ -63,10 +66,10 @@ export function useCookingSession(sessionId: string | null) {
     if (!session) return;
     if (session.currentStep > 1) {
       const newStepNumber = session.currentStep - 1;
-      
+
       // Move to previous step
       const updated = updateStep(session.id, newStepNumber);
-      
+
       // Mark the new current step (previous step) as incomplete
       if (updated && updated.completedSteps.includes(newStepNumber)) {
         const withIncomplete = markIncomplete(updated.id, newStepNumber);
@@ -75,29 +78,35 @@ export function useCookingSession(sessionId: string | null) {
           return;
         }
       }
-      
+
       if (updated) setSession(updated);
     }
   }, [session]);
 
   // Toggle step completion
-  const toggleStepComplete = useCallback((stepNumber: number) => {
-    if (!session) return;
+  const toggleStepComplete = useCallback(
+    (stepNumber: number) => {
+      if (!session) return;
 
-    const isCompleted = session.completedSteps.includes(stepNumber);
-    const updated = isCompleted
-      ? markIncomplete(session.id, stepNumber)
-      : markComplete(session.id, stepNumber);
+      const isCompleted = session.completedSteps.includes(stepNumber);
+      const updated = isCompleted
+        ? markIncomplete(session.id, stepNumber)
+        : markComplete(session.id, stepNumber);
 
-    if (updated) setSession(updated);
-  }, [session]);
+      if (updated) setSession(updated);
+    },
+    [session]
+  );
 
   // Add note to current step
-  const addNoteToStep = useCallback((stepNumber: number, note: string) => {
-    if (!session) return;
-    const updated = addNote(session.id, stepNumber, note);
-    if (updated) setSession(updated);
-  }, [session]);
+  const addNoteToStep = useCallback(
+    (stepNumber: number, note: string) => {
+      if (!session) return;
+      const updated = addNote(session.id, stepNumber, note);
+      if (updated) setSession(updated);
+    },
+    [session]
+  );
 
   // Toggle ingredients panel
   const toggleIngredientsPanel = useCallback(() => {
@@ -107,11 +116,14 @@ export function useCookingSession(sessionId: string | null) {
   }, [session]);
 
   // Add chat message
-  const addChatMessage = useCallback((message: CookingSessionMessage) => {
-    if (!session) return;
-    const updated = addMessage(session.id, message);
-    if (updated) setSession(updated);
-  }, [session]);
+  const addChatMessage = useCallback(
+    (message: CookingSessionMessage) => {
+      if (!session) return;
+      const updated = addMessage(session.id, message);
+      if (updated) setSession(updated);
+    },
+    [session]
+  );
 
   // Manual save (for optimistic updates)
   const saveSession = useCallback(() => {

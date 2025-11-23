@@ -189,7 +189,8 @@ export default function Dashboard() {
         const rejectMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: "assistant",
-          content: "I'm a cooking assistant, so I can help you with recipes and cooking questions! Please ask me about food, recipes, or cooking techniques.",
+          content:
+            "I'm a cooking assistant, so I can help you with recipes and cooking questions! Please ask me about food, recipes, or cooking techniques.",
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, rejectMessage]);
@@ -226,7 +227,8 @@ export default function Dashboard() {
           const errorMessage: Message = {
             id: (Date.now() + 1).toString(),
             role: "assistant",
-            content: "Please select a recipe first to get substitution suggestions. Click on a recipe in the search results to get started!",
+            content:
+              "Please select a recipe first to get substitution suggestions. Click on a recipe in the search results to get started!",
             timestamp: new Date(),
           };
           setMessages((prev) => [...prev, errorMessage]);
@@ -268,7 +270,8 @@ export default function Dashboard() {
           const errorMessage: Message = {
             id: (Date.now() + 1).toString(),
             role: "assistant",
-            content: "I couldn't identify which ingredient you want to substitute. Could you be more specific about the ingredient?",
+            content:
+              "I couldn't identify which ingredient you want to substitute. Could you be more specific about the ingredient?",
             timestamp: new Date(),
           };
           setMessages((prev) => [...prev, errorMessage]);
@@ -278,7 +281,8 @@ export default function Dashboard() {
           const errorMessage: Message = {
             id: (Date.now() + 1).toString(),
             role: "assistant",
-            content: "I'm having trouble processing your substitution request. Please try again in a moment!",
+            content:
+              "I'm having trouble processing your substitution request. Please try again in a moment!",
             timestamp: new Date(),
           };
           setMessages((prev) => [...prev, errorMessage]);
@@ -295,7 +299,7 @@ export default function Dashboard() {
         },
         body: JSON.stringify({
           query: searchQuery,
-          preferences: preferences
+          preferences: preferences,
         }),
       });
 
@@ -312,8 +316,8 @@ export default function Dashboard() {
           role: "assistant",
           content: `${data.conflict.message}\n\n${
             data.conflict.suggestions && data.conflict.suggestions.length > 0
-              ? `Here are some alternative searches you might like:\n${data.conflict.suggestions.map((s: string) => `• ${s}`).join('\n')}`
-              : ''
+              ? `Here are some alternative searches you might like:\n${data.conflict.suggestions.map((s: string) => `• ${s}`).join("\n")}`
+              : ""
           }`,
           timestamp: new Date(),
         };
@@ -350,7 +354,8 @@ export default function Dashboard() {
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
-        content: "I'm having trouble processing your request right now. Please try again in a moment!",
+        content:
+          "I'm having trouble processing your request right now. Please try again in a moment!",
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -367,15 +372,13 @@ export default function Dashboard() {
   };
 
   // Handle substitution requests from chat
-  const handleSubstitutionFromChat = async (
-    ingredient: string,
-    userMessage: string
-  ) => {
+  const handleSubstitutionFromChat = async (ingredient: string, userMessage: string) => {
     if (!selectedRecipe) {
       const errorMessage: Message = {
         id: Date.now().toString(),
         role: "assistant",
-        content: "Please select a recipe first to get substitution suggestions. Click on a recipe in the search results to get started!",
+        content:
+          "Please select a recipe first to get substitution suggestions. Click on a recipe in the search results to get started!",
         timestamp: new Date(),
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -430,9 +433,7 @@ export default function Dashboard() {
   };
 
   // Handle applying a substitution from chat
-  const handleApplySubstitutionFromChat = async (
-    suggestion: any
-  ) => {
+  const handleApplySubstitutionFromChat = async (suggestion: any) => {
     if (!selectedRecipe) {
       console.error("No selected recipe");
       return;
@@ -460,36 +461,35 @@ export default function Dashboard() {
       // Build updated instructions using same logic as sidebar
       const updatedInstructions = appliedData.instructionChanges
         ? selectedRecipe.current.instructions.map((instr, idx) => {
-            const change = appliedData.instructionChanges.find(
-              (c: any) => c.step === idx + 1
-            );
+            const change = appliedData.instructionChanges.find((c: any) => c.step === idx + 1);
             return change ? change.modified : instr;
           })
         : selectedRecipe.current.instructions;
 
       // Build updated steps using same logic as sidebar
-      const updatedSteps = appliedData.instructionChanges && selectedRecipe.current.steps
-        ? selectedRecipe.current.steps.map((step) => {
-            const originalInstruction = selectedRecipe.current.instructions[step.stepNumber - 1];
-            if (originalInstruction) {
-              const change = appliedData.instructionChanges.find(
-                (c: any) => c.original === originalInstruction
-              );
-              if (change) {
-                return { ...step, text: change.modified };
+      const updatedSteps =
+        appliedData.instructionChanges && selectedRecipe.current.steps
+          ? selectedRecipe.current.steps.map((step) => {
+              const originalInstruction = selectedRecipe.current.instructions[step.stepNumber - 1];
+              if (originalInstruction) {
+                const change = appliedData.instructionChanges.find(
+                  (c: any) => c.original === originalInstruction
+                );
+                if (change) {
+                  return { ...step, text: change.modified };
+                }
               }
-            }
 
-            const changeByStep = appliedData.instructionChanges?.find(
-              (c: any) => c.step === step.stepNumber
-            );
-            if (changeByStep) {
-              return { ...step, text: changeByStep.modified };
-            }
+              const changeByStep = appliedData.instructionChanges?.find(
+                (c: any) => c.step === step.stepNumber
+              );
+              if (changeByStep) {
+                return { ...step, text: changeByStep.modified };
+              }
 
-            return step;
-          })
-        : selectedRecipe.current.steps;
+              return step;
+            })
+          : selectedRecipe.current.steps;
 
       // Update selectedRecipe with applied substitution
       const updatedRecipe: RecipeDetailWithContext = {
@@ -502,10 +502,7 @@ export default function Dashboard() {
         },
         modifications: {
           ...selectedRecipe.modifications,
-          warnings: [
-            ...selectedRecipe.modifications.warnings,
-            ...(appliedData.warnings || []),
-          ],
+          warnings: [...selectedRecipe.modifications.warnings, ...(appliedData.warnings || [])],
         },
         metadata: {
           ...selectedRecipe.metadata,
@@ -600,56 +597,99 @@ export default function Dashboard() {
           <div className="flex-1 overflow-hidden">
             <div className="h-full px-4 sm:px-6 lg:px-8">
               <ScrollArea className="h-full py-8">
-            {messages.length === 0 ? (
-              // Empty State
-              <div className="flex h-full flex-col items-center justify-center text-center">
-                <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-600/20 border border-white/10">
-                  <Bot className="h-10 w-10 text-blue-400" strokeWidth={2} />
-                </div>
-                <h2 className="mb-3 text-3xl font-bold text-white">
-                  Ask me anything about cooking!
-                </h2>
-                <p className="text-lg text-gray-400 max-w-md">
-                  I'm your AI cooking assistant. Search for recipes, get cooking tips, or ask for recommendations.
-                </p>
-                
-                {/* Suggestion Pills */}
-                <div className="mt-8 flex flex-wrap gap-3 justify-center max-w-2xl">
-                  {[
-                    "chocolate chip cookies",
-                    "quick pasta recipes",
-                    "healthy dinner ideas",
-                    "easy desserts"
-                  ].map((suggestion, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setInputValue(suggestion)}
-                      className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-gray-300 hover:bg-white/10 hover:border-white/20 transition-all hover:scale-105"
-                    >
-                      {suggestion}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              // Messages
-              <div className="space-y-8">
-                {messages.map((message) => (
-                  <div key={message.id}>
-                    {message.role === "user" ? (
-                      <div className="flex gap-4 justify-end">
-                        <div className="max-w-[70%] rounded-2xl px-5 py-3 bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/20">
-                          <p className="text-base leading-relaxed whitespace-pre-wrap">
-                            {message.content}
-                          </p>
-                        </div>
-                        <Avatar className="h-12 w-12 border-2 border-purple-500/50">
-                          <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-600">
-                            <User className="h-6 w-6 text-white" strokeWidth={2} />
-                          </AvatarFallback>
-                        </Avatar>
+                {messages.length === 0 ? (
+                  // Empty State
+                  <div className="flex h-full flex-col items-center justify-center text-center">
+                    <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-600/20 border border-white/10">
+                      <Bot className="h-10 w-10 text-blue-400" strokeWidth={2} />
+                    </div>
+                    <h2 className="mb-3 text-3xl font-bold text-white">
+                      Ask me anything about cooking!
+                    </h2>
+                    <p className="text-lg text-gray-400 max-w-md">
+                      I'm your AI cooking assistant. Search for recipes, get cooking tips, or ask
+                      for recommendations.
+                    </p>
+
+                    {/* Suggestion Pills */}
+                    <div className="mt-8 flex flex-wrap gap-3 justify-center max-w-2xl">
+                      {[
+                        "chocolate chip cookies",
+                        "quick pasta recipes",
+                        "healthy dinner ideas",
+                        "easy desserts",
+                      ].map((suggestion, index) => (
+                        <button
+                          key={index}
+                          onClick={() => setInputValue(suggestion)}
+                          className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-gray-300 hover:bg-white/10 hover:border-white/20 transition-all hover:scale-105"
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  // Messages
+                  <div className="space-y-8">
+                    {messages.map((message) => (
+                      <div key={message.id}>
+                        {message.role === "user" ? (
+                          <div className="flex gap-4 justify-end">
+                            <div className="max-w-[70%] rounded-2xl px-5 py-3 bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/20">
+                              <p className="text-base leading-relaxed whitespace-pre-wrap">
+                                {message.content}
+                              </p>
+                            </div>
+                            <Avatar className="h-12 w-12 border-2 border-purple-500/50">
+                              <AvatarFallback className="bg-gradient-to-br from-purple-500 to-pink-600">
+                                <User className="h-6 w-6 text-white" strokeWidth={2} />
+                              </AvatarFallback>
+                            </Avatar>
+                          </div>
+                        ) : (
+                          <div className="flex gap-4 justify-start">
+                            <Avatar className="h-12 w-12 border-2 border-blue-500/50">
+                              <AvatarImage src="/chef.jpg" alt="Chef Assistant" />
+                              <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600">
+                                <Bot className="h-6 w-6 text-white" strokeWidth={2} />
+                              </AvatarFallback>
+                            </Avatar>
+
+                            {message.isRecipeSearch && message.recipes ? (
+                              <div className="flex-1">
+                                <RecipeResults
+                                  recipes={message.recipes}
+                                  query={message.query || ""}
+                                  onViewRecipe={handleViewRecipe}
+                                  onSelectRecipe={handleSelectRecipe}
+                                />
+                              </div>
+                            ) : message.suggestedSubstitutions ? (
+                              <div className="flex-1">
+                                <ChatSubstitutionSuggestion
+                                  originalIngredient={
+                                    message.suggestedSubstitutions.originalIngredient
+                                  }
+                                  suggestions={message.suggestedSubstitutions.suggestions}
+                                  explanation={message.suggestedSubstitutions.explanation}
+                                  onApply={handleApplySubstitutionFromChat}
+                                />
+                              </div>
+                            ) : (
+                              <div className="max-w-[70%] rounded-2xl px-5 py-3 bg-white/5 border border-white/10 text-white backdrop-blur-sm">
+                                <p className="text-base leading-relaxed whitespace-pre-wrap">
+                                  {message.content}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
-                    ) : (
+                    ))}
+
+                    {/* Loading State */}
+                    {isLoading && (
                       <div className="flex gap-4 justify-start">
                         <Avatar className="h-12 w-12 border-2 border-blue-500/50">
                           <AvatarImage src="/chef.jpg" alt="Chef Assistant" />
@@ -657,54 +697,14 @@ export default function Dashboard() {
                             <Bot className="h-6 w-6 text-white" strokeWidth={2} />
                           </AvatarFallback>
                         </Avatar>
-
-                        {message.isRecipeSearch && message.recipes ? (
-                          <div className="flex-1">
-                            <RecipeResults
-                              recipes={message.recipes}
-                              query={message.query || ""}
-                              onViewRecipe={handleViewRecipe}
-                              onSelectRecipe={handleSelectRecipe}
-                            />
-                          </div>
-                        ) : message.suggestedSubstitutions ? (
-                          <div className="flex-1">
-                            <ChatSubstitutionSuggestion
-                              originalIngredient={message.suggestedSubstitutions.originalIngredient}
-                              suggestions={message.suggestedSubstitutions.suggestions}
-                              explanation={message.suggestedSubstitutions.explanation}
-                              onApply={handleApplySubstitutionFromChat}
-                            />
-                          </div>
-                        ) : (
-                          <div className="max-w-[70%] rounded-2xl px-5 py-3 bg-white/5 border border-white/10 text-white backdrop-blur-sm">
-                            <p className="text-base leading-relaxed whitespace-pre-wrap">
-                              {message.content}
-                            </p>
-                          </div>
-                        )}
+                        <ThinkingIndicator />
                       </div>
                     )}
-                  </div>
-                ))}
-                
-                {/* Loading State */}
-                {isLoading && (
-                  <div className="flex gap-4 justify-start">
-                    <Avatar className="h-12 w-12 border-2 border-blue-500/50">
-                      <AvatarImage src="/chef.jpg" alt="Chef Assistant" />
-                      <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600">
-                        <Bot className="h-6 w-6 text-white" strokeWidth={2} />
-                      </AvatarFallback>
-                    </Avatar>
-                    <ThinkingIndicator />
+
+                    {/* Scroll anchor */}
+                    <div ref={messagesEndRef} />
                   </div>
                 )}
-                
-                {/* Scroll anchor */}
-                <div ref={messagesEndRef} />
-              </div>
-            )}
               </ScrollArea>
             </div>
           </div>
@@ -750,10 +750,7 @@ export default function Dashboard() {
       </div>
 
       {/* Preferences Dialog */}
-      <PreferencesDialog
-        open={preferencesOpen}
-        onOpenChange={setPreferencesOpen}
-      />
+      <PreferencesDialog open={preferencesOpen} onOpenChange={setPreferencesOpen} />
     </div>
   );
 }

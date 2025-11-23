@@ -48,7 +48,9 @@ export async function POST(request: NextRequest) {
 
     // Allergen filtering if user has allergen preferences
     if (preferences?.allergies && preferences.allergies.length > 0) {
-      console.log(`[Allergen Filtering] Checking ${recipes.length} recipes for allergens: ${preferences.allergies.join(', ')}`);
+      console.log(
+        `[Allergen Filtering] Checking ${recipes.length} recipes for allergens: ${preferences.allergies.join(", ")}`
+      );
 
       const allergenFilteredRecipes: Recipe[] = [];
       let filteredCount = 0;
@@ -66,10 +68,7 @@ export async function POST(request: NextRequest) {
           }
 
           // Validate ingredients against user allergens
-          const validation = await validateRecipe(
-            recipeDetail.ingredients,
-            preferences.allergies
-          );
+          const validation = await validateRecipe(recipeDetail.ingredients, preferences.allergies);
 
           if (validation.recipeSafe) {
             // Recipe is safe - add allergen info metadata
@@ -79,14 +78,16 @@ export async function POST(request: NextRequest) {
                 hasAllergens: false,
                 allergens: [],
                 warnings: [],
-                dataSource: 'open-food-facts',
+                dataSource: "open-food-facts",
                 checkedAt: new Date().toISOString(),
               },
             });
           } else {
             // Recipe contains allergens - filter it out
             filteredCount++;
-            console.log(`[Allergen Filtering] Filtered out "${recipe.title}" - contains: ${validation.blockedIngredients.join(', ')}`);
+            console.log(
+              `[Allergen Filtering] Filtered out "${recipe.title}" - contains: ${validation.blockedIngredients.join(", ")}`
+            );
           }
         } catch (error) {
           console.error(`[Allergen Filtering] Error validating recipe "${recipe.title}":`, error);
@@ -95,7 +96,9 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      console.log(`[Allergen Filtering] Filtered ${filteredCount} recipes with allergens. ${allergenFilteredRecipes.length} recipes remain.`);
+      console.log(
+        `[Allergen Filtering] Filtered ${filteredCount} recipes with allergens. ${allergenFilteredRecipes.length} recipes remain.`
+      );
       recipes = allergenFilteredRecipes;
     }
 

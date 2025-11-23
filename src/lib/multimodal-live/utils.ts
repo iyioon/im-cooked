@@ -2,10 +2,7 @@
  * Utility functions for Gemini Live API
  */
 
-import type {
-  ServerMessage,
-  ServerContentMessage,
-} from "./types";
+import type { ServerMessage, ServerContentMessage } from "./types";
 
 /**
  * Convert base64 string to ArrayBuffer
@@ -34,9 +31,7 @@ export function arrayBufferToBase64(buffer: ArrayBuffer): string {
 /**
  * Type guard for ServerContentMessage
  */
-export function isServerContentMessage(
-  msg: ServerMessage
-): msg is ServerContentMessage {
+export function isServerContentMessage(msg: ServerMessage): msg is ServerContentMessage {
   return "serverContent" in msg;
 }
 
@@ -58,8 +53,7 @@ export function isToolCallMessage(msg: ServerMessage): boolean {
  * Initialize audio context with proper browser support
  */
 export function createAudioContext(sampleRate?: number): AudioContext {
-  const AudioContextClass =
-    window.AudioContext || (window as any).webkitAudioContext;
+  const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
 
   if (!AudioContextClass) {
     throw new Error("AudioContext not supported in this browser");

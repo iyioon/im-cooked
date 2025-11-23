@@ -135,19 +135,11 @@ export interface GeminiLiveEvents {
   text: (text: string) => void;
   interrupted: () => void;
   turnComplete: () => void;
-  functionCall: (call: {
-    id: string;
-    name: string;
-    args: Record<string, unknown>;
-  }) => void;
+  functionCall: (call: { id: string; name: string; args: Record<string, unknown> }) => void;
 }
 
 // Connection state
-export type ConnectionState =
-  | "disconnected"
-  | "connecting"
-  | "connected"
-  | "error";
+export type ConnectionState = "disconnected" | "connecting" | "connected" | "error";
 
 // Transcript entry
 export interface TranscriptEntry {

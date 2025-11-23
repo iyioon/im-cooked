@@ -13,7 +13,7 @@ export interface Recipe {
     hasAllergens: boolean;
     allergens: string[]; // List of detected allergens
     warnings: string[]; // Human-readable warnings
-    dataSource?: 'open-food-facts' | 'string-matching';
+    dataSource?: "open-food-facts" | "string-matching";
     checkedAt?: string; // ISO timestamp
   };
 }

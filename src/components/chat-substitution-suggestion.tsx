@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { UI_TIMINGS } from "@/lib/constants";
 
 interface ChatSubstitutionSuggestionProps {
   originalIngredient: string;
@@ -30,7 +31,7 @@ export function ChatSubstitutionSuggestion({
       setApplyingId(index);
       await onApply(suggestion);
       setAppliedId(index);
-      setTimeout(() => setAppliedId(null), 2000); // Show success for 2 seconds
+      setTimeout(() => setAppliedId(null), UI_TIMINGS.SUBSTITUTION_SUCCESS_DURATION);
     } catch (error) {
       console.error("Error applying substitution:", error);
     } finally {
@@ -59,10 +60,8 @@ export function ChatSubstitutionSuggestion({
                   <div className="flex items-center gap-2 mb-2">
                     <CheckCircle2 className="h-4 w-4 text-green-400" />
                     <span className="font-medium text-white">
-                      {suggestion.substitute.quantity &&
-                        `${suggestion.substitute.quantity} `}
-                      {suggestion.substitute.unit &&
-                        `${suggestion.substitute.unit} `}
+                      {suggestion.substitute.quantity && `${suggestion.substitute.quantity} `}
+                      {suggestion.substitute.unit && `${suggestion.substitute.unit} `}
                       {suggestion.substitute.ingredient}
                       {suggestion.substitute.preparation &&
                         ` (${suggestion.substitute.preparation})`}
@@ -78,33 +77,25 @@ export function ChatSubstitutionSuggestion({
                   {suggestion.impact.taste && (
                     <div className="bg-white/5 p-2 rounded">
                       <span className="text-gray-500">Taste: </span>
-                      <span className="text-gray-300">
-                        {suggestion.impact.taste}
-                      </span>
+                      <span className="text-gray-300">{suggestion.impact.taste}</span>
                     </div>
                   )}
                   {suggestion.impact.texture && (
                     <div className="bg-white/5 p-2 rounded">
                       <span className="text-gray-500">Texture: </span>
-                      <span className="text-gray-300">
-                        {suggestion.impact.texture}
-                      </span>
+                      <span className="text-gray-300">{suggestion.impact.texture}</span>
                     </div>
                   )}
                   {suggestion.impact.nutrition && (
                     <div className="bg-white/5 p-2 rounded">
                       <span className="text-gray-500">Nutrition: </span>
-                      <span className="text-gray-300">
-                        {suggestion.impact.nutrition}
-                      </span>
+                      <span className="text-gray-300">{suggestion.impact.nutrition}</span>
                     </div>
                   )}
                   {suggestion.impact.cookingTime && (
                     <div className="bg-white/5 p-2 rounded">
                       <span className="text-gray-500">Cook Time: </span>
-                      <span className="text-gray-300">
-                        {suggestion.impact.cookingTime}
-                      </span>
+                      <span className="text-gray-300">{suggestion.impact.cookingTime}</span>
                     </div>
                   )}
                 </div>

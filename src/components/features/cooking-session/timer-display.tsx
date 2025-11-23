@@ -45,7 +45,7 @@ export function TimerDisplay({ timers, onRemove }: TimerDisplayProps) {
                   <TimerIcon className="h-5 w-5 text-blue-400" />
                 </div>
               )}
-              
+
               <div className="flex-1">
                 <p className="text-sm text-gray-300 font-medium">{timer.label}</p>
                 <div className="flex items-baseline gap-2">
@@ -54,16 +54,14 @@ export function TimerDisplay({ timers, onRemove }: TimerDisplayProps) {
                       timer.isCompleted
                         ? "text-red-400"
                         : timer.remainingSeconds <= 10
-                        ? "text-orange-400"
-                        : "text-white"
+                          ? "text-orange-400"
+                          : "text-white"
                     }`}
                   >
                     {formatTime(timer.remainingSeconds)}
                   </p>
                   {timer.isCompleted && (
-                    <Badge className="bg-red-500/20 text-red-400 border-red-500/50">
-                      Done!
-                    </Badge>
+                    <Badge className="bg-red-500/20 text-red-400 border-red-500/50">Done!</Badge>
                   )}
                 </div>
               </div>

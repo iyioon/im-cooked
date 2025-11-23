@@ -12,10 +12,10 @@ export default function Home() {
       <section className="relative flex flex-col items-center justify-center px-4 min-h-screen overflow-hidden">
         {/* YouTube Video Background */}
         <VideoBackground />
-        
+
         {/* Dark overlay */}
         <div className="absolute inset-0 z-10 bg-black/75 backdrop-blur-[2px]" />
-        
+
         {/* Content */}
         <div className="relative z-20 mx-auto max-w-5xl text-center">
           {/* Large chef hat icon with subtle animation */}
@@ -39,7 +39,10 @@ export default function Home() {
           {/* Single prominent CTA */}
           <div className="animate-in fade-in slide-in-from-bottom-10 duration-1000 delay-300">
             <Link href="/dashboard">
-              <Button size="lg" className="h-14 px-12 text-lg font-semibold shadow-2xl shadow-primary/20 hover:shadow-primary/30 hover:scale-105 transition-all bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0">
+              <Button
+                size="lg"
+                className="h-14 px-12 text-lg font-semibold shadow-2xl shadow-primary/20 hover:shadow-primary/30 hover:scale-105 transition-all bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0"
+              >
                 <Sparkles className="mr-2 h-6 w-6" />
                 Start Cooking
               </Button>
@@ -48,7 +51,10 @@ export default function Home() {
 
           {/* Subtle trust badge */}
           <div className="mt-16 animate-in fade-in duration-1000 delay-500">
-            <Badge variant="secondary" className="text-sm px-4 py-2 backdrop-blur-sm bg-white/10 border-white/20 text-gray-300">
+            <Badge
+              variant="secondary"
+              className="text-sm px-4 py-2 backdrop-blur-sm bg-white/10 border-white/20 text-gray-300"
+            >
               Powered by Gemini AI 2.0
             </Badge>
           </div>
@@ -173,14 +179,17 @@ export default function Home() {
         {/* Background decoration */}
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-black via-blue-950/10 to-purple-950/10" />
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-900/10 via-transparent to-transparent" />
-        
+
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="mb-8 text-4xl sm:text-5xl md:text-6xl font-bold tracking-tight text-white">
             Ready to transform your cooking?
           </h2>
-          
+
           <Link href="/dashboard">
-            <Button size="lg" className="h-14 px-12 text-lg font-semibold shadow-2xl shadow-primary/20 hover:shadow-primary/30 hover:scale-105 transition-all bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0">
+            <Button
+              size="lg"
+              className="h-14 px-12 text-lg font-semibold shadow-2xl shadow-primary/20 hover:shadow-primary/30 hover:scale-105 transition-all bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 border-0"
+            >
               Get Started Free
             </Button>
           </Link>

@@ -13,7 +13,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { SubstitutionResponse, RecipeDetail, UserPreferences, IngredientSubstitution } from "@/types/recipe";
+import {
+  SubstitutionResponse,
+  RecipeDetail,
+  UserPreferences,
+  IngredientSubstitution,
+} from "@/types/recipe";
 import { loadPreferences } from "@/lib/preferences-manager";
 import { Loader2, Sparkles, AlertCircle, CheckCircle2, ShieldCheck, Info } from "lucide-react";
 
@@ -37,9 +42,7 @@ export function SubstitutionDialog({
   const [userInput, setUserInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [applyingSubstitution, setApplyingSubstitution] = useState(false);
-  const [suggestions, setSuggestions] = useState<SubstitutionResponse | null>(
-    null
-  );
+  const [suggestions, setSuggestions] = useState<SubstitutionResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
 
@@ -79,9 +82,7 @@ export function SubstitutionDialog({
       setSuggestions(data);
     } catch (err) {
       console.error("Error getting substitutions:", err);
-      setError(
-        err instanceof Error ? err.message : "Failed to get suggestions"
-      );
+      setError(err instanceof Error ? err.message : "Failed to get suggestions");
     } finally {
       setLoading(false);
     }
@@ -181,7 +182,7 @@ export function SubstitutionDialog({
               impacts: suggestion.impact,
               appliedAt: new Date(),
             },
-            modifiedRecipe: modifiedRecipe,  // Include the modified recipe
+            modifiedRecipe: modifiedRecipe, // Include the modified recipe
           }),
         });
       }
@@ -202,9 +203,7 @@ export function SubstitutionDialog({
       onOpenChange(false);
     } catch (err) {
       console.error("Error applying substitution:", err);
-      setError(
-        err instanceof Error ? err.message : "Failed to apply substitution"
-      );
+      setError(err instanceof Error ? err.message : "Failed to apply substitution");
     } finally {
       setApplyingSubstitution(false);
     }
@@ -220,8 +219,7 @@ export function SubstitutionDialog({
           </DialogTitle>
           <DialogDescription>
             Get AI-powered suggestions for substituting{" "}
-            <span className="text-white font-medium">{ingredient}</span> in{" "}
-            {recipe.title}
+            <span className="text-white font-medium">{ingredient}</span> in {recipe.title}
           </DialogDescription>
         </DialogHeader>
 
@@ -278,48 +276,51 @@ export function SubstitutionDialog({
           {suggestions && (
             <div className="space-y-4">
               {/* Allergen Filtering Info */}
-              {suggestions.allergenFiltering && suggestions.allergenFiltering.blockedSuggestions > 0 && (
-                <Card className="bg-blue-500/10 border-blue-500/20">
-                  <CardContent className="pt-4">
-                    <div className="flex items-start gap-2">
-                      <Info className="h-4 w-4 text-blue-400 mt-0.5" />
-                      <div className="flex-1">
-                        <p className="text-sm text-blue-300 mb-2">
-                          <strong>{suggestions.allergenFiltering.blockedSuggestions}</strong> suggestion(s) filtered due to allergens
-                        </p>
-                        {suggestions.allergenFiltering.blockedReasons.length > 0 && (
-                          <ul className="text-xs text-blue-400/80 space-y-1 ml-4 list-disc">
-                            {suggestions.allergenFiltering.blockedReasons.map((reason, idx) => (
-                              <li key={idx}>{reason}</li>
-                            ))}
-                          </ul>
-                        )}
+              {suggestions.allergenFiltering &&
+                suggestions.allergenFiltering.blockedSuggestions > 0 && (
+                  <Card className="bg-blue-500/10 border-blue-500/20">
+                    <CardContent className="pt-4">
+                      <div className="flex items-start gap-2">
+                        <Info className="h-4 w-4 text-blue-400 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm text-blue-300 mb-2">
+                            <strong>{suggestions.allergenFiltering.blockedSuggestions}</strong>{" "}
+                            suggestion(s) filtered due to allergens
+                          </p>
+                          {suggestions.allergenFiltering.blockedReasons.length > 0 && (
+                            <ul className="text-xs text-blue-400/80 space-y-1 ml-4 list-disc">
+                              {suggestions.allergenFiltering.blockedReasons.map((reason, idx) => (
+                                <li key={idx}>{reason}</li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+                    </CardContent>
+                  </Card>
+                )}
 
               {/* No suggestions available */}
-              {suggestions.suggestions.length === 0 && suggestions.allergenFiltering && suggestions.allergenFiltering.blockedSuggestions > 0 && (
-                <Card className="bg-yellow-500/10 border-yellow-500/20">
-                  <CardContent className="pt-4">
-                    <div className="flex items-center gap-2 text-yellow-400">
-                      <AlertCircle className="h-4 w-4" />
-                      <p className="text-sm">
-                        All substitution suggestions were filtered due to your allergen preferences. Try a different ingredient or adjust your allergen settings.
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+              {suggestions.suggestions.length === 0 &&
+                suggestions.allergenFiltering &&
+                suggestions.allergenFiltering.blockedSuggestions > 0 && (
+                  <Card className="bg-yellow-500/10 border-yellow-500/20">
+                    <CardContent className="pt-4">
+                      <div className="flex items-center gap-2 text-yellow-400">
+                        <AlertCircle className="h-4 w-4" />
+                        <p className="text-sm">
+                          All substitution suggestions were filtered due to your allergen
+                          preferences. Try a different ingredient or adjust your allergen settings.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
               {/* Dish Context */}
               <Card className="bg-white/5 border-white/10">
                 <CardContent className="pt-4">
-                  <h3 className="text-sm font-semibold text-white mb-3">
-                    Dish Analysis
-                  </h3>
+                  <h3 className="text-sm font-semibold text-white mb-3">Dish Analysis</h3>
                   <div className="flex flex-wrap gap-2">
                     <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/50">
                       {suggestions.dishContext.dishType}
@@ -349,103 +350,91 @@ export function SubstitutionDialog({
               {/* Substitution Suggestions */}
               {suggestions.suggestions.length > 0 && (
                 <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-white">
-                  Suggested Substitutions
-                </h3>
-                {suggestions.suggestions.map((suggestion, index) => (
-                  <Card
-                    key={index}
-                    className="bg-white/5 border-white/10 hover:border-blue-500/30 transition-colors"
-                  >
-                    <CardContent className="pt-4 space-y-3">
-                      {/* Substitution */}
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <CheckCircle2 className="h-4 w-4 text-green-400" />
-                            <span className="font-medium text-white">
-                              {suggestion.substitute.quantity &&
-                                `${suggestion.substitute.quantity} `}
-                              {suggestion.substitute.unit &&
-                                `${suggestion.substitute.unit} `}
-                              {suggestion.substitute.ingredient}
-                              {suggestion.substitute.preparation &&
-                                ` (${suggestion.substitute.preparation})`}
-                            </span>
-                            {/* Allergen-Safe Badge */}
-                            {suggestion.allergenValidation?.safe && (
-                              <Badge className="bg-green-500/20 text-green-400 border-green-500/50 flex items-center gap-1">
-                                <ShieldCheck className="h-3 w-3" />
-                                Allergen-Free
-                              </Badge>
+                  <h3 className="text-sm font-semibold text-white">Suggested Substitutions</h3>
+                  {suggestions.suggestions.map((suggestion, index) => (
+                    <Card
+                      key={index}
+                      className="bg-white/5 border-white/10 hover:border-blue-500/30 transition-colors"
+                    >
+                      <CardContent className="pt-4 space-y-3">
+                        {/* Substitution */}
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <CheckCircle2 className="h-4 w-4 text-green-400" />
+                              <span className="font-medium text-white">
+                                {suggestion.substitute.quantity &&
+                                  `${suggestion.substitute.quantity} `}
+                                {suggestion.substitute.unit && `${suggestion.substitute.unit} `}
+                                {suggestion.substitute.ingredient}
+                                {suggestion.substitute.preparation &&
+                                  ` (${suggestion.substitute.preparation})`}
+                              </span>
+                              {/* Allergen-Safe Badge */}
+                              {suggestion.allergenValidation?.safe && (
+                                <Badge className="bg-green-500/20 text-green-400 border-green-500/50 flex items-center gap-1">
+                                  <ShieldCheck className="h-3 w-3" />
+                                  Allergen-Free
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-300">{suggestion.reason}</p>
+                          </div>
+                        </div>
+
+                        {/* Impact */}
+                        {suggestion.impact && (
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            {suggestion.impact.taste && (
+                              <div className="bg-white/5 p-2 rounded">
+                                <span className="text-gray-500">Taste: </span>
+                                <span className="text-gray-300">{suggestion.impact.taste}</span>
+                              </div>
+                            )}
+                            {suggestion.impact.texture && (
+                              <div className="bg-white/5 p-2 rounded">
+                                <span className="text-gray-500">Texture: </span>
+                                <span className="text-gray-300">{suggestion.impact.texture}</span>
+                              </div>
+                            )}
+                            {suggestion.impact.nutrition && (
+                              <div className="bg-white/5 p-2 rounded">
+                                <span className="text-gray-500">Nutrition: </span>
+                                <span className="text-gray-300">{suggestion.impact.nutrition}</span>
+                              </div>
+                            )}
+                            {suggestion.impact.cookingTime && (
+                              <div className="bg-white/5 p-2 rounded">
+                                <span className="text-gray-500">Cook Time: </span>
+                                <span className="text-gray-300">
+                                  {suggestion.impact.cookingTime}
+                                </span>
+                              </div>
                             )}
                           </div>
-                          <p className="text-sm text-gray-300">
-                            {suggestion.reason}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Impact */}
-                      {suggestion.impact && (
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          {suggestion.impact.taste && (
-                            <div className="bg-white/5 p-2 rounded">
-                              <span className="text-gray-500">Taste: </span>
-                              <span className="text-gray-300">
-                                {suggestion.impact.taste}
-                              </span>
-                            </div>
-                          )}
-                          {suggestion.impact.texture && (
-                            <div className="bg-white/5 p-2 rounded">
-                              <span className="text-gray-500">Texture: </span>
-                              <span className="text-gray-300">
-                                {suggestion.impact.texture}
-                              </span>
-                            </div>
-                          )}
-                          {suggestion.impact.nutrition && (
-                            <div className="bg-white/5 p-2 rounded">
-                              <span className="text-gray-500">Nutrition: </span>
-                              <span className="text-gray-300">
-                                {suggestion.impact.nutrition}
-                              </span>
-                            </div>
-                          )}
-                          {suggestion.impact.cookingTime && (
-                            <div className="bg-white/5 p-2 rounded">
-                              <span className="text-gray-500">Cook Time: </span>
-                              <span className="text-gray-300">
-                                {suggestion.impact.cookingTime}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Apply Button */}
-                      <Button
-                        onClick={() => handleApply(suggestion)}
-                        disabled={applyingSubstitution}
-                        size="sm"
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                      >
-                        {applyingSubstitution ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Applying...
-                          </>
-                        ) : (
-                          "Use This Substitution"
                         )}
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
+
+                        {/* Apply Button */}
+                        <Button
+                          onClick={() => handleApply(suggestion)}
+                          disabled={applyingSubstitution}
+                          size="sm"
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          {applyingSubstitution ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Applying...
+                            </>
+                          ) : (
+                            "Use This Substitution"
+                          )}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               )}
-
             </div>
           )}
         </div>

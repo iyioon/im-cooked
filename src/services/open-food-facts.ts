@@ -7,34 +7,29 @@
  * @see https://openfoodfacts.github.io/openfoodfacts-server/api/
  */
 
-const OPEN_FOOD_FACTS_BASE_URL = 'https://world.openfoodfacts.org';
-const CACHE_PREFIX = 'off_cache_';
-const CACHE_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+import { CACHE_DURATIONS, RATE_LIMITS, RECIPE_SETTINGS } from "@/lib/constants";
 
-// Rate limiting configuration
-const RATE_LIMIT = {
-  productQueries: 100, // per minute
-  searchQueries: 10,   // per minute
-};
+const OPEN_FOOD_FACTS_BASE_URL = "https://world.openfoodfacts.org";
+const CACHE_PREFIX = "off_cache_";
 
 /**
  * Allergen severity levels for enhanced detection
  */
 export enum AllergenSeverity {
-  DIRECT = 'direct',           // Ingredient contains the allergen
-  TRACE = 'trace',             // May contain traces (cross-contamination)
-  DERIVED = 'derived',         // Derived from allergenic source
-  HIERARCHY = 'hierarchy',     // Parent allergen category
+  DIRECT = "direct", // Ingredient contains the allergen
+  TRACE = "trace", // May contain traces (cross-contamination)
+  DERIVED = "derived", // Derived from allergenic source
+  HIERARCHY = "hierarchy", // Parent allergen category
 }
 
 /**
  * Allergen information from Open Food Facts
  */
 export interface AllergenInfo {
-  allergen: string;              // Standardized allergen name
-  severity: AllergenSeverity;    // How the allergen is present
-  source: string;                // Where the allergen was detected (ingredient name)
-  confidence: number;            // Confidence score (0-1)
+  allergen: string; // Standardized allergen name
+  severity: AllergenSeverity; // How the allergen is present
+  source: string; // Where the allergen was detected (ingredient name)
+  confidence: number; // Confidence score (0-1)
 }
 
 /**
@@ -43,9 +38,9 @@ export interface AllergenInfo {
 export interface ProductAllergenData {
   productName: string;
   allergens: AllergenInfo[];
-  allergensText?: string;        // Human-readable allergen description
-  traces?: string[];             // Trace allergens (may contain)
-  dataSource: 'open-food-facts';
+  allergensText?: string; // Human-readable allergen description
+  traces?: string[]; // Trace allergens (may contain)
+  dataSource: "open-food-facts";
   lastUpdated: string;
 }
 
@@ -109,7 +104,7 @@ interface OFFAllergenTaxonomy {
  * Get data from localStorage cache
  */
 function getFromCache<T>(key: string): T | null {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === "undefined") return null;
 
   try {
     const cached = localStorage.getItem(CACHE_PREFIX + key);
@@ -119,14 +114,14 @@ function getFromCache<T>(key: string): T | null {
     const now = Date.now();
 
     // Check if cache is expired
-    if (now - cachedData.timestamp > CACHE_DURATION_MS) {
+    if (now - cachedData.timestamp > CACHE_DURATIONS.OPEN_FOOD_FACTS) {
       localStorage.removeItem(CACHE_PREFIX + key);
       return null;
     }
 
     return cachedData.data;
   } catch (error) {
-    console.error('Error reading from cache:', error);
+    console.error("Error reading from cache:", error);
     return null;
   }
 }
@@ -135,7 +130,7 @@ function getFromCache<T>(key: string): T | null {
  * Save data to localStorage cache
  */
 function saveToCache<T>(key: string, data: T): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
 
   try {
     const cachedData: CachedData<T> = {
@@ -144,7 +139,7 @@ function saveToCache<T>(key: string, data: T): void {
     };
     localStorage.setItem(CACHE_PREFIX + key, JSON.stringify(cachedData));
   } catch (error) {
-    console.error('Error saving to cache:', error);
+    console.error("Error saving to cache:", error);
     // If localStorage is full, try to clear old cache entries
     try {
       clearOldCacheEntries();
@@ -159,7 +154,7 @@ function saveToCache<T>(key: string, data: T): void {
  * Clear old cache entries to free up space
  */
 function clearOldCacheEntries(): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
 
   const now = Date.now();
   const keys = Object.keys(localStorage);
@@ -170,7 +165,7 @@ function clearOldCacheEntries(): void {
         const cached = localStorage.getItem(key);
         if (cached) {
           const cachedData: CachedData<unknown> = JSON.parse(cached);
-          if (now - cachedData.timestamp > CACHE_DURATION_MS) {
+          if (now - cachedData.timestamp > CACHE_DURATIONS.OPEN_FOOD_FACTS) {
             localStorage.removeItem(key);
           }
         }
@@ -187,9 +182,9 @@ function clearOldCacheEntries(): void {
  */
 function normalizeAllergenTag(tag: string): string {
   // Remove language prefix
-  const normalized = tag.replace(/^[a-z]{2}:/, '');
+  const normalized = tag.replace(/^[a-z]{2}:/, "");
   // Convert hyphens to spaces
-  return normalized.replace(/-/g, ' ');
+  return normalized.replace(/-/g, " ");
 }
 
 /**
@@ -201,7 +196,7 @@ function determineAllergenSeverity(tag: string, isTrace: boolean): AllergenSever
   }
 
   // Check if it's a derived allergen (e.g., milk derivatives)
-  if (tag.includes('derivative') || tag.includes('derived')) {
+  if (tag.includes("derivative") || tag.includes("derived")) {
     return AllergenSeverity.DERIVED;
   }
 
@@ -224,16 +219,19 @@ export async function searchProductsByIngredient(
   try {
     // Use the v2 search API
     const url = new URL(`${OPEN_FOOD_FACTS_BASE_URL}/cgi/search.pl`);
-    url.searchParams.append('search_terms', ingredientName);
-    url.searchParams.append('search_simple', '1');
-    url.searchParams.append('action', 'process');
-    url.searchParams.append('json', '1');
-    url.searchParams.append('page_size', '5'); // Limit results
-    url.searchParams.append('fields', 'code,product_name,allergens_tags,allergens_hierarchy,traces_tags');
+    url.searchParams.append("search_terms", ingredientName);
+    url.searchParams.append("search_simple", "1");
+    url.searchParams.append("action", "process");
+    url.searchParams.append("json", "1");
+    url.searchParams.append("page_size", String(RECIPE_SETTINGS.SEARCH_PAGE_SIZE));
+    url.searchParams.append(
+      "fields",
+      "code,product_name,allergens_tags,allergens_hierarchy,traces_tags"
+    );
 
     const response = await fetch(url.toString(), {
       headers: {
-        'User-Agent': 'im-cooked/1.0 (Allergen Detection)',
+        "User-Agent": "im-cooked/1.0 (Allergen Detection)",
       },
     });
 
@@ -244,13 +242,13 @@ export async function searchProductsByIngredient(
     const data: OFFSearchResponse = await response.json();
 
     const results: ProductAllergenData[] = data.products
-      .filter(product => product.product_name) // Only products with names
-      .map(product => parseProductAllergens(product));
+      .filter((product) => product.product_name) // Only products with names
+      .map((product) => parseProductAllergens(product));
 
     saveToCache(cacheKey, results);
     return results;
   } catch (error) {
-    console.error('Error searching Open Food Facts:', error);
+    console.error("Error searching Open Food Facts:", error);
     return [];
   }
 }
@@ -271,7 +269,7 @@ export async function getProductAllergens(barcode: string): Promise<ProductAller
 
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'im-cooked/1.0 (Allergen Detection)',
+        "User-Agent": "im-cooked/1.0 (Allergen Detection)",
       },
     });
 
@@ -295,7 +293,7 @@ export async function getProductAllergens(barcode: string): Promise<ProductAller
     saveToCache(cacheKey, result);
     return result;
   } catch (error) {
-    console.error('Error fetching product from Open Food Facts:', error);
+    console.error("Error fetching product from Open Food Facts:", error);
     return null;
   }
 }
@@ -318,7 +316,7 @@ function parseProductAllergens(product: {
       allergens.push({
         allergen: normalizeAllergenTag(tag),
         severity: AllergenSeverity.DIRECT,
-        source: product.product_name || 'unknown',
+        source: product.product_name || "unknown",
         confidence: 0.9, // High confidence for tagged allergens
       });
     }
@@ -329,11 +327,11 @@ function parseProductAllergens(product: {
     for (const tag of product.allergens_hierarchy) {
       const normalized = normalizeAllergenTag(tag);
       // Only add if not already in the list
-      if (!allergens.some(a => a.allergen === normalized)) {
+      if (!allergens.some((a) => a.allergen === normalized)) {
         allergens.push({
           allergen: normalized,
           severity: AllergenSeverity.HIERARCHY,
-          source: product.product_name || 'unknown',
+          source: product.product_name || "unknown",
           confidence: 0.8,
         });
       }
@@ -348,17 +346,17 @@ function parseProductAllergens(product: {
       allergens.push({
         allergen: normalized,
         severity: AllergenSeverity.TRACE,
-        source: product.product_name || 'unknown',
+        source: product.product_name || "unknown",
         confidence: 0.6, // Lower confidence for traces
       });
     }
   }
 
   return {
-    productName: product.product_name || 'Unknown Product',
+    productName: product.product_name || "Unknown Product",
     allergens,
     traces: traces.length > 0 ? traces : undefined,
-    dataSource: 'open-food-facts',
+    dataSource: "open-food-facts",
     lastUpdated: new Date().toISOString(),
   };
 }
@@ -367,7 +365,7 @@ function parseProductAllergens(product: {
  * Get allergen taxonomy (common allergen list with hierarchies)
  */
 export async function getAllergenTaxonomy(): Promise<Map<string, string[]>> {
-  const cacheKey = 'allergen_taxonomy';
+  const cacheKey = "allergen_taxonomy";
   const cached = getFromCache<Map<string, string[]>>(cacheKey);
 
   if (cached) {
@@ -379,7 +377,7 @@ export async function getAllergenTaxonomy(): Promise<Map<string, string[]>> {
 
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'im-cooked/1.0 (Allergen Detection)',
+        "User-Agent": "im-cooked/1.0 (Allergen Detection)",
       },
     });
 
@@ -402,7 +400,7 @@ export async function getAllergenTaxonomy(): Promise<Map<string, string[]>> {
     saveToCache(cacheKey, Object.fromEntries(hierarchy));
     return hierarchy;
   } catch (error) {
-    console.error('Error fetching allergen taxonomy:', error);
+    console.error("Error fetching allergen taxonomy:", error);
     return getDefaultAllergenHierarchy();
   }
 }
@@ -412,16 +410,28 @@ export async function getAllergenTaxonomy(): Promise<Map<string, string[]>> {
  */
 function getDefaultAllergenHierarchy(): Map<string, string[]> {
   return new Map([
-    ['tree nuts', ['almonds', 'walnuts', 'cashews', 'pecans', 'pistachios', 'hazelnuts', 'macadamia nuts', 'brazil nuts']],
-    ['shellfish', ['shrimp', 'crab', 'lobster', 'crayfish', 'prawns']],
-    ['fish', ['salmon', 'tuna', 'cod', 'halibut', 'sea bass']],
-    ['dairy', ['milk', 'cheese', 'butter', 'cream', 'yogurt', 'whey', 'casein', 'lactose']],
-    ['eggs', ['egg white', 'egg yolk', 'egg albumin']],
-    ['soy', ['soybean', 'soy protein', 'soy lecithin', 'tofu', 'tempeh', 'edamame']],
-    ['wheat', ['wheat flour', 'wheat bran', 'wheat germ', 'semolina', 'durum']],
-    ['gluten', ['wheat', 'barley', 'rye', 'spelt', 'kamut']],
-    ['peanuts', ['peanut butter', 'peanut oil']],
-    ['sesame', ['sesame seeds', 'sesame oil', 'tahini']],
+    [
+      "tree nuts",
+      [
+        "almonds",
+        "walnuts",
+        "cashews",
+        "pecans",
+        "pistachios",
+        "hazelnuts",
+        "macadamia nuts",
+        "brazil nuts",
+      ],
+    ],
+    ["shellfish", ["shrimp", "crab", "lobster", "crayfish", "prawns"]],
+    ["fish", ["salmon", "tuna", "cod", "halibut", "sea bass"]],
+    ["dairy", ["milk", "cheese", "butter", "cream", "yogurt", "whey", "casein", "lactose"]],
+    ["eggs", ["egg white", "egg yolk", "egg albumin"]],
+    ["soy", ["soybean", "soy protein", "soy lecithin", "tofu", "tempeh", "edamame"]],
+    ["wheat", ["wheat flour", "wheat bran", "wheat germ", "semolina", "durum"]],
+    ["gluten", ["wheat", "barley", "rye", "spelt", "kamut"]],
+    ["peanuts", ["peanut butter", "peanut oil"]],
+    ["sesame", ["sesame seeds", "sesame oil", "tahini"]],
   ]);
 }
 
@@ -432,8 +442,16 @@ export async function suggestAllergens(query: string): Promise<string[]> {
   if (!query || query.length < 2) {
     // Return common allergens for empty query
     return [
-      'peanuts', 'tree nuts', 'shellfish', 'fish',
-      'eggs', 'dairy', 'soy', 'wheat', 'gluten', 'sesame'
+      "peanuts",
+      "tree nuts",
+      "shellfish",
+      "fish",
+      "eggs",
+      "dairy",
+      "soy",
+      "wheat",
+      "gluten",
+      "sesame",
     ];
   }
 
@@ -446,12 +464,12 @@ export async function suggestAllergens(query: string): Promise<string[]> {
 
   try {
     const url = new URL(`${OPEN_FOOD_FACTS_BASE_URL}/cgi/suggest.pl`);
-    url.searchParams.append('tagtype', 'allergens');
-    url.searchParams.append('term', query);
+    url.searchParams.append("tagtype", "allergens");
+    url.searchParams.append("term", query);
 
     const response = await fetch(url.toString(), {
       headers: {
-        'User-Agent': 'im-cooked/1.0 (Allergen Detection)',
+        "User-Agent": "im-cooked/1.0 (Allergen Detection)",
       },
     });
 
@@ -463,25 +481,47 @@ export async function suggestAllergens(query: string): Promise<string[]> {
 
     // The API returns an array of suggestions
     const results = Array.isArray(suggestions)
-      ? suggestions.map((s: { id?: string; name?: string }) => s.name || s.id || '').filter(Boolean)
+      ? suggestions.map((s: { id?: string; name?: string }) => s.name || s.id || "").filter(Boolean)
       : [];
 
     saveToCache(cacheKey, results);
     return results;
   } catch (error) {
-    console.error('Error fetching allergen suggestions:', error);
+    console.error("Error fetching allergen suggestions:", error);
     // Fallback to local filtering of common allergens
     const commonAllergens = [
-      'peanuts', 'tree nuts', 'almonds', 'walnuts', 'cashews',
-      'shellfish', 'shrimp', 'crab', 'lobster',
-      'fish', 'salmon', 'tuna',
-      'eggs', 'egg white', 'egg yolk',
-      'dairy', 'milk', 'cheese', 'butter', 'cream', 'lactose',
-      'soy', 'soybean', 'tofu',
-      'wheat', 'gluten', 'barley', 'rye',
-      'sesame', 'sesame seeds'
+      "peanuts",
+      "tree nuts",
+      "almonds",
+      "walnuts",
+      "cashews",
+      "shellfish",
+      "shrimp",
+      "crab",
+      "lobster",
+      "fish",
+      "salmon",
+      "tuna",
+      "eggs",
+      "egg white",
+      "egg yolk",
+      "dairy",
+      "milk",
+      "cheese",
+      "butter",
+      "cream",
+      "lactose",
+      "soy",
+      "soybean",
+      "tofu",
+      "wheat",
+      "gluten",
+      "barley",
+      "rye",
+      "sesame",
+      "sesame seeds",
     ];
-    return commonAllergens.filter(a => a.toLowerCase().includes(query.toLowerCase()));
+    return commonAllergens.filter((a) => a.toLowerCase().includes(query.toLowerCase()));
   }
 }
 
@@ -489,7 +529,7 @@ export async function suggestAllergens(query: string): Promise<string[]> {
  * Clear all cached data
  */
 export function clearCache(): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
 
   const keys = Object.keys(localStorage);
   for (const key of keys) {

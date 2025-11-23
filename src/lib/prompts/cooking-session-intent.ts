@@ -1,6 +1,6 @@
 /**
  * Cooking Session Intent Detection Prompt Template
- * 
+ *
  * Classifies user input during active cooking sessions to ensure
  * the AI only handles cooking-related queries
  */
@@ -86,42 +86,42 @@ Examples:
  */
 export function isObviouslyOffTopic(userMessage: string): boolean {
   const message = userMessage.toLowerCase().trim();
-  
+
   // Empty or very short messages
   if (message.length < 3) {
     return false; // Too short to determine, let LLM handle it
   }
-  
+
   // Common off-topic patterns
   const offTopicPatterns = [
     // Weather
     /\b(weather|temperature outside|forecast|raining|snowing|sunny|cloudy)\b/,
-    
+
     // Time/Date
     /\b(what time is it|current time|what day|what date)\b/,
-    
+
     // Sports
     /\b(score|game|match|won|lost|team|playoff|championship|football|basketball|baseball|soccer)\b/,
-    
+
     // Politics
     /\b(president|election|vote|politics|politician|government|congress|senate)\b/,
-    
+
     // Entertainment
     /\b(movie|film|show|tv|series|episode|actor|actress|celebrity)\b/,
-    
+
     // Technology (non-cooking)
     /\b(computer|laptop|phone|wifi|internet|app|software|download|install)\b/,
-    
+
     // News
     /\b(news|headline|breaking|reported|journalist)\b/,
-    
+
     // Jokes/Stories
     /\b(tell me a joke|funny story|knock knock)\b/,
-    
+
     // Math/Homework
     /\b(solve|equation|homework|mathematics|calculate)\b/,
   ];
-  
+
   // BUT: Some cooking-related terms might trigger false positives
   // Exceptions for cooking context
   const cookingExceptions = [
@@ -132,21 +132,21 @@ export function isObviouslyOffTopic(userMessage: string): boolean {
     /\binstall timer\b/,
     /\bset timer\b/,
   ];
-  
+
   // Check if any cooking exception matches
   for (const exception of cookingExceptions) {
     if (exception.test(message)) {
       return false; // It's cooking-related, not off-topic
     }
   }
-  
+
   // Check if any off-topic pattern matches
   for (const pattern of offTopicPatterns) {
     if (pattern.test(message)) {
       return true; // Likely off-topic
     }
   }
-  
+
   return false; // Doesn't match obvious off-topic patterns
 }
 
@@ -160,7 +160,7 @@ export function generateRejectionMessage(recipeTitle: string): string {
     `Let's keep our focus on ${recipeTitle}. How can I help you with your cooking?`,
     `I'm your cooking assistant for ${recipeTitle}. What would you like to know about the recipe?`,
   ];
-  
+
   // Return a random message for variety
   return messages[Math.floor(Math.random() * messages.length)];
 }

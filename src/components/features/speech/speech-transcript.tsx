@@ -4,8 +4,12 @@ import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useGeminiLive } from "@/hooks/useGeminiLive";
+import { getPublicGeminiApiKey } from "@/lib/env-validation";
 
 export function SpeechTranscript() {
+  // NOTE: This uses a client-side API key which is exposed in the browser bundle.
+  // This is required for Gemini Live's WebSocket connection architecture.
+  // Mitigation: Use Google Cloud Console to restrict the API key to your domain.
   const {
     // Connection state
     connectionState,
@@ -35,7 +39,7 @@ export function SpeechTranscript() {
     stopRecording,
     interrupt,
   } = useGeminiLive({
-    apiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY || "",
+    apiKey: getPublicGeminiApiKey(),
     systemInstruction:
       "You are a helpful AI assistant. Respond to the user's questions in a friendly and conversational manner. Keep your responses concise and natural.",
   });
@@ -75,19 +79,25 @@ export function SpeechTranscript() {
   };
 
   // Check if API key is configured
-  if (!process.env.NEXT_PUBLIC_GEMINI_API_KEY) {
+  const apiKey = (() => {
+    try {
+      return getPublicGeminiApiKey();
+    } catch {
+      return null;
+    }
+  })();
+
+  if (!apiKey) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
         <Card className="p-8 max-w-md mx-4">
-          <h2 className="text-xl font-semibold mb-4 text-center">
-            API Key Missing
-          </h2>
+          <h2 className="text-xl font-semibold mb-4 text-center">API Key Missing</h2>
           <p className="text-center text-muted-foreground mb-4">
             Please configure your Gemini API key in the environment variables.
           </p>
           <p className="text-sm text-muted-foreground text-center">
-            Add <code className="bg-muted px-2 py-1 rounded">NEXT_PUBLIC_GEMINI_API_KEY</code> to your{" "}
-            <code className="bg-muted px-2 py-1 rounded">.env.local</code> file.
+            Add <code className="bg-muted px-2 py-1 rounded">NEXT_PUBLIC_GEMINI_API_KEY</code> to
+            your <code className="bg-muted px-2 py-1 rounded">.env.local</code> file.
           </p>
         </Card>
       </div>
@@ -99,9 +109,7 @@ export function SpeechTranscript() {
       <Card className="w-full max-w-2xl p-8">
         <div className="flex flex-col items-center gap-6">
           {/* Title */}
-          <h2 className="text-2xl font-semibold text-center">
-            Gemini Live Voice Conversation
-          </h2>
+          <h2 className="text-2xl font-semibold text-center">Gemini Live Voice Conversation</h2>
 
           {/* Connection status */}
           <div className="flex items-center gap-2">
@@ -110,13 +118,11 @@ export function SpeechTranscript() {
                 connectionState === "connected"
                   ? "bg-green-500"
                   : connectionState === "connecting"
-                  ? "bg-yellow-500 animate-pulse"
-                  : "bg-gray-400"
+                    ? "bg-yellow-500 animate-pulse"
+                    : "bg-gray-400"
               }`}
             />
-            <span className="text-sm font-medium capitalize">
-              {connectionState}
-            </span>
+            <span className="text-sm font-medium capitalize">{connectionState}</span>
           </div>
 
           {/* Voice activity indicators */}
@@ -126,9 +132,7 @@ export function SpeechTranscript() {
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">You</span>
                 <span
-                  className={`text-xs ${
-                    isSpeaking ? "text-green-500" : "text-muted-foreground"
-                  }`}
+                  className={`text-xs ${isSpeaking ? "text-green-500" : "text-muted-foreground"}`}
                 >
                   {isSpeaking ? "Speaking" : "Silent"}
                 </span>
@@ -146,9 +150,7 @@ export function SpeechTranscript() {
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">AI</span>
                 <span
-                  className={`text-xs ${
-                    isAISpeaking ? "text-blue-500" : "text-muted-foreground"
-                  }`}
+                  className={`text-xs ${isAISpeaking ? "text-blue-500" : "text-muted-foreground"}`}
                 >
                   {isAISpeaking ? "Speaking" : "Silent"}
                 </span>
@@ -167,9 +169,7 @@ export function SpeechTranscript() {
             {/* User transcript */}
             {userTranscript && (
               <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
-                <div className="text-xs font-medium text-green-600 mb-2">
-                  You
-                </div>
+                <div className="text-xs font-medium text-green-600 mb-2">You</div>
                 <p className="text-sm leading-relaxed">{userTranscript}</p>
               </div>
             )}
@@ -180,9 +180,7 @@ export function SpeechTranscript() {
                 <div className="text-xs font-medium text-blue-600 mb-2 flex items-center justify-between">
                   <span>AI Assistant</span>
                   {isAIPlaying && (
-                    <span className="text-xs text-muted-foreground">
-                      Speaking...
-                    </span>
+                    <span className="text-xs text-muted-foreground">Speaking...</span>
                   )}
                 </div>
                 <p className="text-sm leading-relaxed">{aiTranscript}</p>
@@ -217,11 +215,7 @@ export function SpeechTranscript() {
                 Start Conversation
               </Button>
             ) : (
-              <Button
-                onClick={handleStopConversation}
-                size="lg"
-                variant="destructive"
-              >
+              <Button onClick={handleStopConversation} size="lg" variant="destructive">
                 Stop Recording
               </Button>
             )}
@@ -244,9 +238,8 @@ export function SpeechTranscript() {
 
           {/* Instructions */}
           <p className="text-sm text-muted-foreground text-center max-w-md">
-            Click "Start Conversation" to begin. The AI will listen and respond
-            with voice. You can interrupt the AI at any time by clicking
-            "Interrupt AI".
+            Click "Start Conversation" to begin. The AI will listen and respond with voice. You can
+            interrupt the AI at any time by clicking "Interrupt AI".
           </p>
         </div>
       </Card>

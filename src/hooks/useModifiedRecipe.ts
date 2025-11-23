@@ -1,8 +1,5 @@
 import { useContext } from "react";
-import {
-  ModifiedRecipeContext,
-  ModifiedRecipeContextType,
-} from "@/contexts/ModifiedRecipeContext";
+import { ModifiedRecipeContext, ModifiedRecipeContextType } from "@/contexts/ModifiedRecipeContext";
 
 /**
  * Hook to access and manage modified recipes
@@ -14,9 +11,7 @@ export function useModifiedRecipe(): ModifiedRecipeContextType {
   const context = useContext(ModifiedRecipeContext);
 
   if (!context) {
-    throw new Error(
-      "useModifiedRecipe must be used within a ModifiedRecipeProvider"
-    );
+    throw new Error("useModifiedRecipe must be used within a ModifiedRecipeProvider");
   }
 
   return context;

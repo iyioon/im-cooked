@@ -13,10 +13,7 @@ export async function POST(request: NextRequest) {
     const { recipeTitle, recipeIngredients, userMessage } = body;
 
     if (!recipeTitle || !recipeIngredients || !userMessage) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
     // Use AI to match the ingredient from the user's message

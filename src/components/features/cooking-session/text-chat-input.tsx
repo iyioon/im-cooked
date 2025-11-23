@@ -45,7 +45,7 @@ export function TextChatInput({
 
   const detectNavigationIntent = (message: string): "next" | "previous" | null => {
     const lowerMessage = message.toLowerCase().trim();
-    
+
     const nextPatterns = [
       /^next$/,
       /^next step$/,
@@ -62,7 +62,7 @@ export function TextChatInput({
       /^move on$/,
       /^let'?s move on$/,
     ];
-    
+
     const previousPatterns = [
       /^previous$/,
       /^previous step$/,
@@ -72,15 +72,15 @@ export function TextChatInput({
       /^return$/,
       /^go to previous( step)?$/,
     ];
-    
-    if (nextPatterns.some(pattern => pattern.test(lowerMessage))) {
+
+    if (nextPatterns.some((pattern) => pattern.test(lowerMessage))) {
       return "next";
     }
-    
-    if (previousPatterns.some(pattern => pattern.test(lowerMessage))) {
+
+    if (previousPatterns.some((pattern) => pattern.test(lowerMessage))) {
       return "previous";
     }
-    
+
     return null;
   };
 
@@ -99,7 +99,7 @@ export function TextChatInput({
     setInput("");
 
     const navigationIntent = detectNavigationIntent(userInput);
-    
+
     if (navigationIntent === "next") {
       if (isLastStep) {
         const assistantMessage: CookingSessionMessage = {
@@ -121,7 +121,7 @@ export function TextChatInput({
       }
       return;
     }
-    
+
     if (navigationIntent === "previous") {
       if (isFirstStep) {
         const assistantMessage: CookingSessionMessage = {

@@ -1,4 +1,9 @@
-import { CookingSession, CookingSessionMessage, RecipeDetail, SubstitutionRecord } from "@/types/recipe";
+import {
+  CookingSession,
+  CookingSessionMessage,
+  RecipeDetail,
+  SubstitutionRecord,
+} from "@/types/recipe";
 
 const COOKING_SESSIONS_KEY = "im-cooked-cooking-sessions";
 const MAX_SESSIONS = 10; // Keep last 10 sessions
@@ -19,8 +24,8 @@ export function createCookingSession(recipe: RecipeDetail): CookingSession {
     ingredientsCollapsed: false,
     messages: [],
     appliedSubstitutions: [],
-    originalRecipe: recipe,      // Store immutable snapshot of original recipe
-    modifiedRecipe: recipe,      // Start with same recipe, will be updated as modifications are applied
+    originalRecipe: recipe, // Store immutable snapshot of original recipe
+    modifiedRecipe: recipe, // Start with same recipe, will be updated as modifications are applied
   };
 
   // Save to localStorage
@@ -42,15 +47,15 @@ export function loadAllCookingSessions(): CookingSession[] {
     const sessions = JSON.parse(stored) as CookingSession[];
 
     // Parse dates
-    return sessions.map(session => ({
+    return sessions.map((session) => ({
       ...session,
       startedAt: new Date(session.startedAt),
       lastActiveAt: new Date(session.lastActiveAt),
-      messages: session.messages.map(msg => ({
+      messages: session.messages.map((msg) => ({
         ...msg,
         timestamp: new Date(msg.timestamp),
       })),
-      appliedSubstitutions: (session.appliedSubstitutions || []).map(sub => ({
+      appliedSubstitutions: (session.appliedSubstitutions || []).map((sub) => ({
         ...sub,
         appliedAt: new Date(sub.appliedAt),
       })),
@@ -66,7 +71,7 @@ export function loadAllCookingSessions(): CookingSession[] {
  */
 export function loadCookingSession(sessionId: string): CookingSession | null {
   const sessions = loadAllCookingSessions();
-  const session = sessions.find(s => s.id === sessionId) || null;
+  const session = sessions.find((s) => s.id === sessionId) || null;
 
   // Migration: For legacy sessions without modifiedRecipe, try to fetch the original recipe
   // This maintains backward compatibility
@@ -87,7 +92,7 @@ export function saveCookingSession(session: CookingSession): void {
     const sessions = loadAllCookingSessions();
 
     // Update or add session
-    const existingIndex = sessions.findIndex(s => s.id === session.id);
+    const existingIndex = sessions.findIndex((s) => s.id === session.id);
     if (existingIndex >= 0) {
       sessions[existingIndex] = session;
     } else {
@@ -113,7 +118,7 @@ export function deleteCookingSession(sessionId: string): void {
 
   try {
     const sessions = loadAllCookingSessions();
-    const filtered = sessions.filter(s => s.id !== sessionId);
+    const filtered = sessions.filter((s) => s.id !== sessionId);
     localStorage.setItem(COOKING_SESSIONS_KEY, JSON.stringify(filtered));
   } catch (error) {
     console.error("Failed to delete cooking session:", error);
@@ -123,10 +128,7 @@ export function deleteCookingSession(sessionId: string): void {
 /**
  * Update current step
  */
-export function updateCurrentStep(
-  sessionId: string,
-  stepNumber: number
-): CookingSession | null {
+export function updateCurrentStep(sessionId: string, stepNumber: number): CookingSession | null {
   const session = loadCookingSession(sessionId);
   if (!session) return null;
 
@@ -140,10 +142,7 @@ export function updateCurrentStep(
 /**
  * Mark a step as completed
  */
-export function markStepComplete(
-  sessionId: string,
-  stepNumber: number
-): CookingSession | null {
+export function markStepComplete(sessionId: string, stepNumber: number): CookingSession | null {
   const session = loadCookingSession(sessionId);
   if (!session) return null;
 
@@ -159,14 +158,11 @@ export function markStepComplete(
 /**
  * Mark a step as incomplete
  */
-export function markStepIncomplete(
-  sessionId: string,
-  stepNumber: number
-): CookingSession | null {
+export function markStepIncomplete(sessionId: string, stepNumber: number): CookingSession | null {
   const session = loadCookingSession(sessionId);
   if (!session) return null;
 
-  session.completedSteps = session.completedSteps.filter(s => s !== stepNumber);
+  session.completedSteps = session.completedSteps.filter((s) => s !== stepNumber);
   session.lastActiveAt = new Date();
   saveCookingSession(session);
 
@@ -194,9 +190,7 @@ export function addStepNote(
 /**
  * Toggle ingredients panel collapsed state
  */
-export function toggleIngredientsCollapsed(
-  sessionId: string
-): CookingSession | null {
+export function toggleIngredientsCollapsed(sessionId: string): CookingSession | null {
   const session = loadCookingSession(sessionId);
   if (!session) return null;
 
@@ -229,11 +223,9 @@ export function addChatMessage(
  */
 export function getActiveCookingSessions(maxAgeHours: number = 24): CookingSession[] {
   const sessions = loadAllCookingSessions();
-  const cutoffTime = Date.now() - (maxAgeHours * 60 * 60 * 1000);
+  const cutoffTime = Date.now() - maxAgeHours * 60 * 60 * 1000;
 
-  return sessions.filter(session =>
-    session.lastActiveAt.getTime() > cutoffTime
-  );
+  return sessions.filter((session) => session.lastActiveAt.getTime() > cutoffTime);
 }
 
 /**

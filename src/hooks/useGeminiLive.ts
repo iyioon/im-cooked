@@ -7,11 +7,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { GeminiLiveClient } from "@/lib/multimodal-live/client";
 import { AudioStreamer } from "@/lib/multimodal-live/audio-streamer";
 import { AudioRecorder } from "@/lib/multimodal-live/audio-recorder";
-import type {
-  ConnectionState,
-  VolumeMeterData,
-  ModelTurn,
-} from "@/lib/multimodal-live/types";
+import type { ConnectionState, VolumeMeterData, ModelTurn } from "@/lib/multimodal-live/types";
 
 export interface UseGeminiLiveConfig {
   apiKey: string;
@@ -69,17 +65,14 @@ export interface UseGeminiLiveReturn {
   ) => void;
 }
 
-export function useGeminiLive(
-  config: UseGeminiLiveConfig
-): UseGeminiLiveReturn {
+export function useGeminiLive(config: UseGeminiLiveConfig): UseGeminiLiveReturn {
   // Refs for clients (persistent across renders)
   const clientRef = useRef<GeminiLiveClient | null>(null);
   const streamerRef = useRef<AudioStreamer | null>(null);
   const recorderRef = useRef<AudioRecorder | null>(null);
 
   // Connection state
-  const [connectionState, setConnectionState] =
-    useState<ConnectionState>("disconnected");
+  const [connectionState, setConnectionState] = useState<ConnectionState>("disconnected");
   const [error, setError] = useState<string | null>(null);
 
   // Recording state
@@ -316,52 +309,46 @@ export function useGeminiLive(
   /**
    * Send text message to AI
    */
-  const sendText = useCallback(
-    (text: string) => {
-      const client = clientRef.current;
+  const sendText = useCallback((text: string) => {
+    const client = clientRef.current;
 
-      if (!client) {
-        throw new Error("Client not initialized");
-      }
+    if (!client) {
+      throw new Error("Client not initialized");
+    }
 
-      if (!client.isConnected()) {
-        throw new Error("Not connected to Gemini Live");
-      }
+    if (!client.isConnected()) {
+      throw new Error("Not connected to Gemini Live");
+    }
 
-      client.sendText(text);
+    client.sendText(text);
 
-      setUserTranscript((prev) => prev + text);
-      setAiTranscript(""); // Clear AI transcript for new response
-    },
-    []
-  );
+    setUserTranscript((prev) => prev + text);
+    setAiTranscript(""); // Clear AI transcript for new response
+  }, []);
 
   /**
    * Send silent context update to AI (doesn't appear in transcripts)
    */
-  const sendContextUpdate = useCallback(
-    (text: string) => {
-      const client = clientRef.current;
+  const sendContextUpdate = useCallback((text: string) => {
+    const client = clientRef.current;
 
-      if (!client) {
-        console.warn("Cannot send context update: client not initialized");
-        return;
-      }
+    if (!client) {
+      console.warn("Cannot send context update: client not initialized");
+      return;
+    }
 
-      if (!client.isConnected()) {
-        console.warn("Cannot send context update: not connected to Gemini Live");
-        return;
-      }
+    if (!client.isConnected()) {
+      console.warn("Cannot send context update: not connected to Gemini Live");
+      return;
+    }
 
-      try {
-        // Send as incomplete turn so AI doesn't respond immediately
-        client.sendText(text, false);
-      } catch (err) {
-        console.error("Error sending context update:", err);
-      }
-    },
-    []
-  );
+    try {
+      // Send as incomplete turn so AI doesn't respond immediately
+      client.sendText(text, false);
+    } catch (err) {
+      console.error("Error sending context update:", err);
+    }
+  }, []);
 
   /**
    * Interrupt AI mid-response

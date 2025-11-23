@@ -3,10 +3,7 @@
  * Captures microphone input and converts to PCM16 format
  */
 
-import {
-  INPUT_AUDIO_CONFIG,
-  type VolumeMeterData,
-} from "./types";
+import { INPUT_AUDIO_CONFIG, type VolumeMeterData } from "./types";
 import {
   float32ToInt16,
   arrayBufferToBase64,
@@ -69,9 +66,7 @@ export class AudioRecorder {
       });
 
       // Create nodes
-      this.sourceNode = this.audioContext.createMediaStreamSource(
-        this.mediaStream
-      );
+      this.sourceNode = this.audioContext.createMediaStreamSource(this.mediaStream);
 
       this.analyserNode = this.audioContext.createAnalyser();
       this.analyserNode.fftSize = 256;

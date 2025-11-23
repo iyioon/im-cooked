@@ -11,22 +11,15 @@ import { validateSubstitutions, formatAllergenWarning } from "@/lib/allergen-val
 
 export async function POST(request: NextRequest) {
   try {
-    const body: SubstitutionRequest & { recipe: RecipeDetail; preferences?: import("@/types/recipe").UserPreferences } =
-      await request.json();
-    const {
-      recipeTitle,
-      originalIngredient,
-      userInput,
-      dietaryRestrictions,
-      recipe,
-      preferences,
-    } = body;
+    const body: SubstitutionRequest & {
+      recipe: RecipeDetail;
+      preferences?: import("@/types/recipe").UserPreferences;
+    } = await request.json();
+    const { recipeTitle, originalIngredient, userInput, dietaryRestrictions, recipe, preferences } =
+      body;
 
     if (!recipeTitle || !originalIngredient || !recipe) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
     // Parse the original ingredient
@@ -40,10 +33,12 @@ export async function POST(request: NextRequest) {
 
     const allAllergies = preferences?.allergies || [];
     const avoidedIngredients = preferences?.avoidedIngredients || [];
-    const location = preferences?.location?.country ? {
-      country: preferences.location.country,
-      region: preferences.location.region,
-    } : undefined;
+    const location = preferences?.location?.country
+      ? {
+          country: preferences.location.country,
+          region: preferences.location.region,
+        }
+      : undefined;
 
     // Call AI service for substitution suggestions
     const substitutionResponse = await getSubstitutionSuggestions({
@@ -60,7 +55,9 @@ export async function POST(request: NextRequest) {
 
     // Allergen validation and filtering
     if (allAllergies && allAllergies.length > 0 && substitutionResponse.suggestions.length > 0) {
-      console.log(`[Allergen Validation] Checking ${substitutionResponse.suggestions.length} substitutions for allergens: ${allAllergies.join(', ')}`);
+      console.log(
+        `[Allergen Validation] Checking ${substitutionResponse.suggestions.length} substitutions for allergens: ${allAllergies.join(", ")}`
+      );
 
       const totalSuggestions = substitutionResponse.suggestions.length;
 
@@ -73,7 +70,7 @@ export async function POST(request: NextRequest) {
       console.log(`[Allergen Validation] ${safe.length} safe, ${blocked.length} blocked`);
 
       // Add allergen validation metadata to safe suggestions
-      const enrichedSuggestions: IngredientSubstitution[] = safe.map(suggestion => {
+      const enrichedSuggestions: IngredientSubstitution[] = safe.map((suggestion) => {
         const validation = validationResults.get(suggestion.substitute.ingredient);
         return {
           ...suggestion,
@@ -86,12 +83,13 @@ export async function POST(request: NextRequest) {
       });
 
       // Prepare blocked reasons
-      const blockedReasons = blocked.map(suggestion => {
+      const blockedReasons = blocked.map((suggestion) => {
         const validation = validationResults.get(suggestion.substitute.ingredient);
-        const allergens = validation?.matches
-          .filter(m => m.severity === 'direct' || m.severity === 'hierarchy')
-          .map(m => m.userAllergen) || [];
-        return `${suggestion.substitute.ingredient} contains: ${[...new Set(allergens)].join(', ')}`;
+        const allergens =
+          validation?.matches
+            .filter((m) => m.severity === "direct" || m.severity === "hierarchy")
+            .map((m) => m.userAllergen) || [];
+        return `${suggestion.substitute.ingredient} contains: ${[...new Set(allergens)].join(", ")}`;
       });
 
       // Update response with filtered suggestions

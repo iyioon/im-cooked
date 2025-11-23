@@ -35,9 +35,7 @@ export function savePreferences(preferences: UserPreferences): void {
 /**
  * Update specific preference fields
  */
-export function updatePreferences(
-  updates: Partial<UserPreferences>
-): UserPreferences {
+export function updatePreferences(updates: Partial<UserPreferences>): UserPreferences {
   const current = loadPreferences() || {};
   const updated = { ...current, ...updates };
   savePreferences(updated);
@@ -73,13 +71,11 @@ export async function detectLocation(): Promise<{
   if (typeof window === "undefined" || !navigator.geolocation) return null;
 
   try {
-    const position = await new Promise<GeolocationPosition>(
-      (resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          timeout: 5000,
-        });
-      }
-    );
+    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        timeout: 5000,
+      });
+    });
 
     // Use reverse geocoding API (you could use Google Maps, OpenStreetMap, etc.)
     // For now, we'll just return coordinates and let the user set manually
@@ -100,9 +96,7 @@ export async function detectLocation(): Promise<{
 /**
  * Format dietary restrictions for AI prompts
  */
-export function formatDietaryRestrictions(
-  preferences: UserPreferences
-): string {
+export function formatDietaryRestrictions(preferences: UserPreferences): string {
   const restrictions: string[] = [];
 
   if (preferences.dietaryRestrictions?.length) {
@@ -110,15 +104,11 @@ export function formatDietaryRestrictions(
   }
 
   if (preferences.allergies?.length) {
-    restrictions.push(
-      ...preferences.allergies.map((allergy) => `allergic to ${allergy}`)
-    );
+    restrictions.push(...preferences.allergies.map((allergy) => `allergic to ${allergy}`));
   }
 
   if (preferences.avoidedIngredients?.length) {
-    restrictions.push(
-      ...preferences.avoidedIngredients.map((ing) => `avoids ${ing}`)
-    );
+    restrictions.push(...preferences.avoidedIngredients.map((ing) => `avoids ${ing}`));
   }
 
   return restrictions.length > 0 ? restrictions.join(", ") : "none";
@@ -151,17 +141,12 @@ export function getSearchFilters(preferences: UserPreferences): string {
     filters.push(`max cook time: ${preferences.maxCookTime} minutes`);
   }
 
-  if (
-    preferences.difficultyPreference &&
-    preferences.difficultyPreference !== "any"
-  ) {
+  if (preferences.difficultyPreference && preferences.difficultyPreference !== "any") {
     filters.push(`difficulty: ${preferences.difficultyPreference}`);
   }
 
   if (preferences.preferredCuisines?.length) {
-    filters.push(
-      `preferred cuisines: ${preferences.preferredCuisines.join(", ")}`
-    );
+    filters.push(`preferred cuisines: ${preferences.preferredCuisines.join(", ")}`);
   }
 
   return filters.length > 0 ? filters.join("; ") : "";

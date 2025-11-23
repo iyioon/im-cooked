@@ -13,11 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { UserPreferences } from "@/types/recipe";
-import {
-  loadPreferences,
-  savePreferences,
-  getDefaultPreferences,
-} from "@/lib/preferences-manager";
+import { loadPreferences, savePreferences, getDefaultPreferences } from "@/lib/preferences-manager";
 import { X, MapPin, Plus } from "lucide-react";
 
 interface PreferencesDialogProps {
@@ -74,13 +70,8 @@ const COMMON_EQUIPMENT = [
   "food processor",
 ];
 
-export function PreferencesDialog({
-  open,
-  onOpenChange,
-}: PreferencesDialogProps) {
-  const [preferences, setPreferences] = useState<UserPreferences>(
-    getDefaultPreferences()
-  );
+export function PreferencesDialog({ open, onOpenChange }: PreferencesDialogProps) {
+  const [preferences, setPreferences] = useState<UserPreferences>(getDefaultPreferences());
 
   // Custom input states
   const [customDietary, setCustomDietary] = useState("");
@@ -100,14 +91,9 @@ export function PreferencesDialog({
     onOpenChange(false);
   };
 
-  const toggleArrayItem = (
-    key: keyof UserPreferences,
-    item: string
-  ): void => {
+  const toggleArrayItem = (key: keyof UserPreferences, item: string): void => {
     const current = (preferences[key] as string[]) || [];
-    const updated = current.includes(item)
-      ? current.filter((i) => i !== item)
-      : [...current, item];
+    const updated = current.includes(item) ? current.filter((i) => i !== item) : [...current, item];
 
     setPreferences({ ...preferences, [key]: updated });
   };
@@ -129,8 +115,8 @@ export function PreferencesDialog({
             Recipe Preferences
           </DialogTitle>
           <DialogDescription>
-            Set your location and dietary preferences to get more relevant
-            recipe suggestions and substitutions
+            Set your location and dietary preferences to get more relevant recipe suggestions and
+            substitutions
           </DialogDescription>
         </DialogHeader>
 
@@ -138,9 +124,7 @@ export function PreferencesDialog({
           {/* Location */}
           <Card className="bg-white/5 border-white/10">
             <CardContent className="pt-6 space-y-4">
-              <h3 className="text-sm font-semibold text-white">
-                Location & Regional
-              </h3>
+              <h3 className="text-sm font-semibold text-white">Location & Regional</h3>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -162,9 +146,7 @@ export function PreferencesDialog({
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs text-gray-400">
-                    Region/State
-                  </label>
+                  <label className="text-xs text-gray-400">Region/State</label>
                   <Input
                     placeholder="e.g., California"
                     value={preferences.location?.region || ""}
@@ -183,17 +165,11 @@ export function PreferencesDialog({
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs text-gray-400">
-                  Measurement System
-                </label>
+                <label className="text-xs text-gray-400">Measurement System</label>
                 <div className="flex gap-2">
                   <Button
                     type="button"
-                    variant={
-                      preferences.measurementSystem === "metric"
-                        ? "default"
-                        : "outline"
-                    }
+                    variant={preferences.measurementSystem === "metric" ? "default" : "outline"}
                     onClick={() =>
                       setPreferences({
                         ...preferences,
@@ -210,11 +186,7 @@ export function PreferencesDialog({
                   </Button>
                   <Button
                     type="button"
-                    variant={
-                      preferences.measurementSystem === "imperial"
-                        ? "default"
-                        : "outline"
-                    }
+                    variant={preferences.measurementSystem === "imperial" ? "default" : "outline"}
                     onClick={() =>
                       setPreferences({
                         ...preferences,
@@ -237,17 +209,13 @@ export function PreferencesDialog({
           {/* Dietary Restrictions */}
           <Card className="bg-white/5 border-white/10">
             <CardContent className="pt-6 space-y-4">
-              <h3 className="text-sm font-semibold text-white">
-                Dietary Restrictions
-              </h3>
+              <h3 className="text-sm font-semibold text-white">Dietary Restrictions</h3>
 
               <div className="flex flex-wrap gap-2">
                 {COMMON_DIETARY_RESTRICTIONS.map((diet) => (
                   <Badge
                     key={diet}
-                    onClick={() =>
-                      toggleArrayItem("dietaryRestrictions", diet)
-                    }
+                    onClick={() => toggleArrayItem("dietaryRestrictions", diet)}
                     className={
                       preferences.dietaryRestrictions?.includes(diet)
                         ? "bg-green-500/20 text-green-400 border-green-500/50 cursor-pointer"
@@ -263,9 +231,7 @@ export function PreferencesDialog({
                     <Badge
                       key={diet}
                       className="bg-green-500/20 text-green-400 border-green-500/50 cursor-pointer"
-                      onClick={() =>
-                        toggleArrayItem("dietaryRestrictions", diet)
-                      }
+                      onClick={() => toggleArrayItem("dietaryRestrictions", diet)}
                     >
                       {diet} <X className="ml-1 h-3 w-3" />
                     </Badge>
@@ -363,9 +329,7 @@ export function PreferencesDialog({
           {/* Preferred Cuisines */}
           <Card className="bg-white/5 border-white/10">
             <CardContent className="pt-6 space-y-4">
-              <h3 className="text-sm font-semibold text-white">
-                Preferred Cuisines
-              </h3>
+              <h3 className="text-sm font-semibold text-white">Preferred Cuisines</h3>
 
               <div className="flex flex-wrap gap-2">
                 {COMMON_CUISINES.map((cuisine) => (
@@ -387,9 +351,7 @@ export function PreferencesDialog({
                     <Badge
                       key={cuisine}
                       className="bg-purple-500/20 text-purple-400 border-purple-500/50 cursor-pointer"
-                      onClick={() =>
-                        toggleArrayItem("preferredCuisines", cuisine)
-                      }
+                      onClick={() => toggleArrayItem("preferredCuisines", cuisine)}
                     >
                       {cuisine} <X className="ml-1 h-3 w-3" />
                     </Badge>
@@ -427,9 +389,7 @@ export function PreferencesDialog({
           {/* Cooking Preferences */}
           <Card className="bg-white/5 border-white/10">
             <CardContent className="pt-6 space-y-4">
-              <h3 className="text-sm font-semibold text-white">
-                Cooking Preferences
-              </h3>
+              <h3 className="text-sm font-semibold text-white">Cooking Preferences</h3>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -440,11 +400,7 @@ export function PreferencesDialog({
                         key={level}
                         type="button"
                         size="sm"
-                        variant={
-                          preferences.skillLevel === level
-                            ? "default"
-                            : "outline"
-                        }
+                        variant={preferences.skillLevel === level ? "default" : "outline"}
                         onClick={() =>
                           setPreferences({
                             ...preferences,
@@ -464,9 +420,7 @@ export function PreferencesDialog({
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs text-gray-400">
-                    Default Servings
-                  </label>
+                  <label className="text-xs text-gray-400">Default Servings</label>
                   <Input
                     type="number"
                     min="1"
@@ -488,18 +442,14 @@ export function PreferencesDialog({
           {/* Avoided Ingredients */}
           <Card className="bg-white/5 border-white/10">
             <CardContent className="pt-6 space-y-4">
-              <h3 className="text-sm font-semibold text-white">
-                Avoided Ingredients (Dislikes)
-              </h3>
+              <h3 className="text-sm font-semibold text-white">Avoided Ingredients (Dislikes)</h3>
 
               <div className="flex flex-wrap gap-2">
                 {preferences.avoidedIngredients?.map((ingredient) => (
                   <Badge
                     key={ingredient}
                     className="bg-orange-500/20 text-orange-400 border-orange-500/50 cursor-pointer"
-                    onClick={() =>
-                      toggleArrayItem("avoidedIngredients", ingredient)
-                    }
+                    onClick={() => toggleArrayItem("avoidedIngredients", ingredient)}
                   >
                     {ingredient} <X className="ml-1 h-3 w-3" />
                   </Badge>
@@ -544,10 +494,7 @@ export function PreferencesDialog({
           >
             Cancel
           </Button>
-          <Button
-            onClick={handleSave}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
-          >
+          <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 text-white">
             Save Preferences
           </Button>
         </div>

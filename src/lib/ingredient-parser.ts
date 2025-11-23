@@ -3,28 +3,102 @@ import { ParsedIngredient } from "@/types/recipe";
 // Common units for ingredient measurements
 const UNITS = [
   // Volume
-  "cup", "cups", "tablespoon", "tablespoons", "tbsp", "teaspoon", "teaspoons", "tsp",
-  "fluid ounce", "fluid ounces", "fl oz", "milliliter", "milliliters", "ml",
-  "liter", "liters", "l", "pint", "pints", "quart", "quarts", "gallon", "gallons",
+  "cup",
+  "cups",
+  "tablespoon",
+  "tablespoons",
+  "tbsp",
+  "teaspoon",
+  "teaspoons",
+  "tsp",
+  "fluid ounce",
+  "fluid ounces",
+  "fl oz",
+  "milliliter",
+  "milliliters",
+  "ml",
+  "liter",
+  "liters",
+  "l",
+  "pint",
+  "pints",
+  "quart",
+  "quarts",
+  "gallon",
+  "gallons",
 
   // Weight
-  "pound", "pounds", "lb", "lbs", "ounce", "ounces", "oz",
-  "gram", "grams", "g", "kilogram", "kilograms", "kg", "milligram", "milligrams", "mg",
+  "pound",
+  "pounds",
+  "lb",
+  "lbs",
+  "ounce",
+  "ounces",
+  "oz",
+  "gram",
+  "grams",
+  "g",
+  "kilogram",
+  "kilograms",
+  "kg",
+  "milligram",
+  "milligrams",
+  "mg",
 
   // Count/Other
-  "piece", "pieces", "slice", "slices", "clove", "cloves",
-  "can", "cans", "package", "packages", "bunch", "bunches",
-  "pinch", "pinches", "dash", "dashes", "handful", "handfuls",
-  "large", "medium", "small", "whole"
+  "piece",
+  "pieces",
+  "slice",
+  "slices",
+  "clove",
+  "cloves",
+  "can",
+  "cans",
+  "package",
+  "packages",
+  "bunch",
+  "bunches",
+  "pinch",
+  "pinches",
+  "dash",
+  "dashes",
+  "handful",
+  "handfuls",
+  "large",
+  "medium",
+  "small",
+  "whole",
 ];
 
 // Common preparation methods
 const PREPARATIONS = [
-  "chopped", "diced", "minced", "sliced", "grated", "shredded",
-  "melted", "softened", "beaten", "whisked", "crushed", "ground",
-  "peeled", "cubed", "julienned", "halved", "quartered",
-  "fresh", "dried", "frozen", "canned", "cooked", "raw",
-  "finely chopped", "roughly chopped", "thinly sliced", "thickly sliced"
+  "chopped",
+  "diced",
+  "minced",
+  "sliced",
+  "grated",
+  "shredded",
+  "melted",
+  "softened",
+  "beaten",
+  "whisked",
+  "crushed",
+  "ground",
+  "peeled",
+  "cubed",
+  "julienned",
+  "halved",
+  "quartered",
+  "fresh",
+  "dried",
+  "frozen",
+  "canned",
+  "cooked",
+  "raw",
+  "finely chopped",
+  "roughly chopped",
+  "thinly sliced",
+  "thickly sliced",
 ];
 
 /**
@@ -56,7 +130,7 @@ function parseQuantity(text: string): { quantity?: number; remaining: string } {
 
   // Handle ranges (e.g., "2-3") - take the midpoint
   if (quantityStr.includes("-")) {
-    const [min, max] = quantityStr.split("-").map(s => parseFloat(s.trim()));
+    const [min, max] = quantityStr.split("-").map((s) => parseFloat(s.trim()));
     return { quantity: (min + max) / 2, remaining };
   }
 
@@ -84,7 +158,7 @@ function parseUnit(text: string): { unit?: string; remaining: string } {
     if (pattern.test(lowerText)) {
       return {
         unit: unit,
-        remaining: text.slice(unit.length).trim()
+        remaining: text.slice(unit.length).trim(),
       };
     }
   }
@@ -110,10 +184,10 @@ function parsePreparation(text: string): { preparation?: string; ingredient: str
   const commaMatch = text.match(/,\s*(.+)$/);
   if (commaMatch) {
     const potentialPrep = commaMatch[1].trim().toLowerCase();
-    if (PREPARATIONS.some(p => potentialPrep.includes(p))) {
+    if (PREPARATIONS.some((p) => potentialPrep.includes(p))) {
       return {
         preparation: commaMatch[1].trim(),
-        ingredient: text.substring(0, text.lastIndexOf(",")).trim()
+        ingredient: text.substring(0, text.lastIndexOf(",")).trim(),
       };
     }
   }
@@ -123,7 +197,7 @@ function parsePreparation(text: string): { preparation?: string; ingredient: str
     if (lowerText.endsWith(prep)) {
       return {
         preparation: prep,
-        ingredient: text.slice(0, -(prep.length)).trim()
+        ingredient: text.slice(0, -prep.length).trim(),
       };
     }
   }
@@ -160,7 +234,7 @@ export function parseIngredient(ingredientStr: string): ParsedIngredient {
     quantity,
     unit,
     ingredient: ingredient.trim(),
-    preparation
+    preparation,
   };
 }
 

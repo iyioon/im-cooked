@@ -4,6 +4,7 @@
  */
 
 import { Message } from "./chat-storage";
+import { STORAGE_LIMITS } from "./constants";
 
 export interface ChatSession {
   id: string;
@@ -21,7 +22,6 @@ export interface ChatSession {
 
 const SESSIONS_STORAGE_KEY = "im-cooked-sessions";
 const ACTIVE_SESSION_KEY = "im-cooked-active-session";
-const MAX_SESSIONS = 50; // Limit number of stored sessions
 
 /**
  * Generate a unique session ID
@@ -81,7 +81,7 @@ export function loadSessions(): ChatSession[] {
 export function saveSessions(sessions: ChatSession[]): void {
   try {
     // Limit number of sessions
-    const sessionsToStore = sessions.slice(-MAX_SESSIONS);
+    const sessionsToStore = sessions.slice(-STORAGE_LIMITS.MAX_SESSIONS);
 
     // Convert Date objects to ISO strings
     const serialized = sessionsToStore.map((session) => ({
@@ -130,10 +130,7 @@ export function setActiveSessionId(sessionId: string): void {
 /**
  * Create a new session
  */
-export function createSession(
-  userId?: string,
-  initialMessages: Message[] = []
-): ChatSession {
+export function createSession(userId?: string, initialMessages: Message[] = []): ChatSession {
   const sessions = loadSessions();
   const sessionId = generateSessionId();
 
@@ -217,17 +214,12 @@ export function deleteSession(sessionId: string): boolean {
 /**
  * Add a message to a session
  */
-export function addMessageToSession(
-  sessionId: string,
-  message: Message
-): ChatSession | null {
+export function addMessageToSession(sessionId: string, message: Message): ChatSession | null {
   const session = getSession(sessionId);
   if (!session) return null;
 
   const messages = [...session.messages, message];
-  const recipeCount =
-    (session.metadata?.recipeCount || 0) +
-    (message.recipes?.length || 0);
+  const recipeCount = (session.metadata?.recipeCount || 0) + (message.recipes?.length || 0);
 
   return updateSession(sessionId, {
     messages,
@@ -242,10 +234,7 @@ export function addMessageToSession(
 /**
  * Update session name
  */
-export function renameSession(
-  sessionId: string,
-  newName: string
-): ChatSession | null {
+export function renameSession(sessionId: string, newName: string): ChatSession | null {
   return updateSession(sessionId, { name: newName });
 }
 

@@ -1,13 +1,13 @@
 /**
  * Gemini Live API Client
  * Manages WebSocket connection and bidirectional communication
- * 
+ *
  * Supported Models for Live API (use with v1alpha):
  * - models/gemini-2.5-flash-native-audio-preview-09-2025 (Default - native audio support)
  * - models/gemini-2.0-flash-exp (Alternative - widely tested)
  * - models/gemini-live-2.5-flash-preview (Alternative)
  * - models/gemini-2.5-flash-lite-preview-06-17 (Alternative - lightweight)
- * 
+ *
  * IMPORTANT: Use v1alpha API version for Live API, not v1beta
  * IMPORTANT: Model names must include the "models/" prefix
  */
@@ -79,9 +79,11 @@ export class GeminiLiveClient extends EventEmitter<GeminiLiveEvents> {
               // Hard-coded to use native audio model
               model: "models/gemini-2.5-flash-native-audio-preview-09-2025",
               ...(this.config.systemInstruction && {
-                systemInstruction: { parts: [{ text: this.config.systemInstruction }] }
+                systemInstruction: { parts: [{ text: this.config.systemInstruction }] },
               }),
-              ...(liveConfig?.generationConfig && { generationConfig: liveConfig.generationConfig }),
+              ...(liveConfig?.generationConfig && {
+                generationConfig: liveConfig.generationConfig,
+              }),
               ...(this.config.tools && { tools: this.config.tools }),
             },
           };
@@ -94,12 +96,12 @@ export class GeminiLiveClient extends EventEmitter<GeminiLiveEvents> {
 
         this.ws.onmessage = async (event) => {
           let textData: string;
-          
+
           // Log the actual type for debugging
           logger.log("Received message type:", typeof event.data);
           logger.log("Is Blob:", event.data instanceof Blob);
           logger.log("Is ArrayBuffer:", event.data instanceof ArrayBuffer);
-          
+
           if (typeof event.data === "string") {
             textData = event.data;
           } else if (event.data instanceof Blob) {
@@ -133,7 +135,7 @@ export class GeminiLiveClient extends EventEmitter<GeminiLiveEvents> {
           logger.log("WebSocket closed:", event.code, event.reason);
           this.connectionState = "disconnected";
           this.emit("close", event);
-          
+
           if (event.code !== 1000) {
             reject(new Error(`WebSocket closed with code ${event.code}: ${event.reason}`));
           }
@@ -250,9 +252,9 @@ export class GeminiLiveClient extends EventEmitter<GeminiLiveEvents> {
     try {
       logger.log("Attempting to parse message, length:", data.length);
       logger.log("First 100 chars:", data.substring(0, 100));
-      
+
       const message = JSON.parse(data) as ServerMessage;
-      
+
       logger.log("Parsed message type:", Object.keys(message)[0]);
 
       if (isSetupCompleteMessage(message)) {
@@ -317,7 +319,10 @@ export class GeminiLiveClient extends EventEmitter<GeminiLiveEvents> {
         } else if ("functionCall" in part && part.functionCall) {
           // Function calls in modelTurn.parts don't have IDs
           // These are handled separately via toolCall messages which include proper IDs
-          logger.log("Function call in modelTurn (ignoring, will be handled via toolCall message):", part.functionCall);
+          logger.log(
+            "Function call in modelTurn (ignoring, will be handled via toolCall message):",
+            part.functionCall
+          );
         }
       }
     }
@@ -339,5 +344,4 @@ export class GeminiLiveClient extends EventEmitter<GeminiLiveEvents> {
       logger.warn("Cannot send message: WebSocket not ready");
     }
   }
-
 }

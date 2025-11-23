@@ -1,6 +1,6 @@
 /**
  * Intent Detection Prompt Template
- * 
+ *
  * Classifies user input into different intent categories to route
  * to appropriate handling logic
  */

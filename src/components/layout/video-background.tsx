@@ -15,9 +15,9 @@ export function VideoBackground() {
   }, []);
 
   return (
-    <div 
+    <div
       className={`absolute inset-0 z-0 w-full h-full overflow-hidden transition-opacity duration-[2000ms] ${
-        isLoaded ? 'opacity-100' : 'opacity-0'
+        isLoaded ? "opacity-100" : "opacity-0"
       }`}
     >
       <iframe

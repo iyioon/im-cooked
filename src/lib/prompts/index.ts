@@ -1,6 +1,6 @@
 /**
  * Centralized Prompt Templates
- * 
+ *
  * This directory contains all Gemini AI prompt templates used throughout the application.
  * Organizing prompts in one place makes them easier to maintain, test, and version.
  */
@@ -20,12 +20,12 @@ export type { MatchIngredientParams } from "./match-ingredient";
 export { buildIntentDetectionPrompt } from "./intent-detection";
 export type { IntentDetectionParams, IntentDetectionResponse } from "./intent-detection";
 
-export { 
-  buildCookingSessionIntentPrompt, 
+export {
+  buildCookingSessionIntentPrompt,
   isObviouslyOffTopic,
-  generateRejectionMessage 
+  generateRejectionMessage,
 } from "./cooking-session-intent";
-export type { 
-  CookingSessionIntentParams, 
-  CookingSessionIntentResponse 
+export type {
+  CookingSessionIntentParams,
+  CookingSessionIntentResponse,
 } from "./cooking-session-intent";

@@ -11,15 +11,7 @@ import { SubstitutionDialog } from "@/components/features/substitution/substitut
 import { useModifiedRecipe } from "@/hooks/useModifiedRecipe";
 import { createCookingSession } from "@/lib/cooking-session-manager";
 import { loadPreferences } from "@/lib/preferences-manager";
-import {
-  ArrowLeft,
-  Clock,
-  ChefHat,
-  Users,
-  ExternalLink,
-  AlertCircle,
-  Replace,
-} from "lucide-react";
+import { ArrowLeft, Clock, ChefHat, Users, ExternalLink, AlertCircle, Replace } from "lucide-react";
 
 interface RecipeDetailClientProps {
   recipeId: string;
@@ -123,8 +115,10 @@ export function RecipeDetailClient({ recipeId }: RecipeDetailClientProps) {
     }
   };
 
-  const displayIngredients = modifiedIngredients.length > 0 ? modifiedIngredients : recipe?.ingredients || [];
-  const displayInstructions = modifiedInstructions.length > 0 ? modifiedInstructions : recipe?.instructions || [];
+  const displayIngredients =
+    modifiedIngredients.length > 0 ? modifiedIngredients : recipe?.ingredients || [];
+  const displayInstructions =
+    modifiedInstructions.length > 0 ? modifiedInstructions : recipe?.instructions || [];
 
   if (loading) {
     return <RecipeDetailLoading />;
@@ -160,13 +154,9 @@ export function RecipeDetailClient({ recipeId }: RecipeDetailClientProps) {
     <div className="min-h-screen bg-black text-white">
       {/* Hero Image */}
       <div className="relative h-96 w-full overflow-hidden">
-        <img
-          src={recipe.imageUrl}
-          alt={recipe.title}
-          className="h-full w-full object-cover"
-        />
+        <img src={recipe.imageUrl} alt={recipe.title} className="h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent" />
-        
+
         {/* Back Button */}
         <Button
           onClick={() => router.push("/dashboard")}
@@ -183,9 +173,7 @@ export function RecipeDetailClient({ recipeId }: RecipeDetailClientProps) {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-start justify-between gap-4 mb-4">
-            <h1 className="text-4xl md:text-5xl font-bold text-white">
-              {recipe.title}
-            </h1>
+            <h1 className="text-4xl md:text-5xl font-bold text-white">{recipe.title}</h1>
             <Badge
               variant="secondary"
               className="bg-white/10 backdrop-blur-sm text-white border-white/20 shrink-0"
@@ -268,8 +256,8 @@ export function RecipeDetailClient({ recipeId }: RecipeDetailClientProps) {
                     recipe.difficulty === "Easy"
                       ? "bg-green-500/20 text-green-400 border-green-500/50"
                       : recipe.difficulty === "Medium"
-                      ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/50"
-                      : "bg-red-500/20 text-red-400 border-red-500/50"
+                        ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/50"
+                        : "bg-red-500/20 text-red-400 border-red-500/50"
                   }
                 >
                   {recipe.difficulty}
@@ -416,33 +404,25 @@ export function RecipeDetailClient({ recipeId }: RecipeDetailClientProps) {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {recipe.nutrition.calories && (
                       <div className="text-center p-4 bg-white/5 rounded-lg border border-white/10">
-                        <p className="text-2xl font-bold text-white">
-                          {recipe.nutrition.calories}
-                        </p>
+                        <p className="text-2xl font-bold text-white">{recipe.nutrition.calories}</p>
                         <p className="text-sm text-gray-400">Calories</p>
                       </div>
                     )}
                     {recipe.nutrition.protein && (
                       <div className="text-center p-4 bg-white/5 rounded-lg border border-white/10">
-                        <p className="text-2xl font-bold text-white">
-                          {recipe.nutrition.protein}
-                        </p>
+                        <p className="text-2xl font-bold text-white">{recipe.nutrition.protein}</p>
                         <p className="text-sm text-gray-400">Protein</p>
                       </div>
                     )}
                     {recipe.nutrition.carbs && (
                       <div className="text-center p-4 bg-white/5 rounded-lg border border-white/10">
-                        <p className="text-2xl font-bold text-white">
-                          {recipe.nutrition.carbs}
-                        </p>
+                        <p className="text-2xl font-bold text-white">{recipe.nutrition.carbs}</p>
                         <p className="text-sm text-gray-400">Carbs</p>
                       </div>
                     )}
                     {recipe.nutrition.fat && (
                       <div className="text-center p-4 bg-white/5 rounded-lg border border-white/10">
-                        <p className="text-2xl font-bold text-white">
-                          {recipe.nutrition.fat}
-                        </p>
+                        <p className="text-2xl font-bold text-white">{recipe.nutrition.fat}</p>
                         <p className="text-sm text-gray-400">Fat</p>
                       </div>
                     )}

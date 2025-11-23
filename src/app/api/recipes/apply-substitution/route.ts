@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  IngredientSubstitution,
-  RecipeDetail,
-  UserPreferences,
-} from "@/types/recipe";
+import { IngredientSubstitution, RecipeDetail, UserPreferences } from "@/types/recipe";
 import { applySubstitutionToRecipe } from "@/services/ai";
 
 interface ApplySubstitutionRequest {
@@ -19,10 +15,7 @@ export async function POST(request: NextRequest) {
     const { recipeTitle, recipe, selectedSubstitution, preferences } = body;
 
     if (!recipeTitle || !recipe || !selectedSubstitution) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
     // Merge dietary preferences

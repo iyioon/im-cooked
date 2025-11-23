@@ -5,7 +5,7 @@ import { addSubstitutionToSession, updateModifiedRecipe } from "@/lib/cooking-se
 interface AddSubstitutionRequest {
   sessionId: string;
   substitution: SubstitutionRecord;
-  modifiedRecipe?: RecipeDetail;  // Optional modified recipe to persist
+  modifiedRecipe?: RecipeDetail; // Optional modified recipe to persist
 }
 
 export async function POST(request: NextRequest) {
@@ -14,20 +14,14 @@ export async function POST(request: NextRequest) {
     const { sessionId, substitution, modifiedRecipe } = body;
 
     if (!sessionId || !substitution) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
     // Add substitution to the session
     let updatedSession = addSubstitutionToSession(sessionId, substitution);
 
     if (!updatedSession) {
-      return NextResponse.json(
-        { error: "Session not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Session not found" }, { status: 404 });
     }
 
     // If a modified recipe is provided, update the session's modified recipe

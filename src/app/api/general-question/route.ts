@@ -46,7 +46,7 @@ Provide a helpful, conversational answer:`;
     return NextResponse.json({ answer: answer.trim() });
   } catch (error) {
     console.error("Error in general question API:", error);
-    
+
     return NextResponse.json(
       { error: "Failed to answer question. Please try again." },
       { status: 500 }

@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { RecipeDetailWithContext } from '@/types/recipe';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import React, { useState } from "react";
+import { RecipeDetailWithContext } from "@/types/recipe";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   ChefHat,
   Clock,
@@ -17,10 +17,10 @@ import {
   RotateCcw,
   Replace,
   ChevronLeft,
-} from 'lucide-react';
-import { SubstitutionDialog } from '@/components/features/substitution/substitution-dialog';
-import { Checkbox } from '@/components/ui/checkbox';
-import { cn } from '@/lib/utils';
+} from "lucide-react";
+import { SubstitutionDialog } from "@/components/features/substitution/substitution-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
 
 interface RecipeSidebarProps {
   recipe: RecipeDetailWithContext | null;
@@ -39,9 +39,9 @@ export function RecipeSidebar({
   onStartCooking,
   onIngredientModified,
 }: RecipeSidebarProps) {
-  const [expandedSection, setExpandedSection] = useState<
-    'ingredients' | 'instructions' | null
-  >('ingredients');
+  const [expandedSection, setExpandedSection] = useState<"ingredients" | "instructions" | null>(
+    "ingredients"
+  );
   const [substitutionDialogOpen, setSubstitutionDialogOpen] = useState(false);
   const [selectedIngredient, setSelectedIngredient] = useState<string | null>(null);
 
@@ -51,7 +51,7 @@ export function RecipeSidebar({
     recipe.modifications.substitutions.length > 0 ||
     recipe.modifications.ingredientEdits.length > 0;
 
-  const toggleSection = (section: 'ingredients' | 'instructions') => {
+  const toggleSection = (section: "ingredients" | "instructions") => {
     setExpandedSection(expandedSection === section ? null : section);
   };
 
@@ -77,7 +77,6 @@ export function RecipeSidebar({
     onIngredientModified(resetRecipe);
   };
 
-
   const handleApplySubstitution = (substitutionResponse: any) => {
     // Convert SubstitutionResponse to RecipeDetailWithContext
     // Apply instruction changes to both instructions array and steps array
@@ -90,30 +89,31 @@ export function RecipeSidebar({
         })
       : recipe.current.instructions;
 
-    const updatedSteps = substitutionResponse.modifiedRecipe?.instructionChanges && recipe.current.steps
-      ? recipe.current.steps.map((step) => {
-          // Match by original instruction text first
-          const originalInstruction = recipe.current.instructions[step.stepNumber - 1];
-          if (originalInstruction) {
-            const change = substitutionResponse.modifiedRecipe.instructionChanges.find(
-              (c: any) => c.original === originalInstruction
-            );
-            if (change) {
-              return { ...step, text: change.modified };
+    const updatedSteps =
+      substitutionResponse.modifiedRecipe?.instructionChanges && recipe.current.steps
+        ? recipe.current.steps.map((step) => {
+            // Match by original instruction text first
+            const originalInstruction = recipe.current.instructions[step.stepNumber - 1];
+            if (originalInstruction) {
+              const change = substitutionResponse.modifiedRecipe.instructionChanges.find(
+                (c: any) => c.original === originalInstruction
+              );
+              if (change) {
+                return { ...step, text: change.modified };
+              }
             }
-          }
 
-          // Fallback: match by step number
-          const changeByStep = substitutionResponse.modifiedRecipe.instructionChanges.find(
-            (c: any) => c.step === step.stepNumber
-          );
-          if (changeByStep) {
-            return { ...step, text: changeByStep.modified };
-          }
+            // Fallback: match by step number
+            const changeByStep = substitutionResponse.modifiedRecipe.instructionChanges.find(
+              (c: any) => c.step === step.stepNumber
+            );
+            if (changeByStep) {
+              return { ...step, text: changeByStep.modified };
+            }
 
-          return step;
-        })
-      : recipe.current.steps;
+            return step;
+          })
+        : recipe.current.steps;
 
     const modifiedRecipe: RecipeDetailWithContext = {
       ...recipe,
@@ -147,8 +147,8 @@ export function RecipeSidebar({
       {/* Sidebar Container - Split view on right side */}
       <div
         className={cn(
-          'relative bg-gradient-to-b from-white/5 to-white/[0.02] border-l border-white/10 overflow-hidden transition-all duration-300 ease-in-out flex flex-col',
-          isExpanded ? 'w-96' : 'w-16'
+          "relative bg-gradient-to-b from-white/5 to-white/[0.02] border-l border-white/10 overflow-hidden transition-all duration-300 ease-in-out flex flex-col",
+          isExpanded ? "w-96" : "w-16"
         )}
       >
         <div className="h-full flex flex-col overflow-hidden">
@@ -209,249 +209,234 @@ export function RecipeSidebar({
 
           {/* Scrollable Content */}
           {isExpanded && (
-          <div className="flex-1 overflow-y-auto no-scrollbar">
-            {/* Recipe Image */}
-            {recipe.current.imageUrl && (
-              <div className="relative w-full aspect-video bg-white/5 overflow-hidden">
-                <img
-                  src={recipe.current.imageUrl}
-                  alt={recipe.current.title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
-
-            {/* Recipe Meta */}
-            <div className="p-4 space-y-3 border-b border-white/10">
-              {/* Cooking Times and Servings */}
-              <div className="grid grid-cols-2 gap-2">
-                {recipe.current.prepTime && (
-                  <div className="flex items-center gap-2 text-xs text-gray-400">
-                    <Clock className="h-4 w-4 text-blue-400" />
-                    <span>Prep: {recipe.current.prepTime}</span>
-                  </div>
-                )}
-                {recipe.current.cookTime && (
-                  <div className="flex items-center gap-2 text-xs text-gray-400">
-                    <Flame className="h-4 w-4 text-orange-400" />
-                    <span>Cook: {recipe.current.cookTime}</span>
-                  </div>
-                )}
-                {recipe.current.servings && (
-                  <div className="flex items-center gap-2 text-xs text-gray-400">
-                    <Users className="h-4 w-4 text-green-400" />
-                    <span>{recipe.current.servings}</span>
-                  </div>
-                )}
-                {recipe.current.difficulty && (
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant="secondary"
-                      className="text-xs bg-yellow-500/10 text-yellow-200 border-yellow-500/20"
-                    >
-                      {recipe.current.difficulty}
-                    </Badge>
-                  </div>
-                )}
-              </div>
-
-              {/* Quick Stats */}
-              <div className="text-xs text-gray-400 space-y-1">
-                {recipe.current.ingredients && (
-                  <p>
-                    <span className="text-gray-300 font-medium">
-                      {recipe.current.ingredients.length}
-                    </span>{' '}
-                    ingredients
-                  </p>
-                )}
-                {recipe.current.instructions && (
-                  <p>
-                    <span className="text-gray-300 font-medium">
-                      {recipe.current.instructions.length}
-                    </span>{' '}
-                    steps
-                  </p>
-                )}
-              </div>
-
-              {/* Source Link */}
-              <a
-                href={recipe.current.sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
-              >
-                View Original <ExternalLink className="h-3 w-3" />
-              </a>
-            </div>
-
-            {/* Warnings Section */}
-            {recipe.modifications.warnings.length > 0 && (
-              <div className="p-4 border-b border-white/10 bg-red-500/10 border-l-4 border-l-red-500">
-                <p className="text-xs font-semibold text-red-300 mb-2">
-                  ⚠️ Warnings
-                </p>
-                <ul className="text-xs text-red-200 space-y-1">
-                  {recipe.modifications.warnings.map((warning, idx) => (
-                    <li key={idx} className="flex gap-2">
-                      <span className="shrink-0">•</span>
-                      <span>{warning}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Ingredients Section */}
-            <div className="border-b border-white/10">
-              <button
-                onClick={() => toggleSection('ingredients')}
-                className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <ChefHat className="h-4 w-4 text-blue-400" />
-                  <span className="font-semibold text-white text-sm">Ingredients</span>
+            <div className="flex-1 overflow-y-auto no-scrollbar">
+              {/* Recipe Image */}
+              {recipe.current.imageUrl && (
+                <div className="relative w-full aspect-video bg-white/5 overflow-hidden">
+                  <img
+                    src={recipe.current.imageUrl}
+                    alt={recipe.current.title}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
-                {expandedSection === 'ingredients' ? (
-                  <ChevronUp className="h-4 w-4 text-gray-400" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 text-gray-400" />
-                )}
-              </button>
+              )}
 
-              {expandedSection === 'ingredients' && recipe.current.ingredients && (
-                <div className="p-4 pb-4 space-y-3 border-t border-white/10 max-h-100 overflow-y-auto no-scrollbar">
-                  {recipe.current.ingredients.map((ingredient: string, idx: number) => {
-                    const isModified = recipe.modifications.substitutions.some(
-                      (sub) =>
-                        sub.substitutedWith.toLowerCase() ===
-                        ingredient.toLowerCase()
-                    );
-                    const editedIngredient =
-                      recipe.modifications.ingredientEdits.find(
-                        (edit) =>
-                          edit.originalIngredient ===
-                          recipe.original.ingredients[idx]
+              {/* Recipe Meta */}
+              <div className="p-4 space-y-3 border-b border-white/10">
+                {/* Cooking Times and Servings */}
+                <div className="grid grid-cols-2 gap-2">
+                  {recipe.current.prepTime && (
+                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                      <Clock className="h-4 w-4 text-blue-400" />
+                      <span>Prep: {recipe.current.prepTime}</span>
+                    </div>
+                  )}
+                  {recipe.current.cookTime && (
+                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                      <Flame className="h-4 w-4 text-orange-400" />
+                      <span>Cook: {recipe.current.cookTime}</span>
+                    </div>
+                  )}
+                  {recipe.current.servings && (
+                    <div className="flex items-center gap-2 text-xs text-gray-400">
+                      <Users className="h-4 w-4 text-green-400" />
+                      <span>{recipe.current.servings}</span>
+                    </div>
+                  )}
+                  {recipe.current.difficulty && (
+                    <div className="flex items-center gap-2">
+                      <Badge
+                        variant="secondary"
+                        className="text-xs bg-yellow-500/10 text-yellow-200 border-yellow-500/20"
+                      >
+                        {recipe.current.difficulty}
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+
+                {/* Quick Stats */}
+                <div className="text-xs text-gray-400 space-y-1">
+                  {recipe.current.ingredients && (
+                    <p>
+                      <span className="text-gray-300 font-medium">
+                        {recipe.current.ingredients.length}
+                      </span>{" "}
+                      ingredients
+                    </p>
+                  )}
+                  {recipe.current.instructions && (
+                    <p>
+                      <span className="text-gray-300 font-medium">
+                        {recipe.current.instructions.length}
+                      </span>{" "}
+                      steps
+                    </p>
+                  )}
+                </div>
+
+                {/* Source Link */}
+                <a
+                  href={recipe.current.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  View Original <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+
+              {/* Warnings Section */}
+              {recipe.modifications.warnings.length > 0 && (
+                <div className="p-4 border-b border-white/10 bg-red-500/10 border-l-4 border-l-red-500">
+                  <p className="text-xs font-semibold text-red-300 mb-2">⚠️ Warnings</p>
+                  <ul className="text-xs text-red-200 space-y-1">
+                    {recipe.modifications.warnings.map((warning, idx) => (
+                      <li key={idx} className="flex gap-2">
+                        <span className="shrink-0">•</span>
+                        <span>{warning}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Ingredients Section */}
+              <div className="border-b border-white/10">
+                <button
+                  onClick={() => toggleSection("ingredients")}
+                  className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <ChefHat className="h-4 w-4 text-blue-400" />
+                    <span className="font-semibold text-white text-sm">Ingredients</span>
+                  </div>
+                  {expandedSection === "ingredients" ? (
+                    <ChevronUp className="h-4 w-4 text-gray-400" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                  )}
+                </button>
+
+                {expandedSection === "ingredients" && recipe.current.ingredients && (
+                  <div className="p-4 pb-4 space-y-3 border-t border-white/10 max-h-100 overflow-y-auto no-scrollbar">
+                    {recipe.current.ingredients.map((ingredient: string, idx: number) => {
+                      const isModified = recipe.modifications.substitutions.some(
+                        (sub) => sub.substitutedWith.toLowerCase() === ingredient.toLowerCase()
+                      );
+                      const editedIngredient = recipe.modifications.ingredientEdits.find(
+                        (edit) => edit.originalIngredient === recipe.original.ingredients[idx]
                       );
 
-                    return (
-                      <li key={idx} className="flex items-start gap-2 text-gray-300 group">
-                        <Checkbox className="mt-1 border-white/20 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600" />
-                        <div className="flex-1 min-w-0">
-                          <span className="text-sm break-words">
-                            {ingredient}
-                          </span>
-                          {isModified && (
-                            <p className="text-xs text-blue-300 mt-1">
-                              Substituted from:{' '}
-                              {recipe.original.ingredients[idx]}
-                            </p>
-                          )}
-                          {editedIngredient && (
-                            <p className="text-xs text-amber-300 mt-1">
-                              Edited from:{' '}
-                              {editedIngredient.originalIngredient}
-                            </p>
-                          )}
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() =>
-                            handleSubstitutionClick(ingredient)
-                          }
-                          className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500/20 text-blue-400 shrink-0"
-                          title="Substitute ingredient"
-                        >
-                          <Replace className="h-3.5 w-3.5" />
-                        </Button>
-                      </li>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Instructions Section */}
-            <div className="border-b border-white/10">
-              <button
-                onClick={() => toggleSection('instructions')}
-                className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <Flame className="h-4 w-4 text-orange-400" />
-                  <span className="font-semibold text-white text-sm">Instructions</span>
-                </div>
-                {expandedSection === 'instructions' ? (
-                  <ChevronUp className="h-4 w-4 text-gray-400" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 text-gray-400" />
+                      return (
+                        <li key={idx} className="flex items-start gap-2 text-gray-300 group">
+                          <Checkbox className="mt-1 border-white/20 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600" />
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm break-words">{ingredient}</span>
+                            {isModified && (
+                              <p className="text-xs text-blue-300 mt-1">
+                                Substituted from: {recipe.original.ingredients[idx]}
+                              </p>
+                            )}
+                            {editedIngredient && (
+                              <p className="text-xs text-amber-300 mt-1">
+                                Edited from: {editedIngredient.originalIngredient}
+                              </p>
+                            )}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleSubstitutionClick(ingredient)}
+                            className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-500/20 text-blue-400 shrink-0"
+                            title="Substitute ingredient"
+                          >
+                            <Replace className="h-3.5 w-3.5" />
+                          </Button>
+                        </li>
+                      );
+                    })}
+                  </div>
                 )}
-              </button>
+              </div>
 
-              {expandedSection === 'instructions' && recipe.current.instructions && (
-                <div className="p-4 space-y-3 border-t border-white/10 max-h-100 overflow-y-auto no-scrollbar">
-                  {recipe.current.instructions.map((instruction: string, idx: number) => (
-                    <div key={idx} className="text-xs text-gray-300 leading-relaxed">
-                      <span className="text-blue-400 font-semibold">
-                        Step {idx + 1}:{' '}
-                      </span>
-                      {instruction}
-                    </div>
-                  ))}
+              {/* Instructions Section */}
+              <div className="border-b border-white/10">
+                <button
+                  onClick={() => toggleSection("instructions")}
+                  className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Flame className="h-4 w-4 text-orange-400" />
+                    <span className="font-semibold text-white text-sm">Instructions</span>
+                  </div>
+                  {expandedSection === "instructions" ? (
+                    <ChevronUp className="h-4 w-4 text-gray-400" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-gray-400" />
+                  )}
+                </button>
+
+                {expandedSection === "instructions" && recipe.current.instructions && (
+                  <div className="p-4 space-y-3 border-t border-white/10 max-h-100 overflow-y-auto no-scrollbar">
+                    {recipe.current.instructions.map((instruction: string, idx: number) => (
+                      <div key={idx} className="text-xs text-gray-300 leading-relaxed">
+                        <span className="text-blue-400 font-semibold">Step {idx + 1}: </span>
+                        {instruction}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Nutrition */}
+              {recipe.current.nutrition && (
+                <div className="p-4 border-b border-white/10">
+                  <p className="font-semibold text-white text-sm mb-3">Nutrition</p>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-400">
+                    {recipe.current.nutrition.calories && (
+                      <div>
+                        <p className="text-gray-300">{recipe.current.nutrition.calories}</p>
+                        <p className="text-gray-500">Calories</p>
+                      </div>
+                    )}
+                    {recipe.current.nutrition.protein && (
+                      <div>
+                        <p className="text-gray-300">{recipe.current.nutrition.protein}</p>
+                        <p className="text-gray-500">Protein</p>
+                      </div>
+                    )}
+                    {recipe.current.nutrition.carbs && (
+                      <div>
+                        <p className="text-gray-300">{recipe.current.nutrition.carbs}</p>
+                        <p className="text-gray-500">Carbs</p>
+                      </div>
+                    )}
+                    {recipe.current.nutrition.fat && (
+                      <div>
+                        <p className="text-gray-300">{recipe.current.nutrition.fat}</p>
+                        <p className="text-gray-500">Fat</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Reset Button */}
+              {hasModifications && (
+                <div className="p-4 border-t border-white/10">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResetRecipe}
+                    className="w-full border-white/20 hover:bg-white/5 text-gray-300 text-xs h-8"
+                  >
+                    <RotateCcw className="h-3 w-3 mr-2" />
+                    Reset to Original
+                  </Button>
                 </div>
               )}
             </div>
-
-            {/* Nutrition */}
-            {recipe.current.nutrition && (
-              <div className="p-4 border-b border-white/10">
-                <p className="font-semibold text-white text-sm mb-3">Nutrition</p>
-                <div className="grid grid-cols-2 gap-2 text-xs text-gray-400">
-                  {recipe.current.nutrition.calories && (
-                    <div>
-                      <p className="text-gray-300">{recipe.current.nutrition.calories}</p>
-                      <p className="text-gray-500">Calories</p>
-                    </div>
-                  )}
-                  {recipe.current.nutrition.protein && (
-                    <div>
-                      <p className="text-gray-300">{recipe.current.nutrition.protein}</p>
-                      <p className="text-gray-500">Protein</p>
-                    </div>
-                  )}
-                  {recipe.current.nutrition.carbs && (
-                    <div>
-                      <p className="text-gray-300">{recipe.current.nutrition.carbs}</p>
-                      <p className="text-gray-500">Carbs</p>
-                    </div>
-                  )}
-                  {recipe.current.nutrition.fat && (
-                    <div>
-                      <p className="text-gray-300">{recipe.current.nutrition.fat}</p>
-                      <p className="text-gray-500">Fat</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Reset Button */}
-            {hasModifications && (
-              <div className="p-4 border-t border-white/10">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleResetRecipe}
-                  className="w-full border-white/20 hover:bg-white/5 text-gray-300 text-xs h-8"
-                >
-                  <RotateCcw className="h-3 w-3 mr-2" />
-                  Reset to Original
-                </Button>
-              </div>
-            )}
-          </div>
           )}
         </div>
       </div>
